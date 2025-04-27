@@ -1,0 +1,66 @@
+### Variables
+@baseUrl = http://localhost:3000/api
+@itemId = 01
+
+### Get all items
+GET {{baseUrl}}/items
+
+### Get single item
+GET {{baseUrl}}/items/{{itemId}}
+
+### Create new item
+POST {{baseUrl}}/items
+Content-Type: application/json
+
+{
+    "name": "Test Item",
+    "description": "This is a test item description"
+}
+
+### Update item
+PUT {{baseUrl}}/items/{{itemId}}
+Content-Type: application/json
+
+{
+    "name": "Updated Item Name",
+    "description": "This is an updated description"
+}
+
+### Delete item
+DELETE {{baseUrl}}/items/{{itemId}}
+
+### Test workflow
+# 1. Create an item and store its ID
+POST {{baseUrl}}/items
+Content-Type: application/json
+
+{
+    "name": "Workflow Test Item",
+    "description": "Testing the complete CRUD workflow"
+}
+
+###
+# 2. Get the created item
+# Replace <item_id> with the ID from the previous response
+GET {{baseUrl}}/items/<item_id>
+
+###
+# 3. Update the item
+# Replace <item_id> with the same ID
+PUT {{baseUrl}}/items/<item_id>
+Content-Type: application/json
+
+{
+    "name": "Updated Workflow Item",
+    "description": "Updated workflow test description"
+}
+
+###
+# 4. Delete the item
+# Replace <item_id> with the same ID
+DELETE {{baseUrl}}/items/<item_id>
+
+###
+# 5. Verify item is deleted
+GET {{baseUrl}}/items/<item_id>
+
