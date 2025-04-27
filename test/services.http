@@ -1,0 +1,27 @@
+### Variables
+@baseUrl = http://localhost:3000/api/services
+
+### Get status of all services
+GET {{baseUrl}}
+
+### Get status of specific service
+GET {{baseUrl}}/bind
+
+### Start a service
+POST {{baseUrl}}/bind/start
+
+### Stop a service
+POST {{baseUrl}}/bind/stop
+
+### Restart a service
+POST {{baseUrl}}/bind/restart
+
+### Test DHCP service
+GET {{baseUrl}}/dhcpd
+
+### Test HTTP service
+GET {{baseUrl}}/httpd
+
+### Test invalid service (should return 400)
+GET {{baseUrl}}/invalid-service
+
