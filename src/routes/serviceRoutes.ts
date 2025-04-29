@@ -18,5 +18,11 @@ router.post('/:service/stop', servicesController.stopService);
 // Restart a service
 router.post('/:service/restart', servicesController.restartService);
 
+// service status
+router.get('/:service/status', servicesController.getServiceStatus);
+
+// service logs
+router.get('/:service/logs', servicesController.getServiceLogs);
+
 export default router;
 
