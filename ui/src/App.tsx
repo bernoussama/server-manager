@@ -1,4 +1,4 @@
-import { Layers, Activity, Settings, Terminal, Globe, Network, Server } from 'lucide-react';
+import { Layers, Activity, Settings, Terminal, Globe, Network, Server, Home, BarChart } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { ThemeProvider } from './components/theme-provider';
 import { ThemeToggle } from './components/theme-toggle';
+import { Sidebar } from './components/ui/sidebar';
 
 function ServiceCard({ name, status, memory, cpu }: {
   name: string;
@@ -270,93 +271,110 @@ function HTTPConfig() {
 }
 
 export default function App() {
+  const sidebarItems = [
+    { title: "Dashboard", href: "/", icon: <Home className="h-4 w-4" /> },
+    { title: "System Stats", href: "/stats", icon: <BarChart className="h-4 w-4" /> },
+    { title: "DNS Config", href: "/dns", icon: <Globe className="h-4 w-4" /> },
+    { title: "DHCP Config", href: "/dhcp", icon: <Network className="h-4 w-4" /> },
+    { title: "HTTP Config", href: "/http", icon: <Server className="h-4 w-4" /> },
+    { title: "Services", href: "/services", icon: <Layers className="h-4 w-4" /> },
+    { title: "Settings", href: "/settings", icon: <Settings className="h-4 w-4" /> },
+  ];
+
   return (
     <ThemeProvider defaultTheme="system" storageKey="app-theme">
-      <div className="flex flex-col space-y-8 max-w-7xl mx-auto">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">System Dashboard</h1>
-          <ThemeToggle />
-        </div>
-
-        <SystemStats />
-
-        <Tabs defaultValue="services" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="services">Services</TabsTrigger>
-            <TabsTrigger value="dns">DNS Config</TabsTrigger>
-            <TabsTrigger value="dhcp">DHCP Config</TabsTrigger>
-            <TabsTrigger value="http">HTTP Config</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="services" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-4">
-                <ServiceCard
-                  name="DNS Server"
-                  status="running"
-                  memory="128MB"
-                  cpu="2%"
-                />
-                <ServiceCard
-                  name="DHCP Server"
-                  status="running"
-                  memory="96MB"
-                  cpu="1%"
-                />
-                <ServiceCard
-                  name="HTTP Server"
-                  status="stopped"
-                  memory="0MB"
-                  cpu="0%"
-                />
+      <div className="flex min-h-screen bg-background">
+        <Sidebar items={sidebarItems} />
+        <div className="flex-1 md:ml-64">
+          <div className="flex flex-col space-y-8 p-8">
+            <div className="flex justify-between items-center">
+              <h1 className="text-3xl font-bold md:block hidden">System Dashboard</h1>
+              <div className="flex items-center space-x-2">
+                <ThemeToggle />
               </div>
-              <ServiceLogs />
             </div>
-          </TabsContent>
 
-          <TabsContent value="dns">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Globe className="h-5 w-5" />
-                  DNS Configuration
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <DNSConfig />
-              </CardContent>
-            </Card>
-          </TabsContent>
+            <SystemStats />
 
-          <TabsContent value="dhcp">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Network className="h-5 w-5" />
-                  DHCP Configuration
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <DHCPConfig />
-              </CardContent>
-            </Card>
-          </TabsContent>
+            <Tabs defaultValue="services" className="space-y-4">
+              <TabsList>
+                <TabsTrigger value="services">Services</TabsTrigger>
+                <TabsTrigger value="dns">DNS Config</TabsTrigger>
+                <TabsTrigger value="dhcp">DHCP Config</TabsTrigger>
+                <TabsTrigger value="http">HTTP Config</TabsTrigger>
+              </TabsList>
 
-          <TabsContent value="http">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Server className="h-5 w-5" />
-                  HTTP Configuration
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <HTTPConfig />
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+              <TabsContent value="services" className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-4">
+                    <ServiceCard
+                      name="DNS Server"
+                      status="running"
+                      memory="128MB"
+                      cpu="2%"
+                    />
+                    <ServiceCard
+                      name="DHCP Server"
+                      status="running"
+                      memory="96MB"
+                      cpu="1%"
+                    />
+                    <ServiceCard
+                      name="HTTP Server"
+                      status="stopped"
+                      memory="0MB"
+                      cpu="0%"
+                    />
+                  </div>
+                  <ServiceLogs />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="dns">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Globe className="h-5 w-5" />
+                      DNS Configuration
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <DNSConfig />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="dhcp">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Network className="h-5 w-5" />
+                      DHCP Configuration
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <DHCPConfig />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="http">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Server className="h-5 w-5" />
+                      HTTP Configuration
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <HTTPConfig />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </div>
       </div>
-    </ThemeProvider >
+    </ThemeProvider>
   );
 }
