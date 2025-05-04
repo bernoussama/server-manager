@@ -22,7 +22,7 @@ router.post('/:service/restart', servicesController.restartService);
 router.get('/:service/status', servicesController.getServiceStatus);
 
 // service logs
-router.get('/:service/logs', servicesController.getServiceLogs);
+// router.get('/:service/logs', servicesController.getServiceLogs);
 
 export default router;
 
