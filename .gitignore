@@ -4,3 +4,6 @@ dist
 .vagrant
 .env
 drizzle
+
+# windsurf rules
+.windsurfrules
