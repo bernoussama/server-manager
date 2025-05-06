@@ -2,7 +2,7 @@ import apiClient from '../api';
 
 // Types for service-related data
 export type ServiceStatus = 'running' | 'stopped' | 'failed' | 'unknown';
-export type AllowedService = 'bind' | 'dhcpd' | 'httpd';
+export type AllowedService = 'named' | 'dhcpd' | 'httpd';
 
 export interface ServiceResponse {
   service: AllowedService;

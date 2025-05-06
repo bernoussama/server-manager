@@ -34,11 +34,11 @@ function ServiceCard({ name, status, memory, cpu }: {
   // Convert service name to the expected API format
   const getServiceId = (): AllowedService => {
     const serviceMap: Record<string, AllowedService> = {
-      'DNS Server': 'bind',
+      'DNS Server': 'named',
       'DHCP Server': 'dhcpd',
       'HTTP Server': 'httpd',
     };
-    return serviceMap[name] || 'bind';
+    return serviceMap[name] || 'named';
   };
 
   const handleStart = async () => {

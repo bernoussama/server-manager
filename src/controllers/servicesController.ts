@@ -5,7 +5,7 @@ import { ServiceManager } from '../lib/ServiceManager';
 const serviceManager = new ServiceManager();
 
 // Define allowed services for type safety and security
-type AllowedService = 'bind' | 'dhcpd' | 'httpd';
+type AllowedService = 'named' | 'dhcpd' | 'httpd';
 
 // Define possible service states
 type ServiceStatus = 'running' | 'stopped' | 'failed' | 'unknown';
@@ -18,7 +18,7 @@ interface ServiceResponse {
 
 // Validate if a service name is allowed
 const isAllowedService = (service: string): service is AllowedService => {
-  return ['bind', 'dhcpd', 'httpd'].includes(service);
+  return ['named', 'dhcpd', 'httpd'].includes(service);
 };
 
 class ServicesController {
@@ -30,7 +30,7 @@ class ServicesController {
     if (!isAllowedService(service)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid service name. Allowed services are: bind, dhcpd, httpd'
+        message: 'Invalid service name. Allowed services are: named, dhcpd, httpd'
       });
     }
 
@@ -64,7 +64,7 @@ class ServicesController {
     if (!isAllowedService(service)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid service name. Allowed services are: bind, dhcpd, httpd'
+        message: 'Invalid service name. Allowed services are: named, dhcpd, httpd'
       });
     }
 
@@ -96,7 +96,7 @@ class ServicesController {
     if (!isAllowedService(service)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid service name. Allowed services are: bind, dhcpd, httpd'
+        message: 'Invalid service name. Allowed services are: named, dhcpd, httpd'
       });
     }
 
@@ -128,7 +128,7 @@ class ServicesController {
     if (!isAllowedService(service)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid service name. Allowed services are: bind, dhcpd, httpd'
+        message: 'Invalid service name. Allowed services are: named, dhcpd, httpd'
       });
     }
 
@@ -156,7 +156,7 @@ class ServicesController {
 
   // Get status of all services
   public async getAllServicesStatus(req: Request, res: Response) {
-    const services: AllowedService[] = ['bind', 'dhcpd', 'httpd'];
+    const services: AllowedService[] = ['named', 'dhcpd', 'httpd'];
     const statuses: ServiceResponse[] = [];
 
     try {
@@ -184,4 +184,3 @@ class ServicesController {
 }
 
 export default new ServicesController();
-
