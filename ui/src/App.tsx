@@ -154,57 +154,73 @@ function ServiceCard({ name, status: initialStatus, memory, cpu }: {
   };
 
   return (
-    <Card className="mb-4">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">
-          {name}
-          <Badge
-            variant={status === 'running' ? 'default' : 'destructive'}
-            className="ml-2"
-          >
-            {status}
-            {isLoading.refreshing && '...'}
-          </Badge>
-        </CardTitle>
-        <div className="flex space-x-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
+    <Card className="p-4 rounded-xl shadow-md transition-transform hover:scale-[1.02] bg-card flex flex-col justify-between min-h-[200px]">
+      <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-muted mb-2">
+        <div className="flex items-center gap-2">
+          <CardTitle className="text-lg font-semibold flex items-center gap-2">
+            {name}
+            <Badge
+              variant={status === 'running' ? 'default' : 'destructive'}
+              className={`ml-2 px-3 py-1 text-xs font-bold rounded-full ${status === 'running' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}
+            >
+              {status}
+              {isLoading.refreshing && '...'}
+            </Badge>
+          </CardTitle>
+        </div>
+        <div className="flex space-x-1">
+          <Button
+            variant="default"
+            size="icon"
             onClick={handleStart}
             disabled={isLoading.start || isLoading.stop || isLoading.restart || status === 'running'}
+            className="rounded-full bg-green-500 hover:bg-green-600 text-white"
+            title="Start"
           >
-            {isLoading.start ? 'Starting...' : 'Start'}
+            {isLoading.start ? <span className="animate-spin">↻</span> : <span>▶</span>}
           </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="destructive"
+            size="icon"
             onClick={handleStop}
             disabled={isLoading.stop || isLoading.start || isLoading.restart || status === 'stopped'}
+            className="rounded-full"
+            title="Stop"
           >
-            {isLoading.stop ? 'Stopping...' : 'Stop'}
+            {isLoading.stop ? <span className="animate-spin">↻</span> : <span>■</span>}
           </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="icon"
             onClick={handleRestart}
             disabled={isLoading.restart || isLoading.start || isLoading.stop || status === 'stopped'}
+            className="rounded-full"
+            title="Restart"
           >
-            {isLoading.restart ? 'Restarting...' : 'Restart'}
+            {isLoading.restart ? <span className="animate-spin">↻</span> : <span>⟳</span>}
           </Button>
           <Button
             variant="ghost"
-            size="sm"
+            size="icon"
             onClick={refreshStatus}
             disabled={isLoading.refreshing || isLoading.start || isLoading.stop || isLoading.restart}
+            className="rounded-full"
+            title="Refresh"
           >
-            ↻
+            <span>↻</span>
           </Button>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="flex justify-between text-sm text-muted-foreground">
-          <div>Memory: {memory}</div>
-          <div>CPU: {cpu}</div>
+      <CardContent className="flex flex-col gap-2 mt-2">
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <div className="flex flex-col items-start">
+            <span className="font-medium text-xs text-foreground">Memory</span>
+            <span className="font-mono text-base">{memory}</span>
+          </div>
+          <div className="flex flex-col items-end">
+            <span className="font-medium text-xs text-foreground">CPU</span>
+            <span className="font-mono text-base">{cpu}</span>
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -470,29 +486,27 @@ export default function App() {
               </TabsList>
 
               <TabsContent value="services" className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-4">
-                    <ServiceCard
-                      name="DNS Server"
-                      status="running"
-                      memory="128MB"
-                      cpu="2%"
-                    />
-                    <ServiceCard
-                      name="DHCP Server"
-                      status="running"
-                      memory="96MB"
-                      cpu="1%"
-                    />
-                    <ServiceCard
-                      name="HTTP Server"
-                      status="stopped"
-                      memory="0MB"
-                      cpu="0%"
-                    />
-                  </div>
-                  <ServiceLogs />
+                <div className="grid gap-6 md:grid-cols-3">
+                  <ServiceCard
+                    name="DNS Server"
+                    status="running"
+                    memory="128MB"
+                    cpu="2%"
+                  />
+                  <ServiceCard
+                    name="DHCP Server"
+                    status="running"
+                    memory="96MB"
+                    cpu="1%"
+                  />
+                  <ServiceCard
+                    name="HTTP Server"
+                    status="stopped"
+                    memory="0MB"
+                    cpu="0%"
+                  />
                 </div>
+                <ServiceLogs />
               </TabsContent>
 
               <TabsContent value="dns">
