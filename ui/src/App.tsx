@@ -11,25 +11,39 @@ import { Separator } from '@/components/ui/separator';
 import { ThemeProvider } from './components/theme-provider';
 import { ThemeToggle } from './components/theme-toggle';
 import { Sidebar } from './components/ui/sidebar';
-import { useState } from 'react';
-import servicesApi, { AllowedService } from './lib/api/services';
+import { useState, useEffect } from 'react';
+import servicesApi, { AllowedService, ServiceStatus } from './lib/api/services';
 import { toast } from '@/hooks/use-toast';
 
-function ServiceCard({ name, status, memory, cpu }: {
+function ServiceCard({ name, status: initialStatus, memory, cpu }: {
   name: string;
   status: 'running' | 'stopped';
   memory: string;
   cpu: string;
 }) {
+  const [status, setStatus] = useState<ServiceStatus>(initialStatus);
   const [isLoading, setIsLoading] = useState<{
     start: boolean;
     stop: boolean;
     restart: boolean;
+    refreshing: boolean;
   }>({
     start: false,
     stop: false,
     restart: false,
+    refreshing: false,
   });
+
+  // Auto-refresh the status every 10 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!isLoading.start && !isLoading.stop && !isLoading.restart && !isLoading.refreshing) {
+        refreshStatus();
+      }
+    }, 10000);
+    
+    return () => clearInterval(interval);
+  }, [isLoading.start, isLoading.stop, isLoading.restart, isLoading.refreshing]);
 
   // Convert service name to the expected API format
   const getServiceId = (): AllowedService => {
@@ -41,17 +55,42 @@ function ServiceCard({ name, status, memory, cpu }: {
     return serviceMap[name] || 'named';
   };
 
+  // Fetch the current status of the service
+  const refreshStatus = async () => {
+    try {
+      setIsLoading(prev => ({ ...prev, refreshing: true }));
+      const response = await servicesApi.getServiceStatus(getServiceId());
+      if (response.success && response.data) {
+        setStatus(response.data.status);
+      }
+    } catch (error) {
+      console.error('Failed to refresh service status:', error);
+    } finally {
+      setIsLoading(prev => ({ ...prev, refreshing: false }));
+    }
+  };
+
+  const waitAndRefreshStatus = async () => {
+    // Wait 2 seconds before checking status to allow operation to complete
+    setTimeout(async () => {
+      await refreshStatus();
+      // Check again after another second in case there's a delay in the system reflecting status
+      setTimeout(async () => {
+        await refreshStatus();
+      }, 1000);
+    }, 2000);
+  };
+
   const handleStart = async () => {
     try {
-      setIsLoading({ ...isLoading, start: true });
+      setIsLoading(prev => ({ ...prev, start: true }));
       const response = await servicesApi.startService(getServiceId());
       if (response.success) {
         toast({
           title: 'Service Started',
           description: `${name} has been started successfully.`,
         });
-        // In a real app, you would update the status here or refetch data
-        window.location.reload(); // Simple refresh to show updated status
+        await waitAndRefreshStatus();
       } else {
         throw new Error(response.error || 'Failed to start service');
       }
@@ -62,21 +101,20 @@ function ServiceCard({ name, status, memory, cpu }: {
         variant: 'destructive',
       });
     } finally {
-      setIsLoading({ ...isLoading, start: false });
+      setIsLoading(prev => ({ ...prev, start: false }));
     }
   };
 
   const handleStop = async () => {
     try {
-      setIsLoading({ ...isLoading, stop: true });
+      setIsLoading(prev => ({ ...prev, stop: true }));
       const response = await servicesApi.stopService(getServiceId());
       if (response.success) {
         toast({
           title: 'Service Stopped',
           description: `${name} has been stopped successfully.`,
         });
-        // In a real app, you would update the status here or refetch data
-        window.location.reload(); // Simple refresh to show updated status
+        await waitAndRefreshStatus();
       } else {
         throw new Error(response.error || 'Failed to stop service');
       }
@@ -87,21 +125,20 @@ function ServiceCard({ name, status, memory, cpu }: {
         variant: 'destructive',
       });
     } finally {
-      setIsLoading({ ...isLoading, stop: false });
+      setIsLoading(prev => ({ ...prev, stop: false }));
     }
   };
 
   const handleRestart = async () => {
     try {
-      setIsLoading({ ...isLoading, restart: true });
+      setIsLoading(prev => ({ ...prev, restart: true }));
       const response = await servicesApi.restartService(getServiceId());
       if (response.success) {
         toast({
           title: 'Service Restarted',
           description: `${name} has been restarted successfully.`,
         });
-        // In a real app, you would update the status here or refetch data
-        window.location.reload(); // Simple refresh to show updated status
+        await waitAndRefreshStatus();
       } else {
         throw new Error(response.error || 'Failed to restart service');
       }
@@ -112,7 +149,7 @@ function ServiceCard({ name, status, memory, cpu }: {
         variant: 'destructive',
       });
     } finally {
-      setIsLoading({ ...isLoading, restart: false });
+      setIsLoading(prev => ({ ...prev, restart: false }));
     }
   };
 
@@ -126,6 +163,7 @@ function ServiceCard({ name, status, memory, cpu }: {
             className="ml-2"
           >
             {status}
+            {isLoading.refreshing && '...'}
           </Badge>
         </CardTitle>
         <div className="flex space-x-2">
@@ -133,7 +171,7 @@ function ServiceCard({ name, status, memory, cpu }: {
             variant="outline" 
             size="sm" 
             onClick={handleStart}
-            disabled={isLoading.start || status === 'running'}
+            disabled={isLoading.start || isLoading.stop || isLoading.restart || status === 'running'}
           >
             {isLoading.start ? 'Starting...' : 'Start'}
           </Button>
@@ -141,7 +179,7 @@ function ServiceCard({ name, status, memory, cpu }: {
             variant="outline" 
             size="sm" 
             onClick={handleStop}
-            disabled={isLoading.stop || status === 'stopped'}
+            disabled={isLoading.stop || isLoading.start || isLoading.restart || status === 'stopped'}
           >
             {isLoading.stop ? 'Stopping...' : 'Stop'}
           </Button>
@@ -149,9 +187,17 @@ function ServiceCard({ name, status, memory, cpu }: {
             variant="outline" 
             size="sm" 
             onClick={handleRestart}
-            disabled={isLoading.restart || status === 'stopped'}
+            disabled={isLoading.restart || isLoading.start || isLoading.stop || status === 'stopped'}
           >
             {isLoading.restart ? 'Restarting...' : 'Restart'}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={refreshStatus}
+            disabled={isLoading.refreshing || isLoading.start || isLoading.stop || isLoading.restart}
+          >
+            ↻
           </Button>
         </div>
       </CardHeader>

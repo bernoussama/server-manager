@@ -70,10 +70,15 @@ class ServicesController {
 
     try {
       await serviceManager.start(service);
+      
+      // Check actual status after starting
+      const isRunning = await serviceManager.status(service);
+      const actualStatus: ServiceStatus = isRunning ? 'running' : 'stopped';
+      
       const response: ServiceResponse = {
         service,
-        status: 'running',
-        message: `Service ${service} started successfully`
+        status: actualStatus,
+        message: `Service ${service} ${isRunning ? 'started successfully' : 'failed to start'}`
       };
 
       return res.status(200).json({
@@ -102,10 +107,15 @@ class ServicesController {
 
     try {
       await serviceManager.stop(service);
+      
+      // Check actual status after stopping
+      const isRunning = await serviceManager.status(service);
+      const actualStatus: ServiceStatus = isRunning ? 'running' : 'stopped';
+      
       const response: ServiceResponse = {
         service,
-        status: 'stopped',
-        message: `Service ${service} stopped successfully`
+        status: actualStatus,
+        message: `Service ${service} ${!isRunning ? 'stopped successfully' : 'failed to stop'}`
       };
 
       return res.status(200).json({
@@ -135,10 +145,15 @@ class ServicesController {
     try {
       await serviceManager.stop(service);
       await serviceManager.start(service);
+      
+      // Check actual status after restarting
+      const isRunning = await serviceManager.status(service);
+      const actualStatus: ServiceStatus = isRunning ? 'running' : 'stopped';
+      
       const response: ServiceResponse = {
         service,
-        status: 'running',
-        message: `Service ${service} restarted successfully`
+        status: actualStatus,
+        message: `Service ${service} ${isRunning ? 'restarted successfully' : 'failed to restart'}`
       };
 
       return res.status(200).json({

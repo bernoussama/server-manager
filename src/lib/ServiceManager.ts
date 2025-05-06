@@ -91,12 +91,34 @@ export class ServiceManager {
     }
     console.log(`Checking status of validated service: ${service}`);
 
+    // Add a small delay to ensure systemd has updated its state
+    await new Promise(resolve => setTimeout(resolve, 500));
+
     try {
-      const output = await this.executeCommand(`systemctl is-active ${service}`);
-      console.log(`Service ${service} status: ${output}`);
-      return output.trim() === 'active';
+      // Try up to 2 times with a small delay between attempts
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const output = await this.executeCommand(`systemctl is-active ${service}`);
+          console.log(`Service ${service} status (attempt ${attempt + 1}): ${output}`);
+          if (output.trim() === 'active') {
+            return true;
+          }
+          // If not active, but not the last attempt, wait before trying again
+          if (attempt < 1) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        } catch (err) {
+          // If error and not last attempt, try again
+          if (attempt < 1) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
+      }
+      // If we get here, the service is definitely not running
+      return false;
     } catch (error) {
       // If the command fails, the service is not running
+      console.log(`Error checking service status: ${error}`);
       return false;
     }
   }
