@@ -11,6 +11,9 @@ import { Separator } from '@/components/ui/separator';
 import { ThemeProvider } from './components/theme-provider';
 import { ThemeToggle } from './components/theme-toggle';
 import { Sidebar } from './components/ui/sidebar';
+import { useState } from 'react';
+import servicesApi, { AllowedService } from './lib/api/services';
+import { toast } from '@/hooks/use-toast';
 
 function ServiceCard({ name, status, memory, cpu }: {
   name: string;
@@ -18,6 +21,101 @@ function ServiceCard({ name, status, memory, cpu }: {
   memory: string;
   cpu: string;
 }) {
+  const [isLoading, setIsLoading] = useState<{
+    start: boolean;
+    stop: boolean;
+    restart: boolean;
+  }>({
+    start: false,
+    stop: false,
+    restart: false,
+  });
+
+  // Convert service name to the expected API format
+  const getServiceId = (): AllowedService => {
+    const serviceMap: Record<string, AllowedService> = {
+      'DNS Server': 'named',
+      'DHCP Server': 'dhcpd',
+      'HTTP Server': 'httpd',
+    };
+    return serviceMap[name] || 'named';
+  };
+
+  const handleStart = async () => {
+    try {
+      setIsLoading({ ...isLoading, start: true });
+      const response = await servicesApi.startService(getServiceId());
+      if (response.success) {
+        toast({
+          title: 'Service Started',
+          description: `${name} has been started successfully.`,
+        });
+        // In a real app, you would update the status here or refetch data
+        window.location.reload(); // Simple refresh to show updated status
+      } else {
+        throw new Error(response.error || 'Failed to start service');
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to start service',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading({ ...isLoading, start: false });
+    }
+  };
+
+  const handleStop = async () => {
+    try {
+      setIsLoading({ ...isLoading, stop: true });
+      const response = await servicesApi.stopService(getServiceId());
+      if (response.success) {
+        toast({
+          title: 'Service Stopped',
+          description: `${name} has been stopped successfully.`,
+        });
+        // In a real app, you would update the status here or refetch data
+        window.location.reload(); // Simple refresh to show updated status
+      } else {
+        throw new Error(response.error || 'Failed to stop service');
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to stop service',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading({ ...isLoading, stop: false });
+    }
+  };
+
+  const handleRestart = async () => {
+    try {
+      setIsLoading({ ...isLoading, restart: true });
+      const response = await servicesApi.restartService(getServiceId());
+      if (response.success) {
+        toast({
+          title: 'Service Restarted',
+          description: `${name} has been restarted successfully.`,
+        });
+        // In a real app, you would update the status here or refetch data
+        window.location.reload(); // Simple refresh to show updated status
+      } else {
+        throw new Error(response.error || 'Failed to restart service');
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to restart service',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading({ ...isLoading, restart: false });
+    }
+  };
+
   return (
     <Card className="mb-4">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -31,9 +129,30 @@ function ServiceCard({ name, status, memory, cpu }: {
           </Badge>
         </CardTitle>
         <div className="flex space-x-2">
-          <Button variant="outline" size="sm">Start</Button>
-          <Button variant="outline" size="sm">Stop</Button>
-          <Button variant="outline" size="sm">Restart</Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleStart}
+            disabled={isLoading.start || status === 'running'}
+          >
+            {isLoading.start ? 'Starting...' : 'Start'}
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleStop}
+            disabled={isLoading.stop || status === 'stopped'}
+          >
+            {isLoading.stop ? 'Stopping...' : 'Stop'}
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRestart}
+            disabled={isLoading.restart || status === 'stopped'}
+          >
+            {isLoading.restart ? 'Restarting...' : 'Restart'}
+          </Button>
         </div>
       </CardHeader>
       <CardContent>
