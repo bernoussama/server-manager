@@ -1,5 +1,5 @@
 import { Layers, Activity, Settings, Terminal, Globe, Network, Server, Home, BarChart } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -45,7 +45,6 @@ function ServiceCard({ name, status: initialStatus, memory, cpu }: {
     return () => clearInterval(interval);
   }, [isLoading.start, isLoading.stop, isLoading.restart, isLoading.refreshing]);
 
-  // Convert service name to the expected API format
   const getServiceId = (): AllowedService => {
     const serviceMap: Record<string, AllowedService> = {
       'DNS Server': 'named',
@@ -55,7 +54,6 @@ function ServiceCard({ name, status: initialStatus, memory, cpu }: {
     return serviceMap[name] || 'named';
   };
 
-  // Fetch the current status of the service
   const refreshStatus = async () => {
     try {
       setIsLoading(prev => ({ ...prev, refreshing: true }));
@@ -71,10 +69,8 @@ function ServiceCard({ name, status: initialStatus, memory, cpu }: {
   };
 
   const waitAndRefreshStatus = async () => {
-    // Wait 2 seconds before checking status to allow operation to complete
     setTimeout(async () => {
       await refreshStatus();
-      // Check again after another second in case there's a delay in the system reflecting status
       setTimeout(async () => {
         await refreshStatus();
       }, 1000);
@@ -451,109 +447,163 @@ function HTTPConfig() {
   );
 }
 
-export default function App() {
+// View Components for Routing
+function ServicesView() {
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-6 md:grid-cols-3">
+        <ServiceCard
+          name="DNS Server"
+          status="running"
+          memory="128MB"
+          cpu="2%"
+        />
+        <ServiceCard
+          name="DHCP Server"
+          status="running"
+          memory="96MB"
+          cpu="1%"
+        />
+        <ServiceCard
+          name="HTTP Server"
+          status="stopped"
+          memory="0MB"
+          cpu="0%"
+        />
+      </div>
+      <ServiceLogs />
+    </div>
+  );
+}
+
+function DNSConfigView() {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Globe className="h-5 w-5" />
+          DNS Configuration
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <DNSConfig />
+      </CardContent>
+    </Card>
+  );
+}
+
+function DHCPConfigView() {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Network className="h-5 w-5" />
+          DHCP Configuration
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <DHCPConfig />
+      </CardContent>
+    </Card>
+  );
+}
+
+function HTTPConfigView() {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Server className="h-5 w-5" />
+          HTTP Configuration
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <HTTPConfig />
+      </CardContent>
+    </Card>
+  );
+}
+
+function SettingsView() {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+         <Settings className="h-5 w-5" />
+          Settings
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p>This is the settings page. Configure application settings here.</p>
+        {/* Add settings components here */}
+      </CardContent>
+    </Card>
+  );
+}
+function AppContent() {
+  const location = useLocation();
   const sidebarItems = [
     { title: "Dashboard", href: "/", icon: <Home className="h-4 w-4" /> },
     { title: "System Stats", href: "/stats", icon: <BarChart className="h-4 w-4" /> },
+    { title: "Services", href: "/services", icon: <Layers className="h-4 w-4" /> },
     { title: "DNS Config", href: "/dns", icon: <Globe className="h-4 w-4" /> },
     { title: "DHCP Config", href: "/dhcp", icon: <Network className="h-4 w-4" /> },
     { title: "HTTP Config", href: "/http", icon: <Server className="h-4 w-4" /> },
-    { title: "Services", href: "/services", icon: <Layers className="h-4 w-4" /> },
     { title: "Settings", href: "/settings", icon: <Settings className="h-4 w-4" /> },
   ];
 
+  const getCurrentTitle = () => {
+    const currentItem = sidebarItems.find(item => {
+      if (item.href === "/") return location.pathname === "/" || location.pathname === "/stats";
+      return location.pathname.startsWith(item.href);
+    });
+    return currentItem ? currentItem.title : "System Dashboard";
+  };
+  
+  // A simple component for the main dashboard view, which can be expanded later
+  function DashboardView() {
+    return (
+      <div>
+        <SystemStats />
+        {/* You might want to add more overview components here */}
+      </div>
+    );
+  }
+
+
   return (
-    <ThemeProvider defaultTheme="system" storageKey="app-theme">
-      <div className="flex min-h-screen bg-background">
-        <Sidebar items={sidebarItems} />
-        <div className="flex-1 md:ml-64">
-          <div className="flex flex-col space-y-8 p-8">
-            <div className="flex justify-between items-center">
-              <h1 className="text-3xl font-bold md:block hidden">System Dashboard</h1>
-              <div className="flex items-center space-x-2">
-                <ThemeToggle />
-              </div>
+    <div className="flex min-h-screen bg-background">
+      <Sidebar items={sidebarItems} />
+      <div className="flex-1 md:ml-64">
+        <div className="flex flex-col space-y-8 p-8">
+          <div className="flex justify-between items-center">
+            <h1 className="text-3xl font-bold md:block hidden">{getCurrentTitle()}</h1>
+            <div className="flex items-center space-x-2">
+              <ThemeToggle />
             </div>
-
-            <SystemStats />
-
-            <Tabs defaultValue="services" className="space-y-4">
-              <TabsList>
-                <TabsTrigger value="services">Services</TabsTrigger>
-                <TabsTrigger value="dns">DNS Config</TabsTrigger>
-                <TabsTrigger value="dhcp">DHCP Config</TabsTrigger>
-                <TabsTrigger value="http">HTTP Config</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="services" className="space-y-4">
-                <div className="grid gap-6 md:grid-cols-3">
-                  <ServiceCard
-                    name="DNS Server"
-                    status="running"
-                    memory="128MB"
-                    cpu="2%"
-                  />
-                  <ServiceCard
-                    name="DHCP Server"
-                    status="running"
-                    memory="96MB"
-                    cpu="1%"
-                  />
-                  <ServiceCard
-                    name="HTTP Server"
-                    status="stopped"
-                    memory="0MB"
-                    cpu="0%"
-                  />
-                </div>
-                <ServiceLogs />
-              </TabsContent>
-
-              <TabsContent value="dns">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Globe className="h-5 w-5" />
-                      DNS Configuration
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <DNSConfig />
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="dhcp">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Network className="h-5 w-5" />
-                      DHCP Configuration
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <DHCPConfig />
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="http">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Server className="h-5 w-5" />
-                      HTTP Configuration
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <HTTPConfig />
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
           </div>
+
+          <Routes>
+            <Route path="/" element={<DashboardView />} />
+            <Route path="/stats" element={<SystemStats />} />
+            <Route path="/services" element={<ServicesView />} />
+            <Route path="/dns" element={<DNSConfigView />} />
+            <Route path="/dhcp" element={<DHCPConfigView />} />
+            <Route path="/http" element={<HTTPConfigView />} />
+            <Route path="/settings" element={<SettingsView />} />
+          </Routes>
         </div>
       </div>
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider defaultTheme="system" storageKey="app-theme">
+      <Router>
+        <AppContent />
+      </Router>
     </ThemeProvider>
   );
 }
