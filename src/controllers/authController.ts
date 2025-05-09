@@ -28,8 +28,7 @@ export async function signup(req: Request, res: Response, next: NextFunction) {
     const insertedUser = await db.insert(users).values(newUser).returning();
 
     // Don't send passwordHash back
-    const userResponse = { ...insertedUser[0] };
-    delete (userResponse as any).passwordHash;
+const userResponse = { id: insertedUser[0].id, email: insertedUser[0].email };
 
 
     res.status(201).json({ message: 'User created successfully', user: userResponse });
