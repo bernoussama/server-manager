@@ -1,11 +1,18 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+import { useState } from "react";
 
 export function DNSConfig() {
+  const [records, setRecords] = useState([
+    { type: "A", name: "@", value: "192.168.1.1" },
+    { type: "CNAME", name: "www", value: "@" },
+    { type: "MX", name: "mail", value: "mail.example.com" }
+  ]);
+  const [isAddingNew, setIsAddingNew] = useState(false);
+  const [newRecord, setNewRecord] = useState({ type: "", name: "", value: "" });
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -27,18 +34,81 @@ export function DNSConfig() {
         </div>
         <div className="grid gap-2">
           <Label htmlFor="records">DNS Records</Label>
-          <ScrollArea className="h-[200px] w-full rounded-md border">
-            <div className="p-4 space-y-4">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="grid grid-cols-4 gap-2">
-                  <Input placeholder="Type" defaultValue={i === 0 ? "A" : i === 1 ? "CNAME" : "MX"} />
-                  <Input placeholder="Name" defaultValue={i === 0 ? "@" : i === 1 ? "www" : "mail"} />
-                  <Input placeholder="Value" defaultValue={i === 0 ? "192.168.1.1" : i === 1 ? "@" : "mail.example.com"} />
-                  <Button variant="outline" size="icon" className="w-full">+</Button>
+          <div className="w-full rounded-md border p-4 space-y-4" data-component-name="DNSConfig">
+              {records.map((record, i) => (
+                <div key={i} className="grid grid-cols-3 gap-2">
+                  <Input placeholder="Type" value={record.type} onChange={(e) => {
+                    const newRecords = [...records];
+                    newRecords[i].type = e.target.value;
+                    setRecords(newRecords);
+                  }} />
+                  <Input placeholder="Name" value={record.name} onChange={(e) => {
+                    const newRecords = [...records];
+                    newRecords[i].name = e.target.value;
+                    setRecords(newRecords);
+                  }} />
+                  <Input placeholder="Value" value={record.value} onChange={(e) => {
+                    const newRecords = [...records];
+                    newRecords[i].value = e.target.value;
+                    setRecords(newRecords);
+                  }} />
                 </div>
               ))}
-            </div>
-          </ScrollArea>
+              
+              {isAddingNew && (
+                <div className="grid grid-cols-3 gap-2">
+                  <Input 
+                    placeholder="Type" 
+                    value={newRecord.type} 
+                    onChange={(e) => setNewRecord({...newRecord, type: e.target.value})} 
+                  />
+                  <Input 
+                    placeholder="Name" 
+                    value={newRecord.name} 
+                    onChange={(e) => setNewRecord({...newRecord, name: e.target.value})} 
+                  />
+                  <Input 
+                    placeholder="Value" 
+                    value={newRecord.value} 
+                    onChange={(e) => setNewRecord({...newRecord, value: e.target.value})} 
+                  />
+                </div>
+              )}
+              
+              {isAddingNew ? (
+                <div className="flex gap-2 mt-2">
+                  <Button 
+                    variant="default" 
+                    onClick={() => {
+                      if (newRecord.type && newRecord.name && newRecord.value) {
+                        setRecords([...records, newRecord]);
+                        setNewRecord({ type: "", name: "", value: "" });
+                        setIsAddingNew(false);
+                      }
+                    }}
+                  >
+                    Save
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setNewRecord({ type: "", name: "", value: "" });
+                      setIsAddingNew(false);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  className="w-full mt-2" 
+                  onClick={() => setIsAddingNew(true)}
+                >
+                  + Add Record
+                </Button>
+              )}
+          </div>
         </div>
       </div>
       <Button>Save DNS Configuration</Button>
