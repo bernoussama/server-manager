@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { Link, useLocation } from 'react-router-dom';
 import {
   Layers,
   Home,
@@ -24,6 +25,7 @@ interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export function Sidebar({ className, items, ...props }: SidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const location = useLocation();
 
   return (
     <>
@@ -59,15 +61,15 @@ export function Sidebar({ className, items, ...props }: SidebarProps) {
           <ScrollArea className="h-[calc(100vh-80px)] px-1">
             <div className="space-y-1 p-2">
               {items.map((item, index) => (
-                <Button
-                  key={index}
-                  variant="ghost"
-                  className="w-full justify-start"
-                  onClick={() => setIsOpen(false)}
-                >
-                  {item.icon}
-                  <span className="ml-2">{item.title}</span>
-                </Button>
+                <Link to={item.href} key={index} onClick={() => setIsOpen(false)} className="block">
+                  <Button
+                    variant={location.pathname === item.href ? "secondary" : "ghost"}
+                    className="w-full justify-start"
+                  >
+                    {item.icon}
+                    <span className="ml-2">{item.title}</span>
+                  </Button>
+                </Link>
               ))}
             </div>
           </ScrollArea>

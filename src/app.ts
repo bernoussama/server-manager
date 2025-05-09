@@ -1,6 +1,7 @@
 import express from 'express';
 import serviceRoutes from './routes/serviceRoutes';
 import userRoutes from './routes/usersRoutes';
+import authRoutes from './routes/authRoutes';
 import { errorHandler } from './middlewares/errorHandler';
 import { corsMiddleware } from './middlewares/cors';
 
@@ -12,6 +13,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/users', userRoutes);
 
