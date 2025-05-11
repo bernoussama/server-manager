@@ -9,7 +9,7 @@ import { promisify } from 'util';
 const execAsync = promisify(exec);
 
 // --- BEGIN Configuration ---
-// !!! IMPORTANT: Adjust these values to your environment !!!
+// !!!IMPORTANT: Adjust these values to your environment !!!
 const BIND_ZONE_FILE_PATH = '/var/named/dynamic.internal.zone'; // Where the dynamic zone records will be written
 const ZONE_NAME = 'dynamic.internal.'; // The zone name, ensure trailing dot
 const PRIMARY_NS_RECORD = 'ns1.dynamic.internal.'; // Primary Name Server for SOA and NS records, ensure trailing dot
