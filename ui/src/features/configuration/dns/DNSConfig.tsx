@@ -35,7 +35,12 @@ export function DNSConfig() {
         <div className="grid gap-2">
           <Label htmlFor="records">DNS Records</Label>
           <div className="w-full rounded-md border p-4 space-y-4" data-component-name="DNSConfig">
-              {records.map((record, i) => (
+              <div className="grid grid-cols-3 gap-2 font-semibold text-xs text-muted-foreground mb-1">
+  <div>Type</div>
+  <div>Name</div>
+  <div>Value</div>
+</div>
+{records.map((record, i) => (
                 <div key={i} className="grid grid-cols-3 gap-2">
                   <Input placeholder="Type" value={record.type} onChange={(e) => {
                     const newRecords = [...records];
