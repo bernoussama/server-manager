@@ -1,10 +1,10 @@
 import { DnsConfigurationFormValues, DnsUpdateResponse } from '../../types/dns';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
 
 export const updateDnsConfigurationAPI = async (config: DnsConfigurationFormValues): Promise<DnsUpdateResponse> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/dns/update-configuration`, {
+    const response = await fetch(`${API_BASE_URL}/dns/config`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
