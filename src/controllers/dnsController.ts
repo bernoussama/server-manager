@@ -21,7 +21,7 @@ const BIND_NAMED_CONF_PATH = '/etc/named.conf';
 // --- END Configuration ---
 
 
-const generateBindZoneContent = (config: DnsConfiguration): string => {
+export const generateBindZoneContent = (config: DnsConfiguration): string => {
   // Increment serial number (YYYYMMDDNN format)
   // For simplicity, we'll use the current date and a fixed NN (01).
   // A more robust solution would read the current serial from the file and increment it.
