@@ -4,3 +4,4 @@ dist
 .vagrant
 .env
 drizzle
+package-lock.json

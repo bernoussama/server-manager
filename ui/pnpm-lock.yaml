@@ -137,6 +137,9 @@ importers:
       react-resizable-panels:
         specifier: ^2.0.16
         version: 2.1.9(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react-router-dom:
+        specifier: ^7.6.0
+        version: 7.6.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       recharts:
         specifier: ^2.12.3
         version: 2.15.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -1738,6 +1741,10 @@ packages:
     resolution: {integrity: sha512-yki5XnKuf750l50uGTllt6kKILY4nQ1eNIQatoXEByZ5dWgnKqbnqmTrBE5B4N7lrMJKQ2ytWMiTO2o0v6Ew/w==}
     engines: {node: '>= 0.6'}
 
+  cookie@1.0.2:
+    resolution: {integrity: sha512-9Kr/j4O16ISv8zBBhJoi4bXOYNTkFLOqSL3UDB0njXxCXNezjeyVrJyGOWtgfs/q2km1gwBcfH8q1yEGoMYunA==}
+    engines: {node: '>=18'}
+
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
     engines: {node: '>= 8'}
@@ -2544,6 +2551,23 @@ packages:
       react: ^16.14.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc
       react-dom: ^16.14.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc
 
+  react-router-dom@7.6.0:
+    resolution: {integrity: sha512-DYgm6RDEuKdopSyGOWZGtDfSm7Aofb8CCzgkliTjtu/eDuB0gcsv6qdFhhi8HdtmA+KHkt5MfZ5K2PdzjugYsA==}
+    engines: {node: '>=20.0.0'}
+    peerDependencies:
+      react: '>=18'
+      react-dom: '>=18'
+
+  react-router@7.6.0:
+    resolution: {integrity: sha512-GGufuHIVCJDbnIAXP3P9Sxzq3UUsddG3rrI3ut1q6m0FI6vxVBF3JoPQ38+W/blslLH4a5Yutp8drkEpXoddGQ==}
+    engines: {node: '>=20.0.0'}
+    peerDependencies:
+      react: '>=18'
+      react-dom: '>=18'
+    peerDependenciesMeta:
+      react-dom:
+        optional: true
+
   react-smooth@4.0.4:
     resolution: {integrity: sha512-gnGKTpYwqL0Iii09gHobNolvX4Kiq4PKx6eWBCYYix+8cdw+cGo3do906l1NBPKkSWx1DghC1dlWG9L2uGd61Q==}
     peerDependencies:
@@ -2648,6 +2672,9 @@ packages:
     resolution: {integrity: sha512-hlq8tAfn0m/61p4BVRcPzIGr6LKiMwo4VM6dGi6pt4qcRkmNzTcWq6eCEjEh+qXjkMDvPlOFFSGwQjoEa6gyMA==}
     engines: {node: '>=10'}
     hasBin: true
+
+  set-cookie-parser@2.7.1:
+    resolution: {integrity: sha512-IOc8uWeOZgnb3ptbCURJWNjWUPcO3ZnTTdzsurqERrP6nPyv+paC55vJM0LpOlT2ne+Ix+9+CRG1MNLlyZ4GjQ==}
 
   shebang-command@2.0.0:
     resolution: {integrity: sha512-kHxr2zZpYtdmrN1qDjrrX/Z1rR1kG8Dx+gkpK1G4eXmvXswmcE1hTWBWYUzlraYw1/yZp6YuDY77YtvbN0dmDA==}
@@ -4583,6 +4610,8 @@ snapshots:
 
   cookie@0.7.2: {}
 
+  cookie@1.0.2: {}
+
   cross-spawn@7.0.6:
     dependencies:
       path-key: 3.1.1
@@ -5354,6 +5383,20 @@ snapshots:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
 
+  react-router-dom@7.6.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+    dependencies:
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+      react-router: 7.6.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+
+  react-router@7.6.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+    dependencies:
+      cookie: 1.0.2
+      react: 18.3.1
+      set-cookie-parser: 2.7.1
+    optionalDependencies:
+      react-dom: 18.3.1(react@18.3.1)
+
   react-smooth@4.0.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
       fast-equals: 5.2.2
@@ -5478,6 +5521,8 @@ snapshots:
   semver@6.3.1: {}
 
   semver@7.7.1: {}
+
+  set-cookie-parser@2.7.1: {}
 
   shebang-command@2.0.0:
     dependencies:
