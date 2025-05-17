@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { useState } from "react";
+import { updateDnsConfigurationAPI } from "@/lib/api/dns";
 
 export function DNSConfig() {
   const [records, setRecords] = useState([
@@ -13,6 +14,31 @@ export function DNSConfig() {
   ]);
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [newRecord, setNewRecord] = useState({ type: "", name: "", value: "" });
+  const [domain, setDomain] = useState("");
+  const [nameserver, setNameserver] = useState("");
+  const [dnsServerStatus, setDnsServerStatus] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const config = {
+        dnsServerStatus,
+        domainName: domain,
+        primaryNameserver: nameserver,
+        records,
+      };
+      await updateDnsConfigurationAPI(config);
+      alert("DNS configuration saved successfully!");
+    } catch (err: any) {
+      alert(
+        err?.data?.message || "Failed to save DNS configuration. Please try again."
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -20,22 +46,27 @@ export function DNSConfig() {
           <h4 className="text-sm font-medium leading-none">DNS Server Status</h4>
           <p className="text-sm text-muted-foreground">Enable or disable the DNS server</p>
         </div>
-        <Switch />
+        <Switch checked={dnsServerStatus} onCheckedChange={setDnsServerStatus} />
       </div>
       <Separator />
       <div className="grid gap-4">
         <div className="grid gap-2">
           <Label htmlFor="domain">Domain Name</Label>
-          <Input id="domain" placeholder="example.com" />
+          <Input id="domain" placeholder="example.com" value={domain} onChange={e => setDomain(e.target.value)} />
         </div>
         <div className="grid gap-2">
           <Label htmlFor="nameserver">Primary Nameserver</Label>
-          <Input id="nameserver" placeholder="ns1.example.com" />
+          <Input id="nameserver" placeholder="ns1.example.com" value={nameserver} onChange={e => setNameserver(e.target.value)} />
         </div>
         <div className="grid gap-2">
           <Label htmlFor="records">DNS Records</Label>
           <div className="w-full rounded-md border p-4 space-y-4" data-component-name="DNSConfig">
-              {records.map((record, i) => (
+              <div className="grid grid-cols-3 gap-2 font-semibold text-xs text-muted-foreground mb-1">
+  <div>Type</div>
+  <div>Name</div>
+  <div>Value</div>
+</div>
+{records.map((record, i) => (
                 <div key={i} className="grid grid-cols-3 gap-2">
                   <Input placeholder="Type" value={record.type} onChange={(e) => {
                     const newRecords = [...records];
@@ -111,7 +142,9 @@ export function DNSConfig() {
           </div>
         </div>
       </div>
-      <Button>Save DNS Configuration</Button>
+      <Button onClick={handleSave} disabled={saving}>
+  {saving ? "Saving..." : "Save DNS Configuration"}
+</Button>
     </div>
   );
 } 

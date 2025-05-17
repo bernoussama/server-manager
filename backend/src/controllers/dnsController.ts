@@ -9,7 +9,7 @@ import { promisify } from 'util';
 const execAsync = promisify(exec);
 
 // --- BEGIN Configuration ---
-// !!! IMPORTANT: Adjust these values to your environment !!!
+// !!!IMPORTANT: Adjust these values to your environment !!!
 const BIND_ZONE_FILE_PATH = '/var/named/dynamic.internal.zone'; // Where the dynamic zone records will be written
 const ZONE_NAME = 'dynamic.internal.'; // The zone name, ensure trailing dot
 const PRIMARY_NS_RECORD = 'ns1.dynamic.internal.'; // Primary Name Server for SOA and NS records, ensure trailing dot
@@ -21,7 +21,7 @@ const BIND_NAMED_CONF_PATH = '/etc/named.conf';
 // --- END Configuration ---
 
 
-const generateBindZoneContent = (config: DnsConfiguration): string => {
+export const generateBindZoneContent = (config: DnsConfiguration): string => {
   // Increment serial number (YYYYMMDDNN format)
   // For simplicity, we'll use the current date and a fixed NN (01).
   // A more robust solution would read the current serial from the file and increment it.
@@ -44,33 +44,87 @@ const generateBindZoneContent = (config: DnsConfiguration): string => {
 
   // Add records from the configuration
   for (const record of config.records) {
+    const recordName = record.name || '@'; // Use '@' if name is empty, common for zone apex records
     switch (record.type.toUpperCase()) {
       case 'A':
-        zoneContent += `${record.name} IN A ${record.value}\n`;
+        if ('value' in record && typeof record.value === 'string') {
+          zoneContent += `${recordName} IN A ${record.value}\n`;
+        } else {
+          console.warn(`Skipping malformed A record (${recordName}): missing or invalid value.`);
+        }
+        break;
+      case 'AAAA':
+        if ('value' in record && typeof record.value === 'string') {
+          zoneContent += `${recordName} IN AAAA ${record.value}\n`;
+        } else {
+          console.warn(`Skipping malformed AAAA record (${recordName}): missing or invalid value.`);
+        }
         break;
       case 'CNAME':
-        // Ensure canonicalName (record.value) has a trailing dot if it's an FQDN
-        const cnameValue = record.value.endsWith('.') ? record.value : `${record.value}.`;
-        zoneContent += `${record.name} IN CNAME ${cnameValue}\n`;
+        if ('value' in record && typeof record.value === 'string') {
+          // Ensure canonicalName (record.value) has a trailing dot if it's an FQDN
+          const cnameValue = record.value.endsWith('.') ? record.value : `${record.value}.`;
+          zoneContent += `${recordName} IN CNAME ${cnameValue}\n`;
+        } else {
+          console.warn(`Skipping malformed CNAME record (${recordName}): missing or invalid value.`);
+        }
         break;
       case 'MX':
-        // Expects record.value to be in format "priority exchange", e.g., "10 mail.example.com."
-        const parts = record.value.split(/\s+/);
-        if (parts.length === 2 && !isNaN(parseInt(parts[0]))) {
-          const priority = parseInt(parts[0]);
-          const exchange = parts[1].endsWith('.') ? parts[1] : `${parts[1]}.`;
-          zoneContent += `${record.name || '@'} IN MX ${priority} ${exchange}\n`;
+        if ('priority' in record && typeof record.priority === 'number' && 'value' in record && typeof record.value === 'string') {
+          // record.value for MX should be the exchange server
+          const exchange = record.value.endsWith('.') ? record.value : `${record.value}.`;
+          zoneContent += `${recordName} IN MX ${record.priority} ${exchange}\n`;
         } else {
-          console.warn(`Skipping malformed MX record (${record.name}): value should be "priority exchange", got "${record.value}"`);
+          console.warn(`Skipping malformed MX record (${recordName}): missing or invalid priority or value.`);
         }
         break;
       case 'TXT':
-        // Ensure TXT record value is properly quoted
-        zoneContent += `${record.name} IN TXT "${record.value.replace(/"/g, '\\"')}"\n`;
+        if ('value' in record && typeof record.value === 'string') {
+          // Ensure TXT record value is properly quoted
+          zoneContent += `${recordName} IN TXT "${record.value.replace(/"/g, '\\"')}"\n`;
+        } else {
+          console.warn(`Skipping malformed TXT record (${recordName}): missing or invalid value.`);
+        }
         break;
-      // Add cases for other record types as needed (e.g., AAAA, SRV, etc.)
+      case 'NS':
+        if ('value' in record && typeof record.value === 'string') {
+          const nsValue = record.value.endsWith('.') ? record.value : `${record.value}.`;
+          zoneContent += `${recordName} IN NS ${nsValue}\n`;
+        } else {
+          console.warn(`Skipping malformed NS record (${recordName}): missing or invalid value.`);
+        }
+        break;
+      case 'PTR':
+        if ('value' in record && typeof record.value === 'string') {
+           // PTR record value (domain name) should end with a dot
+          const ptrValue = record.value.endsWith('.') ? record.value : `${record.value}.`;
+          zoneContent += `${recordName} IN PTR ${ptrValue}\n`;
+        } else {
+          console.warn(`Skipping malformed PTR record (${recordName}): missing or invalid value.`);
+        }
+        break;
+      case 'SRV':
+        if (
+          'priority' in record && typeof record.priority === 'number' &&
+          'weight' in record && typeof record.weight === 'number' &&
+          'port' in record && typeof record.port === 'number' &&
+          'target' in record && typeof record.target === 'string'
+        ) {
+          const targetValue = record.target.endsWith('.') ? record.target : `${record.target}.`;
+          zoneContent += `${recordName} IN SRV ${record.priority} ${record.weight} ${record.port} ${targetValue}\n`;
+        } else {
+          console.warn(`Skipping malformed SRV record (${recordName}): missing or invalid properties (priority, weight, port, target).`);
+        }
+        break;
+      // Add cases for other record types as needed
       default:
-        console.warn(`Unsupported DNS record type: ${record.type} for name ${record.name}`);
+        // Fallback for other record types that might just have name and value
+        if ('value' in record && typeof record.value === 'string') {
+           console.warn(`Using default formatting for unhandled record type: ${record.type} for name ${recordName}. Assuming 'name IN TYPE value' structure.`);
+           zoneContent += `${recordName} IN ${record.type.toUpperCase()} ${record.value}\n`;
+        } else {
+            console.warn(`Unsupported DNS record type or malformed record: ${record.type} for name ${recordName}. Cannot determine value property.`);
+        }
     }
   }
 

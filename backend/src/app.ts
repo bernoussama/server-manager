@@ -4,6 +4,7 @@ import userRoutes from './routes/usersRoutes';
 import authRoutes from './routes/authRoutes';
 import { errorHandler } from './middlewares/errorHandler';
 import { corsMiddleware } from './middlewares/cors';
+import dnsRoutes from './routes/dnsRoutes';
 
 const app = express();
 
@@ -16,6 +17,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/auth', authRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/dns', dnsRoutes);
 
 // Error handling
 app.use(errorHandler);
