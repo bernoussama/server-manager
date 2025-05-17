@@ -31,15 +31,28 @@ export const generateBindZoneContent = (config: DnsConfiguration): string => {
   const day = today.getDate().toString().padStart(2, '0');
   const serial = parseInt(`${year}${month}${day}01`); // Simple serial
 
+  // Use dynamic values from config for SOA and NS records
+  // Ensure FQDNs end with a dot.
+  const primaryNs = config.primaryNameserver.endsWith('.')
+    ? config.primaryNameserver
+    : `${config.primaryNameserver}.`;
+
+  // Format admin email for SOA: replace @ with . and ensure trailing dot.
+  // e.g., admin@example.com -> admin.example.com.
+  const adminEmailSoaFormat = config.adminEmail.replace('@', '.');
+  const adminEmailFormatted = adminEmailSoaFormat.endsWith('.')
+    ? adminEmailSoaFormat
+    : `${adminEmailSoaFormat}.`;
+
   let zoneContent = `\$TTL ${DEFAULT_TTL}
-@ IN SOA ${PRIMARY_NS_RECORD} ${ADMIN_EMAIL_RECORD} (
+@ IN SOA ${primaryNs} ${adminEmailFormatted} (
         ${serial}       ; Serial
         ${DEFAULT_TTL}         ; Refresh
         1800         ; Retry
         604800       ; Expire
         86400 )      ; Negative Cache TTL
 ;
-@ IN NS ${PRIMARY_NS_RECORD}
+@ IN NS ${primaryNs}
 `;
 
   // Add records from the configuration
