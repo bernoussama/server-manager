@@ -1,8 +1,5 @@
 import { z } from 'zod';
 
-const dnsRecordSchema = z.object({
-  type: z.enum(['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS', 'PTR', 'SOA', 'SRV'], {
-    errorMap: () => ({ message: 'Record type must be one of: A, AAAA, CNAME, MX, TXT, NS, PTR, SOA, SRV' })
 const genericRecord = z.object({
   name: z.string().min(1, { message: 'Record name is required' }),
   ttl: z.number().int().nonnegative().optional().default(3600),
@@ -45,6 +42,7 @@ const dnsRecordSchema = z.discriminatedUnion('type', [
   srvRecord,
   soaRecord,
 ]);
+
 export const dnsConfigurationSchema = z.object({
   // Server Configuration
   dnsServerStatus: z.boolean().default(false),
