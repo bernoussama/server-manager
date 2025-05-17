@@ -50,34 +50,34 @@ export interface DnsServerConfig {
   dnsServerStatus: boolean;
   
   // Network Settings
-  listenOn: string[];
-  allowQuery: string[];
-  allowRecursion: string[];
-  forwarders: string[];
-  forwardOnly: boolean;
+  listenOn?: string[];
+  allowQuery?: string[];
+  allowRecursion?: string[];
+  forwarders?: string[];
+  forwardOnly?: boolean;
   
   // DNSSEC
-  dnssecValidation: boolean;
+  dnssecValidation?: boolean;
   
   // Logging
-  queryLogging: boolean;
-  logFile: string;
-  logLevel: 'critical' | 'error' | 'warning' | 'notice' | 'info' | 'debug';
+  queryLogging?: boolean;
+  logFile?: string;
+  logLevel?: 'critical' | 'error' | 'warning' | 'notice' | 'info' | 'debug';
   
   // Performance
-  maxCacheTtl: number;
-  maxNcacheTtl: number;
+  maxCacheTtl?: number;
+  maxNcacheTtl?: number;
   
   // Zone Transfer
-  allowTransfer: string[];
-  allowUpdate: string[];
+  allowTransfer?: string[];
+  allowUpdate?: string[];
 }
 
 // DNS Zone Configuration
 export interface DnsZoneConfig {
   domainName: string;
   primaryNameserver: string;
-  adminEmail: string;
+  adminEmail?: string;
   records: DnsRecord[];
 }
 
