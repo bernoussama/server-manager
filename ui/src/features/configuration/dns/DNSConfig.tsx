@@ -1,295 +1,372 @@
+import * as React from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { useState } from "react";
+import { useState } from "react"; // Keep for 'saving' if not fully replaced by isSubmitting
 import { updateDnsConfigurationAPI } from "@/lib/api/dns";
 import { v4 as uuidv4 } from 'uuid';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useForm, useFieldArray, Controller, FormProvider } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { toast } from '@/hooks/use-toast';
 
 interface DnsRecordUI {
   id: string;
   type: string;
   name: string;
-  value: string;
-  priority?: string; // Keep as string for input, parse on submit
-  weight?: string;   // Keep as string for input, parse on submit
-  port?: string;     // Keep as string for input, parse on submit
+  value: string; // For SRV, this UI field holds the 'target'
+  priority?: string;
+  weight?: string;
+  port?: string;
 }
 
-const RECORD_TYPES = ['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS', 'PTR', 'SRV'];
+const RECORD_TYPES = ['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS', 'PTR', 'SRV'] as const;
+type RecordTypeTuple = typeof RECORD_TYPES;
+type RecordType = RecordTypeTuple[number];
+
+// Zod schema for DnsRecordUI
+const dnsRecordUISchema = z.object({
+  id: z.string().uuid(),
+  type: z.enum(RECORD_TYPES),
+  name: z.string().min(1, "Name is required"),
+  value: z.string(), // This will be 'target' for SRV records in UI, validated as required conditionally
+  priority: z.string().optional(),
+  weight: z.string().optional(),
+  port: z.string().optional(),
+}).superRefine((data, ctx) => {
+  const isNumeric = (val: string | undefined) => val !== undefined && val.trim() !== '' && !isNaN(parseInt(val));
+  const isMissing = (val: string | undefined) => val === undefined || val.trim() === '';
+
+  if (data.type === 'MX') {
+    if (isMissing(data.priority)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['priority'], message: 'Priority is required' });
+    } else if (!isNumeric(data.priority)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['priority'], message: 'Priority must be a number' });
+    }
+    if (isMissing(data.value)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['value'], message: 'Value (mail server hostname) is required' });
+    }
+  } else if (data.type === 'SRV') {
+    if (isMissing(data.priority)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['priority'], message: 'Priority is required' });
+    } else if (!isNumeric(data.priority)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['priority'], message: 'Priority must be a number' });
+    }
+    if (isMissing(data.weight)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['weight'], message: 'Weight is required' });
+    } else if (!isNumeric(data.weight)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['weight'], message: 'Weight must be a number' });
+    }
+    if (isMissing(data.port)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['port'], message: 'Port is required' });
+    } else if (!isNumeric(data.port)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['port'], message: 'Port must be a number' });
+    }
+    if (isMissing(data.value)) { // UI 'value' is SRV 'target'
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['value'], message: 'Target is required (in value field)' });
+    }
+  } else if (['A', 'AAAA', 'CNAME', 'TXT', 'NS', 'PTR'].includes(data.type)) {
+    if (isMissing(data.value)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['value'], message: 'Value is required for this record type' });
+    }
+  }
+});
+
+// Zod schema for the main form
+const dnsConfigSchema = z.object({
+  dnsServerStatus: z.boolean(),
+  domainName: z.string().min(1, "Domain name is required")
+    .regex(/^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,6}$/, "Invalid domain name format"),
+  primaryNameserver: z.string().min(1, "Primary nameserver is required")
+    .regex(/^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,6}$/, "Invalid nameserver format"),
+  records: z.array(dnsRecordUISchema).min(1, "At least one DNS record is required"),
+});
+
+export type DnsConfigFormValues = z.infer<typeof dnsConfigSchema>;
+
+const initialNewRecordBase: Omit<z.infer<typeof dnsRecordUISchema>, 'id'> = { type: "A", name: "", value: "", priority: "", weight: "", port: "" };
 
 export function DNSConfig() {
-  const initialRecords: DnsRecordUI[] = [
-    { id: uuidv4(), type: "A", name: "@", value: "192.168.1.1" },
-    { id: uuidv4(), type: "CNAME", name: "www", value: "@" },
-    { id: uuidv4(), type: "MX", name: "mail", value: "mail.example.com", priority: "10" },
-  ];
-  const initialNewRecord: DnsRecordUI = { id: '', type: "A", name: "", value: "", priority: "", weight: "", port: "" };
+  // const [saving, setSaving] = useState(false); // Replaced by form.formState.isSubmitting
 
-  const [records, setRecords] = useState<DnsRecordUI[]>(initialRecords);
-  const [isAddingNew, setIsAddingNew] = useState(false);
-  const [newRecord, setNewRecord] = useState<DnsRecordUI>(initialNewRecord);
-  const [domain, setDomain] = useState("");
-  const [nameserver, setNameserver] = useState("");
-  const [dnsServerStatus, setDnsServerStatus] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const form = useForm<DnsConfigFormValues>({
+    resolver: zodResolver(dnsConfigSchema),
+    defaultValues: {
+      dnsServerStatus: false,
+      domainName: "",
+      primaryNameserver: "",
+      records: [
+        { id: uuidv4(), type: "A", name: "@", value: "192.168.1.1", priority: "", weight: "", port: "" },
+        { id: uuidv4(), type: "CNAME", name: "www", value: "@", priority: "", weight: "", port: "" },
+        { id: uuidv4(), type: "MX", name: "mail", value: "mail.example.com", priority: "10", weight: "", port: "" },
+      ],
+    },
+    mode: 'onChange', // Validate on change for immediate feedback
+  });
 
-  const clearError = (fieldPath: string) => {
-    setFormErrors(prev => {
-      const newErrors = { ...prev };
-      delete newErrors[fieldPath];
-      return newErrors;
-    });
-  };
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "records",
+  });
 
-  const handleSave = async () => {
-    setSaving(true);
-    setFormErrors({}); // Clear previous errors
+  const onSubmit = async (data: DnsConfigFormValues) => {
+    // setSaving(true); // form.formState.isSubmitting handles this
     try {
-      const apiRecords = records.map(rec => {
+      const apiRecords = data.records.map(rec => {
         const apiRecord: any = {
           type: rec.type,
           name: rec.name,
         };
-        // Common value field, also used as target for SRV and exchange for MX
         if (rec.value !== undefined) apiRecord.value = rec.value;
 
         if (rec.type === 'MX' || rec.type === 'SRV') {
-          if (rec.priority !== undefined && rec.priority !== '') {
+          if (rec.priority !== undefined && rec.priority.trim() !== '') {
             apiRecord.priority = parseInt(rec.priority, 10);
-            if (isNaN(apiRecord.priority)) delete apiRecord.priority; // let Zod catch it if it's truly bad
           }
         }
         if (rec.type === 'SRV') {
-          if (rec.weight !== undefined && rec.weight !== '') {
+          if (rec.weight !== undefined && rec.weight.trim() !== '') {
             apiRecord.weight = parseInt(rec.weight, 10);
-            if (isNaN(apiRecord.weight)) delete apiRecord.weight;
           }
-          if (rec.port !== undefined && rec.port !== '') {
+          if (rec.port !== undefined && rec.port.trim() !== '') {
             apiRecord.port = parseInt(rec.port, 10);
-            if (isNaN(apiRecord.port)) delete apiRecord.port;
           }
-          // Map UI 'value' to API 'target' for SRV records
-          apiRecord.target = rec.value;
-          delete apiRecord.value; // SRV uses target, not value in schema
+          apiRecord.target = rec.value; // Map UI 'value' to API 'target'
+          delete apiRecord.value;
         }
         return apiRecord;
       });
 
-      const config = {
-        dnsServerStatus,
-        domainName: domain,
-        primaryNameserver: nameserver,
+      const configToSave = {
+        dnsServerStatus: data.dnsServerStatus,
+        domainName: data.domainName,
+        primaryNameserver: data.primaryNameserver,
         records: apiRecords,
       };
-      await updateDnsConfigurationAPI(config);
-      alert("DNS configuration saved successfully!");
+
+      await updateDnsConfigurationAPI(configToSave);
+      toast({ title: "Success", description: "DNS configuration saved successfully!" });
     } catch (err: any) {
       if (err.response && err.response.status === 400 && err.response.data && Array.isArray(err.response.data.errors)) {
-        const newFormErrors: Record<string, string> = {};
         err.response.data.errors.forEach((error: { path: (string | number)[], message: string }) => {
-          newFormErrors[error.path.join('.')] = error.message;
-        });
-        setFormErrors(newFormErrors);
-        alert("Validation failed. Please check the errors on the form.");
-      } else {
-        alert(
-          err?.response?.data?.message || err?.message || "Failed to save DNS configuration. Please try again."
-        );
-      }
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleRecordChange = (id: string, field: keyof DnsRecordUI, value: string | number) => {
-    setRecords(prevRecords =>
-      prevRecords.map(rec => {
-        if (rec.id === id) {
-          const updatedRecord = { ...rec, [field]: value };
-          // If type changes, reset type-specific fields
-          if (field === 'type') {
-            delete updatedRecord.priority;
-            delete updatedRecord.weight;
-            delete updatedRecord.port;
-            if (value !== 'SRV') {
-              // Keep value if not SRV as many types use it. SRV uses 'target' which is mapped from 'value'
+          let fieldPath = error.path.join('.');
+          // Map API's 'target' error for SRV back to UI's 'value' field
+          if (error.path.length === 3 && error.path[0] === 'records' && typeof error.path[1] === 'number' && error.path[2] === 'target') {
+            const recordIndex = error.path[1];
+            // Ensure the record at this index is indeed an SRV record before remapping
+            if (form.getValues(`records.${recordIndex}.type`) === 'SRV') {
+              fieldPath = `records.${recordIndex}.value`;
             }
           }
-          return updatedRecord;
-        }
-        return rec;
-      })
-    );
-    const fieldPath = `records.${records.findIndex(r => r.id === id)}.${field}`;
-    clearError(fieldPath);
-  };
-
-  const handleNewRecordChange = (field: keyof DnsRecordUI, value: string | number) => {
-    setNewRecord(prev => {
-      const updatedRecord = { ...prev, [field]: value };
-      if (field === 'type') {
-        delete updatedRecord.priority;
-        delete updatedRecord.weight;
-        delete updatedRecord.port;
+          form.setError(fieldPath as any, { type: 'manual', message: error.message });
+        });
+        toast({ title: "Validation Failed", description: "Please check the errors on the form.", variant: "destructive" });
+      } else {
+        toast({
+          title: "Error",
+          description: err?.response?.data?.message || err?.message || "Failed to save DNS configuration.",
+          variant: "destructive",
+        });
       }
-      return updatedRecord;
-    });
-    // No direct error clearing for new record form before adding, handled by overall validation
+    } finally {
+      // setSaving(false);
+    }
   };
 
-  const addNewRecordHandler = () => {
-    if (newRecord.type && newRecord.name && newRecord.value) { // Basic check before adding
-      setRecords([...records, { ...newRecord, id: uuidv4() }]);
-      setNewRecord({ ...initialNewRecord, id: '', type: "A" }); // Reset with a default type
-      setIsAddingNew(false);
-    } else {
-      // Optionally, set some local error for the new record form here
-      alert("New record must have Type, Name, and Value.");
-    }
+  const handleAddNewRecord = () => {
+    append({ ...initialNewRecordBase, id: uuidv4() });
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <h4 className="text-sm font-medium leading-none">DNS Server Status</h4>
-          <p className="text-sm text-muted-foreground">Enable or disable the DNS server</p>
-        </div>
-        <Switch checked={dnsServerStatus} onCheckedChange={setDnsServerStatus} />
-      </div>
-      <Separator />
-      <div className="grid gap-4">
-        <div className="grid gap-2">
-          <Label htmlFor="domain">Domain Name</Label>
-          <Input id="domain" placeholder="example.com" value={domain} onChange={e => { setDomain(e.target.value); clearError('domainName'); }} />
-          {formErrors.domainName && <p className="text-sm text-red-500">{formErrors.domainName}</p>}
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="nameserver">Primary Nameserver</Label>
-          <Input id="nameserver" placeholder="ns1.example.com" value={nameserver} onChange={e => { setNameserver(e.target.value); clearError('primaryNameserver'); }} />
-          {formErrors.primaryNameserver && <p className="text-sm text-red-500">{formErrors.primaryNameserver}</p>}
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="records">DNS Records</Label>
-          <div className="w-full rounded-md border p-4 space-y-4" data-component-name="DNSConfig">
-            <div className="grid grid-cols-1 gap-4">
-              {records.map((record, index) => {
-                const recordErrorPath = (field: string) => `records.${index}.${field}`;
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <FormField
+          control={form.control}
+          name="dnsServerStatus"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">
+              <div className="space-y-0.5">
+                <FormLabel className="text-base">DNS Server Status</FormLabel>
+                <FormDescription>
+                  Enable or disable the DNS server.
+                </FormDescription>
+              </div>
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
+        <Separator />
+        <div className="grid gap-4">
+          <FormField
+            control={form.control}
+            name="domainName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel htmlFor="domain">Domain Name</FormLabel>
+                <FormControl>
+                  <Input id="domain" placeholder="example.com" {...field} className={form.formState.errors.domainName ? 'border-red-500' : ''} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="primaryNameserver"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel htmlFor="nameserver">Primary Nameserver</FormLabel>
+                <FormControl>
+                  <Input id="nameserver" placeholder="ns1.example.com" {...field} className={form.formState.errors.primaryNameserver ? 'border-red-500' : ''} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <div className="grid gap-2">
+            <Label>DNS Records</Label>
+            <div className="w-full rounded-md border p-4 space-y-4" data-component-name="DNSConfig">
+              {fields.map((item, index) => {
+                const currentRecordType = form.watch(`records.${index}.type`);
+                const recordErrors = form.formState.errors.records?.[index];
                 return (
-                  <div key={record.id} className="p-3 border rounded-md space-y-2">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-start">
-                      <div>
-                        <Label htmlFor={`record-type-${record.id}`}>Type</Label>
-                        <Select
-                          value={record.type}
-                          onValueChange={(value) => handleRecordChange(record.id, 'type', value)}
-                        >
-                          <SelectTrigger id={`record-type-${record.id}`}> <SelectValue placeholder="Select type" /> </SelectTrigger>
-                          <SelectContent>
-                            {RECORD_TYPES.map(type => (
-                              <SelectItem key={type} value={type}>{type}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {formErrors[recordErrorPath('type')] && <p className="text-sm text-red-500">{formErrors[recordErrorPath('type')]}</p>}
-                      </div>
-                      <div>
-                        <Label htmlFor={`record-name-${record.id}`}>Name</Label>
-                        <Input id={`record-name-${record.id}`} placeholder="Name (@ for root)" value={record.name} onChange={(e) => handleRecordChange(record.id, 'name', e.target.value)} />
-                        {formErrors[recordErrorPath('name')] && <p className="text-sm text-red-500">{formErrors[recordErrorPath('name')]}</p>}
-                      </div>
-                      <div>
-                        <Label htmlFor={`record-value-${record.id}`}>{record.type === 'SRV' ? 'Target' : 'Value'}</Label>
-                        <Input id={`record-value-${record.id}`} placeholder={record.type === 'SRV' ? 'target.example.com' : 'Value'} value={record.value} onChange={(e) => handleRecordChange(record.id, 'value', e.target.value)} />
-                        {formErrors[recordErrorPath(record.type === 'SRV' ? 'target' : 'value')] && <p className="text-sm text-red-500">{formErrors[recordErrorPath(record.type === 'SRV' ? 'target' : 'value')]}</p>}
-                        {/* Show SRV target error if 'value' on UI becomes 'target' in API error path for SRV */} 
-                        {record.type === 'SRV' && formErrors[recordErrorPath('value')] && <p className="text-sm text-red-500">{formErrors[recordErrorPath('value')]}</p>} 
-                      </div>
+                  <div key={item.id} className="p-3 border rounded-md space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-start">
+                      <FormField
+                        control={form.control}
+                        name={`records.${index}.type`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Type</FormLabel>
+                            <Select
+                              onValueChange={(value) => {
+                                field.onChange(value);
+                                // Reset related fields on type change
+                                form.setValue(`records.${index}.priority`, '', { shouldValidate: true });
+                                form.setValue(`records.${index}.weight`, '', { shouldValidate: true });
+                                form.setValue(`records.${index}.port`, '', { shouldValidate: true });
+                                if (value !== 'SRV') { // Keep value for other types
+                                    // form.setValue(`records.${index}.value`, '', { shouldValidate: true }); // Or conditionally clear
+                                }
+                              }}
+                              defaultValue={field.value}
+                            >
+                              <FormControl>
+                                <SelectTrigger className={recordErrors?.type ? 'border-red-500' : ''}>
+                                  <SelectValue placeholder="Select type" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {RECORD_TYPES.map(type => (
+                                  <SelectItem key={type} value={type}>{type}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`records.${index}.name`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Name (@ for root)" {...field} className={recordErrors?.name ? 'border-red-500' : ''} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`records.${index}.value`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{currentRecordType === 'SRV' ? 'Target' : 'Value'}</FormLabel>
+                            <FormControl>
+                              <Input placeholder={currentRecordType === 'SRV' ? 'target.example.com' : 'Value'} {...field} className={recordErrors?.value ? 'border-red-500' : ''} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     </div>
-                    {(record.type === 'MX' || record.type === 'SRV') && (
-                      <div>
-                        <Label htmlFor={`record-priority-${record.id}`}>Priority</Label>
-                        <Input id={`record-priority-${record.id}`} type="number" placeholder="10" value={record.priority || ''} onChange={(e) => handleRecordChange(record.id, 'priority', e.target.value)} />
-                        {formErrors[recordErrorPath('priority')] && <p className="text-sm text-red-500">{formErrors[recordErrorPath('priority')]}</p>}
+                    {(currentRecordType === 'MX' || currentRecordType === 'SRV') && (
+                      <FormField
+                        control={form.control}
+                        name={`records.${index}.priority`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Priority</FormLabel>
+                            <FormControl>
+                              <Input type="number" placeholder="10" {...field} className={recordErrors?.priority ? 'border-red-500' : ''} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+                    {currentRecordType === 'SRV' && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <FormField
+                          control={form.control}
+                          name={`records.${index}.weight`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Weight</FormLabel>
+                              <FormControl>
+                                <Input type="number" placeholder="5" {...field} className={recordErrors?.weight ? 'border-red-500' : ''} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name={`records.${index}.port`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Port</FormLabel>
+                              <FormControl>
+                                <Input type="number" placeholder="5060" {...field} className={recordErrors?.port ? 'border-red-500' : ''} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                       </div>
                     )}
-                    {record.type === 'SRV' && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        <div>
-                          <Label htmlFor={`record-weight-${record.id}`}>Weight</Label>
-                          <Input id={`record-weight-${record.id}`} type="number" placeholder="5" value={record.weight || ''} onChange={(e) => handleRecordChange(record.id, 'weight', e.target.value)} />
-                          {formErrors[recordErrorPath('weight')] && <p className="text-sm text-red-500">{formErrors[recordErrorPath('weight')]}</p>}
-                        </div>
-                        <div>
-                          <Label htmlFor={`record-port-${record.id}`}>Port</Label>
-                          <Input id={`record-port-${record.id}`} type="number" placeholder="5060" value={record.port || ''} onChange={(e) => handleRecordChange(record.id, 'port', e.target.value)} />
-                          {formErrors[recordErrorPath('port')] && <p className="text-sm text-red-500">{formErrors[recordErrorPath('port')]}</p>}
-                        </div>
-                      </div>
-                    )}
-                    <Button variant="outline" size="sm" onClick={() => setRecords(records.filter(r => r.id !== record.id))}>Remove</Button>
+                    <Button variant="outline" size="sm" type="button" onClick={() => remove(index)}>Remove</Button>
                   </div>
                 );
               })}
             </div>
-            
-            {isAddingNew && (
-              <div className="mt-4 p-3 border rounded-md space-y-2">
-                <h5 className="text-md font-semibold">Add New Record</h5>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-start">
-                  <div>
-                    <Label htmlFor="new-record-type">Type</Label>
-                    <Select
-                      value={newRecord.type}
-                      onValueChange={(value) => handleNewRecordChange('type', value)}
-                    >
-                      <SelectTrigger id="new-record-type"> <SelectValue placeholder="Select type" /> </SelectTrigger>
-                      <SelectContent>
-                        {RECORD_TYPES.map(type => (
-                          <SelectItem key={`new-${type}`} value={type}>{type}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="new-record-name">Name</Label>
-                    <Input id="new-record-name" placeholder="Name (@ for root)" value={newRecord.name} onChange={(e) => handleNewRecordChange('name', e.target.value)} />
-                  </div>
-                  <div>
-                     <Label htmlFor="new-record-value">{newRecord.type === 'SRV' ? 'Target' : 'Value'}</Label>
-                    <Input id="new-record-value" placeholder={newRecord.type === 'SRV' ? 'target.example.com': 'Value'} value={newRecord.value} onChange={(e) => handleNewRecordChange('value', e.target.value)} />
-                  </div>
-                </div>
-                {(newRecord.type === 'MX' || newRecord.type === 'SRV') && (
-                  <div>
-                    <Label htmlFor="new-record-priority">Priority</Label>
-                    <Input id="new-record-priority" type="number" placeholder="10" value={newRecord.priority || ''} onChange={(e) => handleNewRecordChange('priority', e.target.value)} />
-                  </div>
-                )}
-                {newRecord.type === 'SRV' && (
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    <div>
-                      <Label htmlFor="new-record-weight">Weight</Label>
-                      <Input id="new-record-weight" type="number" placeholder="5" value={newRecord.weight || ''} onChange={(e) => handleNewRecordChange('weight', e.target.value)} />
-                    </div>
-                    <div>
-                      <Label htmlFor="new-record-port">Port</Label>
-                      <Input id="new-record-port" type="number" placeholder="5060" value={newRecord.port || ''} onChange={(e) => handleNewRecordChange('port', e.target.value)} />
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
+            <FormMessage>{form.formState.errors.records?.message}</FormMessage>
+            <Button
+              variant="outline"
+              className="w-full mt-4"
+              type="button"
+              onClick={handleAddNewRecord}
+            >
+              + Add Record
+            </Button>
           </div>
         </div>
-      </div>
-      <Button onClick={handleSave} disabled={saving}>
-        {saving ? "Saving..." : "Save DNS Configuration"}
-      </Button>
-    </div>
+        <Button type="submit" disabled={form.formState.isSubmitting}>
+          {form.formState.isSubmitting ? "Saving..." : "Save DNS Configuration"}
+        </Button>
+      </form>
+    </Form>
   );
 } 
