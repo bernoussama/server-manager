@@ -75,18 +75,42 @@ export interface DnsServerConfig {
 
 // DNS Zone Configuration
 export interface DnsZoneConfig {
-  domainName: string;
-  primaryNameserver: string;
-  adminEmail?: string;
+  id: string;
+  zoneName: string;
+  zoneType: 'master' | 'slave' | 'forward';
+  fileName: string;
+  allowUpdate?: string[];
   records: DnsRecord[];
 }
 
 // Combined DNS Configuration
-export interface DnsConfiguration extends DnsServerConfig, DnsZoneConfig {}
+export interface DnsConfiguration extends DnsServerConfig {
+  zones: DnsZoneConfig[];
+}
 
 // Form Values (for the UI)
-export interface DnsConfigurationFormValues extends Omit<DnsConfiguration, 'records'> {
-  records: (DnsRecord & { id?: string })[];
+export interface DnsConfigFormValues extends Omit<DnsServerConfig, 'listenOn' | 'allowQuery' | 'allowRecursion' | 'forwarders' | 'allowTransfer' | 'allowUpdate'> {
+  listenOn: string;
+  allowQuery: string;
+  allowRecursion: string;
+  forwarders: string;
+  allowTransfer: string;
+  zones: {
+    id: string;
+    zoneName: string;
+    zoneType: 'master' | 'slave' | 'forward';
+    fileName: string;
+    allowUpdate: string;
+    records: {
+      id: string;
+      type: DnsRecordType;
+      name: string;
+      value: string;
+      priority?: string;
+      weight?: string;
+      port?: string;
+    }[];
+  }[];
 }
 
 // API Response Types

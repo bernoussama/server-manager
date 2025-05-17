@@ -7,12 +7,16 @@ import { Switch } from "@/components/ui/switch";
 import { updateDnsConfigurationAPI } from "@/lib/api/dns";
 import { v4 as uuidv4 } from 'uuid';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useForm, useFieldArray, Controller, FormProvider, Control, UseFormReturn, FieldArrayWithId } from 'react-hook-form';
+import { useForm, useFieldArray, Control, UseFormReturn, FieldArrayWithId } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { toast } from '@/hooks/use-toast';
 import { DnsRecord, MxDnsRecord, SrvDnsRecord, BaseDnsRecord, DnsRecordType as ApiRecordTypeImport } from '@/types/dns';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { PlusCircle } from 'lucide-react';
 
 const RECORD_TYPES = ['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS', 'PTR', 'SRV'] as const;
 type UiRecordType = typeof RECORD_TYPES[number];
@@ -33,6 +37,7 @@ const isNonEmptyString = (val: string | undefined): val is string =>
 const isNumeric = (val: string | undefined): val is string =>
   isNonEmptyString(val) && !isNaN(parseInt(val));
 
+// Schema for DNS records
 const dnsRecordUISchema = z.object({
   id: z.string().uuid(),
   type: z.enum(RECORD_TYPES),
@@ -77,19 +82,30 @@ const dnsRecordUISchema = z.object({
   }
 });
 
+// Schema for zone configuration
+const zoneSchema = z.object({
+  id: z.string().uuid(),
+  zoneName: z.string().min(1, "Zone name is required"),
+  zoneType: z.enum(['master', 'slave', 'forward']),
+  fileName: z.string().min(1, "File name is required"),
+  allowUpdate: z.string(),
+  records: z.array(dnsRecordUISchema),
+});
+
+// Schema for the entire DNS configuration form
 const dnsConfigSchema = z.object({
   dnsServerStatus: z.boolean(),
-  domainName: z.string().min(1, "Domain name is required")
-    .regex(/^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,6}$/, "Invalid domain name format"),
-  primaryNameserver: z.string().min(1, "Primary nameserver is required")
-    .regex(/^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,6}$/, "Invalid nameserver format"),
-  records: z.array(dnsRecordUISchema).min(1, "At least one DNS record is required"),
+  listenOn: z.string(),
+  allowQuery: z.string(),
+  allowRecursion: z.string(),
+  forwarders: z.string(),
+  allowTransfer: z.string(),
+  zones: z.array(zoneSchema),
 });
 
 export type DnsConfigFormValues = z.infer<typeof dnsConfigSchema>;
 
-const initialNewRecordBase: Omit<DnsRecordUI, 'id'> = { type: "A", name: "", value: "", priority: "", weight: "", port: "" };
-
+// Transform UI record to API record
 const transformUiRecordToApiRecord = (uiRec: DnsRecordUI): DnsRecord => {
   const baseApiRecord = {
     type: uiRec.type as ApiRecordTypeImport,
@@ -124,33 +140,37 @@ const transformUiRecordToApiRecord = (uiRec: DnsRecordUI): DnsRecord => {
   } as BaseDnsRecord & { type: Exclude<ApiRecordTypeImport, 'MX' | 'SRV' | 'SOA'> };
 };
 
+// Component for DNS record form fields
 interface DnsRecordFormFieldsProps {
-  index: number;
+  zoneIndex: number;
+  recordIndex: number;
   control: Control<DnsConfigFormValues>;
   form: UseFormReturn<DnsConfigFormValues>;
   remove: (index: number) => void;
-  item: FieldArrayWithId<DnsConfigFormValues, "records", "id">;
+  item: FieldArrayWithId;
 }
 
-const DnsRecordFormFields: React.FC<DnsRecordFormFieldsProps> = ({ index, control, form, remove, item }) => {
-  const currentRecordType = form.watch(`records.${index}.type` as const);
-  const recordErrors = form.formState.errors.records?.[index];
+const DnsRecordFormFields: React.FC<DnsRecordFormFieldsProps> = ({ 
+  zoneIndex, recordIndex, control, form, remove, item 
+}) => {
+  const currentRecordType = form.watch(`zones.${zoneIndex}.records.${recordIndex}.type` as const);
+  const recordErrors = form.formState.errors.zones?.[zoneIndex]?.records?.[recordIndex];
 
   return (
     <div key={item.id} className="p-3 border rounded-md space-y-3">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-start">
         <FormField
           control={control}
-          name={`records.${index}.type`}
+          name={`zones.${zoneIndex}.records.${recordIndex}.type`}
           render={({ field }) => (
             <FormItem>
               <FormLabel>Type</FormLabel>
               <Select
                 onValueChange={(value: UiRecordType) => {
                   field.onChange(value);
-                  form.setValue(`records.${index}.priority`, '', { shouldValidate: true });
-                  form.setValue(`records.${index}.weight`, '', { shouldValidate: true });
-                  form.setValue(`records.${index}.port`, '', { shouldValidate: true });
+                  form.setValue(`zones.${zoneIndex}.records.${recordIndex}.priority`, '', { shouldValidate: true });
+                  form.setValue(`zones.${zoneIndex}.records.${recordIndex}.weight`, '', { shouldValidate: true });
+                  form.setValue(`zones.${zoneIndex}.records.${recordIndex}.port`, '', { shouldValidate: true });
                 }}
                 defaultValue={field.value}
               >
@@ -171,7 +191,7 @@ const DnsRecordFormFields: React.FC<DnsRecordFormFieldsProps> = ({ index, contro
         />
         <FormField
           control={control}
-          name={`records.${index}.name`}
+          name={`zones.${zoneIndex}.records.${recordIndex}.name`}
           render={({ field }) => (
             <FormItem>
               <FormLabel>Name</FormLabel>
@@ -184,7 +204,7 @@ const DnsRecordFormFields: React.FC<DnsRecordFormFieldsProps> = ({ index, contro
         />
         <FormField
           control={control}
-          name={`records.${index}.value`}
+          name={`zones.${zoneIndex}.records.${recordIndex}.value`}
           render={({ field }) => (
             <FormItem>
               <FormLabel>{currentRecordType === 'SRV' ? 'Target' : 'Value'}</FormLabel>
@@ -199,7 +219,7 @@ const DnsRecordFormFields: React.FC<DnsRecordFormFieldsProps> = ({ index, contro
       {(currentRecordType === 'MX' || currentRecordType === 'SRV') && (
         <FormField
           control={control}
-          name={`records.${index}.priority`}
+          name={`zones.${zoneIndex}.records.${recordIndex}.priority`}
           render={({ field }) => (
             <FormItem>
               <FormLabel>Priority</FormLabel>
@@ -215,7 +235,7 @@ const DnsRecordFormFields: React.FC<DnsRecordFormFieldsProps> = ({ index, contro
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <FormField
             control={control}
-            name={`records.${index}.weight`}
+            name={`zones.${zoneIndex}.records.${recordIndex}.weight`}
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Weight</FormLabel>
@@ -228,7 +248,7 @@ const DnsRecordFormFields: React.FC<DnsRecordFormFieldsProps> = ({ index, contro
           />
           <FormField
             control={control}
-            name={`records.${index}.port`}
+            name={`zones.${zoneIndex}.records.${recordIndex}.port`}
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Port</FormLabel>
@@ -241,71 +261,279 @@ const DnsRecordFormFields: React.FC<DnsRecordFormFieldsProps> = ({ index, contro
           />
         </div>
       )}
-      <Button variant="outline" size="sm" type="button" onClick={() => remove(index)}>Remove</Button>
+      <Button variant="outline" size="sm" type="button" onClick={() => remove(recordIndex)}>Remove</Button>
     </div>
   );
 };
 
+// Component for zone configuration
+interface ZoneConfigProps {
+  zoneIndex: number;
+  control: Control<DnsConfigFormValues>;
+  form: UseFormReturn<DnsConfigFormValues>;
+  removeZone: (index: number) => void;
+}
+
+const ZoneConfig: React.FC<ZoneConfigProps> = ({ zoneIndex, control, form, removeZone }) => {
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: `zones.${zoneIndex}.records` as const,
+  });
+
+  const handleAddRecord = () => {
+    append({ 
+      id: uuidv4(), 
+      type: "A", 
+      name: "", 
+      value: "", 
+      priority: "", 
+      weight: "", 
+      port: "" 
+    });
+  };
+
+  return (
+    <Card className="mb-6">
+      <CardHeader>
+        <div className="flex justify-between items-center">
+          <FormField
+            control={control}
+            name={`zones.${zoneIndex}.zoneName`}
+            render={({ field }) => (
+              <FormItem className="flex-1">
+                <FormLabel>Zone Name</FormLabel>
+                <FormControl>
+                  <Input placeholder="example.com" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <Button 
+            variant="destructive" 
+            size="sm" 
+            onClick={() => removeZone(zoneIndex)}
+            className="ml-4 mt-6"
+          >
+            Remove Zone
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={control}
+            name={`zones.${zoneIndex}.zoneType`}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Zone Type</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select zone type" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="master">Master</SelectItem>
+                    <SelectItem value="slave">Slave</SelectItem>
+                    <SelectItem value="forward">Forward</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={control}
+            name={`zones.${zoneIndex}.fileName`}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>File Name</FormLabel>
+                <FormControl>
+                  <Input placeholder="forward.example.com" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        
+        <FormField
+          control={control}
+          name={`zones.${zoneIndex}.allowUpdate`}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Allow Update</FormLabel>
+              <FormControl>
+                <Input placeholder="none" {...field} />
+              </FormControl>
+              <FormDescription>
+                Comma-separated list of IP addresses or 'none'
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <Separator className="my-4" />
+        
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <Label className="text-lg">DNS Records</Label>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAddRecord}
+              className="flex items-center gap-1"
+            >
+              <PlusCircle className="h-4 w-4" /> Add Record
+            </Button>
+          </div>
+          
+          <div className="space-y-4">
+            {fields.map((item, recordIndex) => (
+              <DnsRecordFormFields
+                key={item.id}
+                zoneIndex={zoneIndex}
+                recordIndex={recordIndex}
+                control={control}
+                form={form}
+                remove={remove}
+                item={item}
+              />
+            ))}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
 export function DNSConfig() {
+  const [activeTab, setActiveTab] = React.useState("main-config");
+  
   const form = useForm<DnsConfigFormValues>({
     resolver: zodResolver(dnsConfigSchema),
     defaultValues: {
       dnsServerStatus: false,
-      domainName: "",
-      primaryNameserver: "",
-      records: [
-        { id: uuidv4(), type: "A", name: "@", value: "192.168.1.1", priority: "", weight: "", port: "" },
-        { id: uuidv4(), type: "CNAME", name: "www", value: "@", priority: "", weight: "", port: "" },
-        { id: uuidv4(), type: "MX", name: "mail", value: "mail.example.com", priority: "10", weight: "", port: "" },
+      listenOn: "127.0.0.1; 192.168.1.160;",
+      allowQuery: "localhost; 192.168.1.0/24;",
+      allowRecursion: "localhost;",
+      forwarders: "8.8.8.8; 8.8.4.4;",
+      allowTransfer: "none;",
+      zones: [
+        {
+          id: uuidv4(),
+          zoneName: "example.com",
+          zoneType: "master",
+          fileName: "forward.example.com",
+          allowUpdate: "none",
+          records: [
+            { id: uuidv4(), type: "A", name: "@", value: "192.168.1.1", priority: "", weight: "", port: "" },
+            { id: uuidv4(), type: "CNAME", name: "www", value: "@", priority: "", weight: "", port: "" },
+            { id: uuidv4(), type: "MX", name: "@", value: "mail.example.com", priority: "10", weight: "", port: "" },
+          ],
+        },
+        {
+          id: uuidv4(),
+          zoneName: "1.168.192.in-addr.arpa",
+          zoneType: "master",
+          fileName: "reverse.example.com",
+          allowUpdate: "none",
+          records: [
+            { id: uuidv4(), type: "PTR", name: "1", value: "example.com.", priority: "", weight: "", port: "" },
+          ],
+        }
       ],
     },
     mode: 'onChange',
   });
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields: zoneFields, append: appendZone, remove: removeZone } = useFieldArray({
     control: form.control,
-    name: "records",
+    name: "zones",
   });
 
   const onSubmit = async (data: DnsConfigFormValues) => {
     console.log('Form data submitted:', data);
     try {
-      const apiRecords = data.records.map(transformUiRecordToApiRecord);
-
-      const configToSave = {
+      // Transform the form data to the API format
+      const transformedData = {
         dnsServerStatus: data.dnsServerStatus,
-        domainName: data.domainName,
-        primaryNameserver: data.primaryNameserver,
-        records: apiRecords,
+        listenOn: data.listenOn.split(';').map(s => s.trim()).filter(Boolean),
+        allowQuery: data.allowQuery.split(';').map(s => s.trim()).filter(Boolean),
+        allowRecursion: data.allowRecursion.split(';').map(s => s.trim()).filter(Boolean),
+        forwarders: data.forwarders.split(';').map(s => s.trim()).filter(Boolean),
+        allowTransfer: data.allowTransfer.split(';').map(s => s.trim()).filter(Boolean),
+        zones: data.zones.map(zone => ({
+          id: zone.id,
+          zoneName: zone.zoneName,
+          zoneType: zone.zoneType,
+          fileName: zone.fileName,
+          allowUpdate: zone.allowUpdate.split(';').map(s => s.trim()).filter(Boolean),
+          records: zone.records.map(transformUiRecordToApiRecord)
+        }))
       };
 
-      await updateDnsConfigurationAPI(configToSave as any);
+      await updateDnsConfigurationAPI(transformedData as any);
       toast({ title: "Success", description: "DNS configuration saved successfully!" });
     } catch (err: any) {
-      if (err.response && err.response.status === 400 && err.response.data && Array.isArray(err.response.data.errors)) {
-        err.response.data.errors.forEach((error: { path: (string | number)[], message: string }) => {
-          let fieldPath = error.path.join('.');
-          if (error.path.length === 3 && error.path[0] === 'records' && typeof error.path[1] === 'number' && error.path[2] === 'target') {
-            const recordIndex = error.path[1];
-            if (form.getValues(`records.${recordIndex}.type`) === 'SRV') {
-              fieldPath = `records.${recordIndex}.value`;
-            }
-          }
-          form.setError(fieldPath as any, { type: 'manual', message: error.message });
+      if (err.data && Array.isArray(err.data.errors)) {
+        err.data.errors.forEach((error: { path: (string | number)[], message: string }) => {
+          form.setError(error.path.join('.') as any, { 
+            type: 'manual', 
+            message: error.message 
+          });
         });
         toast({ title: "Validation Failed", description: "Please check the errors on the form.", variant: "destructive" });
       } else {
         toast({
           title: "Error",
-          description: err?.response?.data?.message || err?.message || "Failed to save DNS configuration.",
+          description: err?.data?.message || err?.message || "Failed to save DNS configuration.",
           variant: "destructive",
         });
       }
     }
   };
 
-  const handleAddNewRecord = () => {
-    append({ ...initialNewRecordBase, id: uuidv4() });
+  const handleAddZone = () => {
+    appendZone({
+      id: uuidv4(),
+      zoneName: "",
+      zoneType: "master",
+      fileName: "",
+      allowUpdate: "none",
+      records: [],
+    });
+    // Switch to zones tab when adding a new zone
+    setActiveTab("zones");
+  };
+
+  // Generate preview of bind configuration
+  const generateBindConfig = () => {
+    const values = form.getValues();
+    
+    let config = `# BIND DNS Server Configuration\n\n`;
+    config += `options {\n`;
+    config += `  listen-on port 53 { ${values.listenOn} };\n`;
+    config += `  allow-query { ${values.allowQuery} };\n`;
+    config += `  allow-recursion { ${values.allowRecursion} };\n`;
+    config += `  forwarders { ${values.forwarders} };\n`;
+    config += `  allow-transfer { ${values.allowTransfer} };\n`;
+    config += `};\n\n`;
+    
+    values.zones.forEach(zone => {
+      config += `zone "${zone.zoneName}" IN {\n`;
+      config += `  type ${zone.zoneType};\n`;
+      config += `  file "${zone.fileName}";\n`;
+      config += `  allow-update { ${zone.allowUpdate} };\n`;
+      config += `};\n\n`;
+    });
+    
+    return config;
   };
 
   return (
@@ -331,59 +559,152 @@ export function DNSConfig() {
             </FormItem>
           )}
         />
-        <Separator />
-        <div className="grid gap-4">
-          <FormField
-            control={form.control}
-            name="domainName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel htmlFor="domain">Domain Name</FormLabel>
-                <FormControl>
-                  <Input id="domain" placeholder="example.com" {...field} className={form.formState.errors.domainName ? 'border-red-500' : ''} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="primaryNameserver"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel htmlFor="nameserver">Primary Nameserver</FormLabel>
-                <FormControl>
-                  <Input id="nameserver" placeholder="ns1.example.com" {...field} className={form.formState.errors.primaryNameserver ? 'border-red-500' : ''} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <div className="grid gap-2">
-            <Label>DNS Records</Label>
-            <div className="w-full rounded-md border p-4 space-y-4" data-component-name="DNSConfigRecordsList">
-              {fields.map((item, index) => (
-                <DnsRecordFormFields
-                  key={item.id}
-                  index={index}
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="main-config">Main Config</TabsTrigger>
+            <TabsTrigger value="zones">Zones</TabsTrigger>
+            <TabsTrigger value="preview">Preview</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="main-config" className="space-y-4 mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Main Configuration</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <FormField
                   control={form.control}
-                  form={form}
-                  remove={remove}
-                  item={item}
+                  name="listenOn"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Listen On</FormLabel>
+                      <FormControl>
+                        <Input placeholder="127.0.0.1; 192.168.1.160;" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Semicolon-separated list of IP addresses to listen on
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              ))}
+                
+                <FormField
+                  control={form.control}
+                  name="allowQuery"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Allow Query</FormLabel>
+                      <FormControl>
+                        <Input placeholder="localhost; 192.168.1.0/24;" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Semicolon-separated list of IP addresses/networks allowed to query
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="allowRecursion"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Allow Recursion</FormLabel>
+                      <FormControl>
+                        <Input placeholder="localhost;" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Semicolon-separated list of IP addresses/networks allowed recursive queries
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="forwarders"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Forwarders</FormLabel>
+                      <FormControl>
+                        <Input placeholder="8.8.8.8; 8.8.4.4;" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Semicolon-separated list of DNS servers to forward queries to
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="allowTransfer"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Allow Transfer</FormLabel>
+                      <FormControl>
+                        <Input placeholder="none;" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Semicolon-separated list of IP addresses/networks allowed zone transfers
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="zones" className="space-y-4 mt-4">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold">DNS Zones</h2>
+              <Button 
+                onClick={handleAddZone} 
+                className="flex items-center gap-1"
+              >
+                <PlusCircle className="h-4 w-4" /> Add Zone
+              </Button>
             </div>
-            <FormMessage>{form.formState.errors.records?.message}</FormMessage>
-            <Button
-              variant="outline"
-              className="w-full mt-4"
-              type="button"
-              onClick={handleAddNewRecord}
-            >
-              + Add Record
-            </Button>
-          </div>
-        </div>
+            
+            {zoneFields.map((zone, index) => (
+              <ZoneConfig
+                key={zone.id}
+                zoneIndex={index}
+                control={form.control}
+                form={form}
+                removeZone={removeZone}
+              />
+            ))}
+            
+            {zoneFields.length === 0 && (
+              <div className="text-center p-8 border border-dashed rounded-md">
+                <p className="text-muted-foreground">No zones configured. Click "Add Zone" to create one.</p>
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="preview" className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Configuration Preview</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Textarea 
+                  readOnly 
+                  className="font-mono h-[500px] whitespace-pre"
+                  value={generateBindConfig()}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+        
         <Button type="submit" disabled={form.formState.isSubmitting}>
           {form.formState.isSubmitting ? "Saving..." : "Save DNS Configuration"}
         </Button>
