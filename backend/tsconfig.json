@@ -10,8 +10,8 @@
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "outDir": "./dist",
-    "rootDir": "./src"
+    "rootDir": "backend/src"
   },
-  "include": ["src/**/*"],
+  "include": ["backend/src/**/*"],
   "exclude": ["node_modules"]
 }

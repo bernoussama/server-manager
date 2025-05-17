@@ -10,7 +10,7 @@ fi
 
 # Install backend dependencies
 echo "📦 Installing backend dependencies..."
-pnpm install
+cd backend && pnpm install && cd ..
 
 # Install UI dependencies
 echo "📦 Installing UI dependencies..."
@@ -22,7 +22,7 @@ if [ ! -f .env ]; then
     echo "Creating .env file..."
     cat > .env << EOL
 # Database Configuration
-DATABASE_URL=file:./local.db
+DATABASE_URL=file:./backend/local.db
 # Server Configuration
 PORT=3000
 # Add any other required environment variables here
@@ -34,13 +34,13 @@ fi
 
 # Run database migrations
 echo "🗃️ Setting up database..."
-pnpm dlx drizzle-kit generate
-pnpm dlx drizzle-kit push:sqlite
+cd backend && pnpm dlx drizzle-kit generate && cd ..
+cd backend && pnpm dlx drizzle-kit push:sqlite && cd ..
 
 echo "✅ Setup completed successfully!"
 echo 
 echo "🚀 To start the development server:"
-echo "  - Backend: pnpm dev"
+echo "  - Backend: cd backend && pnpm dev"
 echo "  - UI:      cd ui && pnpm dev"
 echo 
 echo "🌐 Backend will be available at: http://localhost:3000"
