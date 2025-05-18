@@ -1,5 +1,5 @@
 {
-  "name": "ts-node-express",
+  "name": "@server-manager/backend",
   "version": "1.0.0",
   "description": "TypeScript Node.js Express API",
   "main": "dist/server.js",
@@ -19,6 +19,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@server-manager/shared": "workspace:*",
     "@libsql/client": "^0.15.4",
     "@types/react-router-dom": "^5.3.3",
     "bcrypt": "^5.1.1",
