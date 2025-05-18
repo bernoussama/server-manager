@@ -92,15 +92,30 @@ const zoneSchema = z.object({
   zoneName: z.string().min(1, { message: 'Zone name is required' }),
   zoneType: z.enum(['master', 'slave', 'forward']),
   fileName: z.string(),
-  allowUpdate: z.string().default('none'),
+  allowUpdate: z.union([
+    z.string().default('none'),
+    z.array(z.string()).default(['none'])
+  ]),
   records: z.array(dnsRecordSchema).default([]),
 });
 
 // Helper function to parse string lists (like "8.8.8.8; 8.8.4.4;")
-const parseStringList = (input: string, validatorFn?: (item: string) => boolean): string[] => {
+const parseStringList = (input: string | string[], validatorFn?: (item: string) => boolean): string[] => {
   if (!input) return [];
   
-  // Split by semicolons and remove any trailing semicolons
+  // If input is already an array, just validate and return it
+  if (Array.isArray(input)) {
+    if (validatorFn) {
+      input.forEach(item => {
+        if (!validatorFn(item)) {
+          throw new Error(`Invalid item in list: ${item}`);
+        }
+      });
+    }
+    return input;
+  }
+  
+  // Otherwise, split by semicolons and remove any trailing semicolons
   const items = input.split(';')
     .map(item => item.trim())
     .filter(item => item.length > 0);
@@ -118,18 +133,32 @@ const parseStringList = (input: string, validatorFn?: (item: string) => boolean)
 
 // Create a custom refinement for string lists
 const stringListRefinement = (key: string, validatorFn?: (item: string) => boolean) => {
-  return z.string().transform((val, ctx) => {
-    try {
-      return parseStringList(val, validatorFn);
-    } catch (error) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: `Invalid ${key} list: ${(error as Error).message}`,
-        path: [key],
-      });
-      return z.NEVER;
-    }
-  });
+  return z.union([
+    z.string().transform((val, ctx) => {
+      try {
+        return parseStringList(val, validatorFn);
+      } catch (error) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Invalid ${key} list: ${(error as Error).message}`,
+          path: [key],
+        });
+        return z.NEVER;
+      }
+    }),
+    z.array(z.string()).transform((val, ctx) => {
+      try {
+        return parseStringList(val, validatorFn);
+      } catch (error) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Invalid ${key} list: ${(error as Error).message}`,
+          path: [key],
+        });
+        return z.NEVER;
+      }
+    })
+  ]);
 };
 
 // IP address validation function
