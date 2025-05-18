@@ -10,5 +10,8 @@ export {
   RECORD_TYPES,
   dnsRecordUISchema,
   dnsConfigSchema,
-  uiZoneSchema
+  uiZoneSchema,
+  transformUiRecordToApiRecord,
+  parseStringToArray,
+  transformFormToApiData
 } from './validators';

@@ -25,108 +25,22 @@ import {
   DnsRecordType
 } from '../../../types/dns';
 
-// Define locally until fixed in shared package exports
-const RECORD_TYPES = ['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS', 'PTR', 'SRV'] as const;
+// Import directly from local files
+import {
+  isNonEmptyString,
+  isNumeric
+} from '../../../../../shared/src/validators/dnsFormValidator';
+import { RECORD_TYPES, dnsRecordUISchema, dnsConfigSchema } from '../../../../../shared/src/validators/dnsFormValidator';
+import { 
+  transformUiRecordToApiRecord, 
+  parseStringToArray,
+  transformFormToApiData 
+} from '../../../../../shared/src/validators/dnsTransformers';
+
+// Define the UiRecordType here
 type UiRecordType = typeof RECORD_TYPES[number];
 
-const isNonEmptyString = (val: string | undefined): val is string =>
-  val !== undefined && val.trim() !== '';
-
-const isNumeric = (val: string | undefined): val is string =>
-  isNonEmptyString(val) && !isNaN(parseInt(val));
-
-// Schema for DNS records
-const dnsRecordUISchema = z.object({
-  id: z.string().uuid(),
-  type: z.enum(RECORD_TYPES),
-  name: z.string().min(1, "Name is required"),
-  value: z.string().min(1, "Value is required"),
-  priority: z.string().optional(),
-  weight: z.string().optional(),
-  port: z.string().optional(),
-}).superRefine((data, ctx) => {
-  if (data.type === 'MX') {
-    if (!isNonEmptyString(data.priority)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['priority'], message: 'Priority is required' });
-    } else if (!isNumeric(data.priority)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['priority'], message: 'Priority must be a number' });
-    }
-  } else if (data.type === 'SRV') {
-    if (!isNonEmptyString(data.priority)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['priority'], message: 'Priority is required' });
-    } else if (!isNumeric(data.priority)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['priority'], message: 'Priority must be a number' });
-    }
-    if (!isNonEmptyString(data.weight)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['weight'], message: 'Weight is required' });
-    } else if (!isNumeric(data.weight)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['weight'], message: 'Weight must be a number' });
-    }
-    if (!isNonEmptyString(data.port)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['port'], message: 'Port is required' });
-    } else if (!isNumeric(data.port)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['port'], message: 'Port must be a number' });
-    }
-  }
-});
-
-// Schema for zone configuration
-const zoneSchema = z.object({
-  id: z.string().uuid(),
-  zoneName: z.string().min(1, "Zone name is required"),
-  zoneType: z.enum(['master', 'slave', 'forward']),
-  fileName: z.string().min(1, "File name is required"),
-  allowUpdate: z.string(),
-  records: z.array(dnsRecordUISchema),
-});
-
-// Schema for the entire DNS configuration form
-const dnsConfigSchema = z.object({
-  dnsServerStatus: z.boolean(),
-  listenOn: z.string(),
-  allowQuery: z.string(),
-  allowRecursion: z.string(),
-  forwarders: z.string(),
-  allowTransfer: z.string(),
-  zones: z.array(zoneSchema),
-});
-
 export type DnsConfigFormValues = z.infer<typeof dnsConfigSchema>;
-
-// Transform UI record to API record
-const transformUiRecordToApiRecord = (uiRec: DnsConfigFormValues['zones'][0]['records'][0]): DnsRecord => {
-  const baseApiRecord = {
-    type: uiRec.type as DnsRecordType,
-    name: uiRec.name,
-  };
-
-  if (uiRec.type === 'MX') {
-    const mxRecord: MxDnsRecord = {
-      ...baseApiRecord,
-      type: 'MX',
-      value: uiRec.value,
-      priority: parseInt(uiRec.priority!, 10),
-    };
-    return mxRecord;
-  }
-
-  if (uiRec.type === 'SRV') {
-    const srvRecord: SrvDnsRecord = {
-      ...baseApiRecord,
-      type: 'SRV',
-      priority: parseInt(uiRec.priority!, 10),
-      weight: parseInt(uiRec.weight!, 10),
-      port: parseInt(uiRec.port!, 10),
-      target: uiRec.value,
-    };
-    return srvRecord;
-  }
-
-  return {
-    ...baseApiRecord,
-    value: uiRec.value,
-  } as BaseDnsRecord & { type: Exclude<DnsRecordType, 'MX' | 'SRV' | 'SOA'> };
-};
 
 // Component for DNS record form fields
 interface DnsRecordFormFieldsProps {
@@ -168,7 +82,7 @@ const DnsRecordFormFields: React.FC<DnsRecordFormFieldsProps> = ({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {RECORD_TYPES.map(type => (
+                  {RECORD_TYPES.map((type: UiRecordType) => (
                     <SelectItem key={type} value={type}>{type}</SelectItem>
                   ))}
                 </SelectContent>
@@ -483,38 +397,8 @@ export function DNSConfig() {
   const onSubmit = async (data: DnsConfigFormValues) => {
     console.log('Form data submitted:', data);
     try {
-      // Parse semicolon-separated strings into arrays before sending to API
-      const parseStringToArray = (input: string): string[] => {
-        return input.split(';')
-          .map(item => item.trim())
-          .filter(item => item.length > 0);
-      };
-
-      const transformedData = {
-        dnsServerStatus: data.dnsServerStatus,
-        listenOn: parseStringToArray(data.listenOn),
-        allowQuery: parseStringToArray(data.allowQuery),
-        allowRecursion: parseStringToArray(data.allowRecursion),
-        forwarders: parseStringToArray(data.forwarders),
-        allowTransfer: parseStringToArray(data.allowTransfer),
-        zones: data.zones.map(zone => ({
-          id: zone.id,
-          zoneName: zone.zoneName,
-          zoneType: zone.zoneType,
-          fileName: zone.fileName,
-          allowUpdate: parseStringToArray(zone.allowUpdate),
-          records: zone.records.map(record => ({
-            ...record,
-            // Convert numeric string fields to numbers if present
-            priority: record.priority && record.type === 'MX' ? 
-                      parseInt(record.priority, 10) : record.priority,
-            weight: record.weight && record.type === 'SRV' ? 
-                    parseInt(record.weight, 10) : record.weight,
-            port: record.port && record.type === 'SRV' ? 
-                  parseInt(record.port, 10) : record.port,
-          }))
-        }))
-      };
+      // Transform form data to API format using shared function
+      const transformedData = transformFormToApiData(data);
 
       await updateDnsConfigurationAPI(transformedData);
       toast({ title: "Success", description: "DNS configuration saved successfully!" });
@@ -563,7 +447,12 @@ export function DNSConfig() {
     config += `  allow-transfer { ${values.allowTransfer} };\n`;
     config += `};\n\n`;
     
-    values.zones.forEach(zone => {
+    values.zones.forEach((zone: {
+      zoneName: string;
+      zoneType: string;
+      fileName: string;
+      allowUpdate: string;
+    }) => {
       config += `zone "${zone.zoneName}" IN {\n`;
       config += `  type ${zone.zoneType};\n`;
       config += `  file "${zone.fileName}";\n`;
