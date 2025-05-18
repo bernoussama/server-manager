@@ -397,10 +397,8 @@ export function DNSConfig() {
   const onSubmit = async (data: DnsConfigFormValues) => {
     console.log('Form data submitted:', data);
     try {
-      // Transform form data to API format using shared function
-      const transformedData = transformFormToApiData(data);
-
-      await updateDnsConfigurationAPI(transformedData);
+      // Send the form data directly without transformation
+      await updateDnsConfigurationAPI(data);
       toast({ title: "Success", description: "DNS configuration saved successfully!" });
     } catch (err: any) {
       if (err.data && Array.isArray(err.data.errors)) {

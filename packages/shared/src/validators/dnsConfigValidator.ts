@@ -20,9 +20,9 @@ export const dnsRecordSchema = z.object({
   type: z.enum(['A', 'AAAA', 'CNAME', 'TXT', 'NS', 'PTR', 'MX', 'SRV']),
   name: z.string(),
   value: z.string(),
-  priority: z.string().optional(),
-  weight: z.string().optional(),
-  port: z.string().optional(),
+  priority: z.union([z.string(), z.number(), z.undefined()]),
+  weight: z.union([z.string(), z.number(), z.undefined()]),
+  port: z.union([z.string(), z.number(), z.undefined()]),
   ttl: z.number().optional(),
 }).superRefine((record, ctx) => {
   // Additional validation for A records - must be valid IPv4 address
@@ -77,18 +77,24 @@ export const dnsRecordSchema = z.object({
   }
   
   // Additional validation for MX records - must have priority
-  if (record.type === 'MX' && (!record.priority || record.priority.trim() === '')) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "MX record must have a priority",
-      path: ['priority']
-    });
-    return;
+  if (record.type === 'MX') {
+    if (record.priority === undefined || 
+        (typeof record.priority === 'string' && record.priority.trim() === '') || 
+        (typeof record.priority === 'number' && isNaN(record.priority))) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "MX record must have a priority",
+        path: ['priority']
+      });
+      return;
+    }
   }
   
   // Additional validation for SRV records - must have priority, weight, and port
   if (record.type === 'SRV') {
-    if (!record.priority || record.priority.trim() === '') {
+    if (record.priority === undefined || 
+        (typeof record.priority === 'string' && record.priority.trim() === '') ||
+        (typeof record.priority === 'number' && isNaN(record.priority))) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "SRV record must have a priority",
@@ -96,7 +102,9 @@ export const dnsRecordSchema = z.object({
       });
       return;
     }
-    if (!record.weight || record.weight.trim() === '') {
+    if (record.weight === undefined || 
+        (typeof record.weight === 'string' && record.weight.trim() === '') ||
+        (typeof record.weight === 'number' && isNaN(record.weight))) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "SRV record must have a weight",
@@ -104,7 +112,9 @@ export const dnsRecordSchema = z.object({
       });
       return;
     }
-    if (!record.port || record.port.trim() === '') {
+    if (record.port === undefined || 
+        (typeof record.port === 'string' && record.port.trim() === '') ||
+        (typeof record.port === 'number' && isNaN(record.port))) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "SRV record must have a port",
@@ -113,29 +123,6 @@ export const dnsRecordSchema = z.object({
       return;
     }
   }
-});
-
-/**
- * Zone Schema
- * 
- * Represents a DNS zone with its records.
- * Example:
- * {
- *   "id": "f4b0899c-6a96-46eb-bd19-3c4836d86cd1",
- *   "zoneName": "example.com",
- *   "zoneType": "master",
- *   "fileName": "forward.example.com",
- *   "allowUpdate": "none",
- *   "records": [...]
- * }
- */
-export const zoneSchema = z.object({
-  id: z.string().uuid().optional(),
-  zoneName: z.string().min(1, { message: 'Zone name is required' }),
-  zoneType: z.enum(['master', 'slave', 'forward']),
-  fileName: z.string(),
-  allowUpdate: z.string().default('none'),
-  records: z.array(dnsRecordSchema).default([]),
 });
 
 // Helper function to parse string lists (like "8.8.8.8; 8.8.4.4;")
@@ -160,34 +147,98 @@ export const parseStringList = (input: string, validatorFn?: (item: string) => b
 
 // Create a custom refinement for string lists
 export const stringListRefinement = (key: string, validatorFn?: (item: string) => boolean) => {
-  return z.string().transform((val, ctx) => {
-    try {
-      return parseStringList(val, validatorFn);
-    } catch (error) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: `Invalid ${key} list: ${(error as Error).message}`,
-        path: [key],
-      });
-      return z.NEVER;
-    }
-  });
+  return z.union([
+    z.string().transform((val, ctx) => {
+      try {
+        return parseStringList(val, validatorFn);
+      } catch (error) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Invalid ${key} list: ${(error as Error).message}`,
+          path: [key],
+        });
+        return z.NEVER;
+      }
+    }),
+    z.array(z.string()).superRefine((arr, ctx) => {
+      if (validatorFn) {
+        for (const item of arr) {
+          if (!validatorFn(item)) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: `Invalid item in ${key} list: ${item}`,
+              path: [key],
+            });
+          }
+        }
+      }
+      return arr;
+    })
+  ]);
 };
 
-// IP address validation function
 export const isValidIpAddress = (ip: string): boolean => {
-  // Simple IPv4 regex
+  // Regular expression for IPv4 address validation
   const ipv4Regex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
-  const match = ip.match(ipv4Regex);
-  if (!match) return false;
+  if (!ipv4Regex.test(ip)) {
+    return false;
+  }
   
-  // Check that each octet is in range
-  for (let i = 1; i <= 4; i++) {
-    const octet = parseInt(match[i], 10);
-    if (octet < 0 || octet > 255) return false;
+  // Additional validation for each octet in the IPv4 address
+  const octets = ip.split('.');
+  if (octets.length !== 4) {
+    return false;
+  }
+  
+  for (const octet of octets) {
+    const num = parseInt(octet, 10);
+    if (isNaN(num) || num < 0 || num > 255) {
+      return false;
+    }
   }
   
   return true;
+};
+
+/**
+ * Zone Schema
+ * 
+ * Represents a DNS zone with its records.
+ * Example:
+ * {
+ *   "id": "f4b0899c-6a96-46eb-bd19-3c4836d86cd1",
+ *   "zoneName": "example.com",
+ *   "zoneType": "master",
+ *   "fileName": "forward.example.com",
+ *   "allowUpdate": "none",
+ *   "records": [...]
+ * }
+ */
+export const zoneSchema = z.object({
+  id: z.string().uuid().optional(),
+  zoneName: z.string().min(1, { message: 'Zone name is required' }),
+  zoneType: z.enum(['master', 'slave', 'forward']),
+  fileName: z.string(),
+  allowUpdate: z.union([z.string(), z.array(z.string())]),
+  records: z.array(dnsRecordSchema).default([]),
+});
+
+// Helper function to check if a numeric priority has a valid range
+export const isValidPriority = (priority: string): boolean => {
+  const num = parseInt(priority, 10);
+  return !isNaN(num) && num >= 0 && num <= 65535;
+};
+
+// Helper function to check if a numeric weight has a valid range
+export const isValidWeight = (weight: string): boolean => {
+  const num = parseInt(weight, 10);
+  return !isNaN(num) && num >= 0 && num <= 65535;
+};
+
+// Helper function to check if a numeric port has a valid range
+export const isValidPort = (port: string): boolean => {
+  const num = parseInt(port, 10);
+  return !isNaN(num) && num >= 0 && num <= 65535;
 };
 
 /**
@@ -210,11 +261,11 @@ export const isValidIpAddress = (ip: string): boolean => {
 export const dnsConfigurationSchema = z.object({
   // Server Configuration
   dnsServerStatus: z.boolean().default(false),
-  listenOn: stringListRefinement('listenOn', isValidIpAddress),
-  allowQuery: stringListRefinement('allowQuery'),
-  allowRecursion: stringListRefinement('allowRecursion'),
-  forwarders: stringListRefinement('forwarders', isValidIpAddress),
-  allowTransfer: stringListRefinement('allowTransfer'),
+  listenOn: z.union([z.string(), z.array(z.string())]),
+  allowQuery: z.union([z.string(), z.array(z.string())]),
+  allowRecursion: z.union([z.string(), z.array(z.string())]),
+  forwarders: z.union([z.string(), z.array(z.string())]),
+  allowTransfer: z.union([z.string(), z.array(z.string())]),
   
   // Multiple Zones
   zones: z.array(zoneSchema).min(1, { message: 'At least one zone is required' }),
