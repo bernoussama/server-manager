@@ -1,20 +1,9 @@
 import { Request, Response } from 'express';
 import { ServiceManager } from '../lib/ServiceManager';
+import { AllowedService, ServiceStatus, ServiceResponse } from '@server-manager/shared';
 
 // Initialize service manager
 const serviceManager = new ServiceManager();
-
-// Define allowed services for type safety and security
-type AllowedService = 'named' | 'dhcpd' | 'httpd';
-
-// Define possible service states
-type ServiceStatus = 'running' | 'stopped' | 'failed' | 'unknown';
-
-interface ServiceResponse {
-  service: AllowedService;
-  status: ServiceStatus;
-  message: string;
-}
 
 // Validate if a service name is allowed
 const isAllowedService = (service: string): service is AllowedService => {

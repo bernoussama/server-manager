@@ -1,8 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-
-export interface AppError extends Error {
-  statusCode?: number;
-}
+import { AppError } from '@server-manager/shared';
 
 export const errorHandler = (
   err: AppError,

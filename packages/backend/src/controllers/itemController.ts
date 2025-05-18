@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { Item, items } from '../models/item';
+import { items } from '../models/item';
+import { Item } from '@server-manager/shared';
 
 export const getItems = (req: Request, res: Response): void => {
   res.json(Array.from(items.values()));

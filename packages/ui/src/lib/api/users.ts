@@ -1,26 +1,5 @@
 import apiClient from '../api';
-
-// Types for user-related data
-export interface User {
-  id: number;
-  name: string;
-  age: number;
-  email: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface CreateUserPayload {
-  name: string;
-  age: number;
-  email: string;
-}
-
-export interface UpdateUserPayload {
-  name?: string;
-  age?: number;
-  email?: string;
-}
+import { User, CreateUserPayload, UpdateUserPayload } from '@server-manager/shared';
 
 /**
  * Users API module

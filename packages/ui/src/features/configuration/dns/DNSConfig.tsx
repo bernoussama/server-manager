@@ -12,25 +12,22 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { toast } from '@/hooks/use-toast';
-import { DnsRecord, MxDnsRecord, SrvDnsRecord, BaseDnsRecord, DnsRecordType as ApiRecordTypeImport } from '@/types/dns';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { PlusCircle } from 'lucide-react';
 import { cn, formFieldErrorClass } from '@/lib/utils';
+import { 
+  DnsRecord, 
+  MxDnsRecord, 
+  SrvDnsRecord, 
+  BaseDnsRecord, 
+  DnsRecordType
+} from '@server-manager/shared';
 
+// Define locally until fixed in shared package exports
 const RECORD_TYPES = ['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS', 'PTR', 'SRV'] as const;
 type UiRecordType = typeof RECORD_TYPES[number];
-
-interface DnsRecordUI {
-  id: string;
-  type: UiRecordType;
-  name: string;
-  value: string;
-  priority?: string;
-  weight?: string;
-  port?: string;
-}
 
 const isNonEmptyString = (val: string | undefined): val is string =>
   val !== undefined && val.trim() !== '';
@@ -107,9 +104,9 @@ const dnsConfigSchema = z.object({
 export type DnsConfigFormValues = z.infer<typeof dnsConfigSchema>;
 
 // Transform UI record to API record
-const transformUiRecordToApiRecord = (uiRec: DnsRecordUI): DnsRecord => {
+const transformUiRecordToApiRecord = (uiRec: DnsConfigFormValues['zones'][0]['records'][0]): DnsRecord => {
   const baseApiRecord = {
-    type: uiRec.type as ApiRecordTypeImport,
+    type: uiRec.type as DnsRecordType,
     name: uiRec.name,
   };
 
@@ -138,7 +135,7 @@ const transformUiRecordToApiRecord = (uiRec: DnsRecordUI): DnsRecord => {
   return {
     ...baseApiRecord,
     value: uiRec.value,
-  } as BaseDnsRecord & { type: Exclude<ApiRecordTypeImport, 'MX' | 'SRV' | 'SOA'> };
+  } as BaseDnsRecord & { type: Exclude<DnsRecordType, 'MX' | 'SRV' | 'SOA'> };
 };
 
 // Component for DNS record form fields

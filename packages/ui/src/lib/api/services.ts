@@ -1,26 +1,5 @@
 import apiClient from '../api';
-
-// Types for service-related data
-export type ServiceStatus = 'running' | 'stopped' | 'failed' | 'unknown';
-export type AllowedService = 'named' | 'dhcpd' | 'httpd';
-
-export interface ServiceResponse {
-  service: AllowedService;
-  status: ServiceStatus;
-  message: string;
-}
-
-export interface ServiceResponseWrapper {
-  success: boolean;
-  data: ServiceResponse;
-  message?: string;
-  error?: string;
-}
-
-export interface ServicesStatusResponse {
-  success: boolean;
-  data: ServiceResponse[];
-}
+import { AllowedService, ServiceStatus, ServiceResponse, ServiceResponseWrapper, ServicesStatusResponse } from '@server-manager/shared';
 
 /**
  * Services API module

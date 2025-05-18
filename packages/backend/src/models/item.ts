@@ -1,10 +1,4 @@
-export interface Item {
-  id: string;
-  name: string;
-  description: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
+import { Item } from '@server-manager/shared';
 
 // In-memory storage
 export const items: Map<string, Item> = new Map();
