@@ -397,8 +397,32 @@ export function DNSConfig() {
   const onSubmit = async (data: DnsConfigFormValues) => {
     console.log('Form data submitted:', data);
     try {
-      // Send the form data directly without transformation
-      await updateDnsConfigurationAPI(data);
+      // Helper function to safely transform a string input to array
+      const toStringArray = (input: string | string[] | undefined): string[] => {
+        if (!input) return [];
+        if (Array.isArray(input)) return input;
+        return input.split(';').map(s => s.trim()).filter(Boolean);
+      };
+
+      // Transform the form data to the API format
+      const transformedData = {
+        dnsServerStatus: data.dnsServerStatus,
+        listenOn: toStringArray(data.listenOn),
+        allowQuery: toStringArray(data.allowQuery),
+        allowRecursion: toStringArray(data.allowRecursion),
+        forwarders: toStringArray(data.forwarders),
+        allowTransfer: toStringArray(data.allowTransfer),
+        zones: data.zones.map(zone => ({
+          id: zone.id,
+          zoneName: zone.zoneName,
+          zoneType: zone.zoneType,
+          fileName: zone.fileName,
+          allowUpdate: toStringArray(zone.allowUpdate),
+          records: zone.records.map(transformUiRecordToApiRecord)
+        }))
+      };
+
+      await updateDnsConfigurationAPI(transformedData);
       toast({ title: "Success", description: "DNS configuration saved successfully!" });
     } catch (err: any) {
       if (err.data && Array.isArray(err.data.errors)) {
