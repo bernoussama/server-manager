@@ -1,0 +1,33 @@
+{
+"name": "@server-manager/shared",
+"version": "1.0.0",
+"main": "dist/index.js",
+"types": "dist/index.d.ts",
+"exports": {
+  ".": {
+    "import": "./dist/index.js",
+    "require": "./dist/index.js",
+    "types": "./dist/index.d.ts"
+  },
+  "./validators": {
+    "import": "./dist/validators/index.js", 
+    "require": "./dist/validators/index.js",
+    "types": "./dist/validators/index.d.ts"
+  }
+},
+"scripts": {
+  "build": "tsc",
+  "dev": "tsc --watch"
+},
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.10.0",
+  "devDependencies": {
+    "@types/node": "^22.15.18",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "zod": "^3.24.4"
+  }
+}

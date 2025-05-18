@@ -5,3 +5,4 @@ dist
 .env
 drizzle
 package-lock.json
+packages/backend/test/dns
