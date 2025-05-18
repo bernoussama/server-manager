@@ -3,6 +3,5 @@ npm-debug.log
 dist
 .vagrant
 .env
-drizzle
-package-lock.json
-packages/backend/test/dns
+**/test/dns/*
+**/.vite
