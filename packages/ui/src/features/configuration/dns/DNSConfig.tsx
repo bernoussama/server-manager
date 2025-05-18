@@ -483,25 +483,40 @@ export function DNSConfig() {
   const onSubmit = async (data: DnsConfigFormValues) => {
     console.log('Form data submitted:', data);
     try {
-      // Transform the form data to the API format
+      // Parse semicolon-separated strings into arrays before sending to API
+      const parseStringToArray = (input: string): string[] => {
+        return input.split(';')
+          .map(item => item.trim())
+          .filter(item => item.length > 0);
+      };
+
       const transformedData = {
         dnsServerStatus: data.dnsServerStatus,
-        listenOn: data.listenOn.split(';').map(s => s.trim()).filter(Boolean),
-        allowQuery: data.allowQuery.split(';').map(s => s.trim()).filter(Boolean),
-        allowRecursion: data.allowRecursion.split(';').map(s => s.trim()).filter(Boolean),
-        forwarders: data.forwarders.split(';').map(s => s.trim()).filter(Boolean),
-        allowTransfer: data.allowTransfer.split(';').map(s => s.trim()).filter(Boolean),
+        listenOn: parseStringToArray(data.listenOn),
+        allowQuery: parseStringToArray(data.allowQuery),
+        allowRecursion: parseStringToArray(data.allowRecursion),
+        forwarders: parseStringToArray(data.forwarders),
+        allowTransfer: parseStringToArray(data.allowTransfer),
         zones: data.zones.map(zone => ({
           id: zone.id,
           zoneName: zone.zoneName,
           zoneType: zone.zoneType,
           fileName: zone.fileName,
-          allowUpdate: zone.allowUpdate.split(';').map(s => s.trim()).filter(Boolean),
-          records: zone.records.map(transformUiRecordToApiRecord)
+          allowUpdate: parseStringToArray(zone.allowUpdate),
+          records: zone.records.map(record => ({
+            ...record,
+            // Convert numeric string fields to numbers if present
+            priority: record.priority && record.type === 'MX' ? 
+                      parseInt(record.priority, 10) : record.priority,
+            weight: record.weight && record.type === 'SRV' ? 
+                    parseInt(record.weight, 10) : record.weight,
+            port: record.port && record.type === 'SRV' ? 
+                  parseInt(record.port, 10) : record.port,
+          }))
         }))
       };
 
-      await updateDnsConfigurationAPI(transformedData as any);
+      await updateDnsConfigurationAPI(transformedData);
       toast({ title: "Success", description: "DNS configuration saved successfully!" });
     } catch (err: any) {
       if (err.data && Array.isArray(err.data.errors)) {

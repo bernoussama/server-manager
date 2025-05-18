@@ -1,8 +1,8 @@
-import { DnsConfiguration, DnsUpdateResponse } from '@server-manager/shared';
+import { DnsUpdateResponse } from '../../types/dns';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
 
-export const updateDnsConfigurationAPI = async (config: DnsConfiguration): Promise<DnsUpdateResponse> => {
+export const updateDnsConfigurationAPI = async (formData: any): Promise<DnsUpdateResponse> => {
   try {
     const response = await fetch(`${API_BASE_URL}/dns/config`, {
       method: 'POST',
@@ -11,7 +11,7 @@ export const updateDnsConfigurationAPI = async (config: DnsConfiguration): Promi
         // Add Authorization header if your API requires authentication
         // 'Authorization': `Bearer ${your_auth_token}`,
       },
-      body: JSON.stringify(config),
+      body: JSON.stringify(formData),
     });
 
     const responseData: DnsUpdateResponse = await response.json();
