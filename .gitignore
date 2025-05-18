@@ -3,5 +3,6 @@ npm-debug.log
 dist
 .vagrant
 .env
-**/test/dns/*
+**/meta
+**/test/dns
 **/.vite
