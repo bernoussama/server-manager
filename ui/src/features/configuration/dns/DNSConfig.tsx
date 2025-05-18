@@ -17,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { PlusCircle } from 'lucide-react';
+import { cn, formFieldErrorClass } from '@/lib/utils';
 
 const RECORD_TYPES = ['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS', 'PTR', 'SRV'] as const;
 type UiRecordType = typeof RECORD_TYPES[number];
@@ -175,7 +176,7 @@ const DnsRecordFormFields: React.FC<DnsRecordFormFieldsProps> = ({
                 defaultValue={field.value}
               >
                 <FormControl>
-                  <SelectTrigger className={recordErrors?.type ? 'border-red-500' : ''}>
+                  <SelectTrigger className={formFieldErrorClass(!!recordErrors?.type)}>
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                 </FormControl>
@@ -196,7 +197,11 @@ const DnsRecordFormFields: React.FC<DnsRecordFormFieldsProps> = ({
             <FormItem>
               <FormLabel>Name</FormLabel>
               <FormControl>
-                <Input placeholder="Name (@ for root)" {...field} className={recordErrors?.name ? 'border-red-500' : ''} />
+                <Input 
+                  placeholder="Name (@ for root)" 
+                  {...field} 
+                  className={formFieldErrorClass(!!recordErrors?.name)} 
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -209,7 +214,11 @@ const DnsRecordFormFields: React.FC<DnsRecordFormFieldsProps> = ({
             <FormItem>
               <FormLabel>{currentRecordType === 'SRV' ? 'Target' : 'Value'}</FormLabel>
               <FormControl>
-                <Input placeholder={currentRecordType === 'SRV' ? 'target.example.com' : 'Value'} {...field} className={recordErrors?.value ? 'border-red-500' : ''} />
+                <Input 
+                  placeholder={currentRecordType === 'SRV' ? 'target.example.com' : 'Value'} 
+                  {...field} 
+                  className={formFieldErrorClass(!!recordErrors?.value)} 
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -224,7 +233,12 @@ const DnsRecordFormFields: React.FC<DnsRecordFormFieldsProps> = ({
             <FormItem>
               <FormLabel>Priority</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="10" {...field} className={recordErrors?.priority ? 'border-red-500' : ''} />
+                <Input 
+                  type="number" 
+                  placeholder="10" 
+                  {...field} 
+                  className={formFieldErrorClass(!!recordErrors?.priority)} 
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -240,7 +254,12 @@ const DnsRecordFormFields: React.FC<DnsRecordFormFieldsProps> = ({
               <FormItem>
                 <FormLabel>Weight</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="5" {...field} className={recordErrors?.weight ? 'border-red-500' : ''} />
+                  <Input 
+                    type="number" 
+                    placeholder="5" 
+                    {...field} 
+                    className={formFieldErrorClass(!!recordErrors?.weight)} 
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -253,7 +272,12 @@ const DnsRecordFormFields: React.FC<DnsRecordFormFieldsProps> = ({
               <FormItem>
                 <FormLabel>Port</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="5060" {...field} className={recordErrors?.port ? 'border-red-500' : ''} />
+                  <Input 
+                    type="number" 
+                    placeholder="5060" 
+                    {...field} 
+                    className={formFieldErrorClass(!!recordErrors?.port)} 
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -303,7 +327,11 @@ const ZoneConfig: React.FC<ZoneConfigProps> = ({ zoneIndex, control, form, remov
               <FormItem className="flex-1">
                 <FormLabel>Zone Name</FormLabel>
                 <FormControl>
-                  <Input placeholder="example.com" {...field} />
+                  <Input 
+                    placeholder="example.com" 
+                    {...field}
+                    className={formFieldErrorClass(!!form.formState.errors.zones?.[zoneIndex]?.zoneName)}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -332,7 +360,7 @@ const ZoneConfig: React.FC<ZoneConfigProps> = ({ zoneIndex, control, form, remov
                   defaultValue={field.value}
                 >
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger className={formFieldErrorClass(!!form.formState.errors.zones?.[zoneIndex]?.zoneType)}>
                       <SelectValue placeholder="Select zone type" />
                     </SelectTrigger>
                   </FormControl>
@@ -353,7 +381,11 @@ const ZoneConfig: React.FC<ZoneConfigProps> = ({ zoneIndex, control, form, remov
               <FormItem>
                 <FormLabel>File Name</FormLabel>
                 <FormControl>
-                  <Input placeholder="forward.example.com" {...field} />
+                  <Input 
+                    placeholder="forward.example.com" 
+                    {...field}
+                    className={formFieldErrorClass(!!form.formState.errors.zones?.[zoneIndex]?.fileName)}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -368,7 +400,11 @@ const ZoneConfig: React.FC<ZoneConfigProps> = ({ zoneIndex, control, form, remov
             <FormItem>
               <FormLabel>Allow Update</FormLabel>
               <FormControl>
-                <Input placeholder="none" {...field} />
+                <Input 
+                  placeholder="none" 
+                  {...field}
+                  className={formFieldErrorClass(!!form.formState.errors.zones?.[zoneIndex]?.allowUpdate)}
+                />
               </FormControl>
               <FormDescription>
                 Comma-separated list of IP addresses or 'none'
@@ -580,7 +616,11 @@ export function DNSConfig() {
                     <FormItem>
                       <FormLabel>Listen On</FormLabel>
                       <FormControl>
-                        <Input placeholder="127.0.0.1; 192.168.1.160;" {...field} />
+                        <Input 
+                          placeholder="127.0.0.1; 192.168.1.160;" 
+                          {...field}
+                          className={formFieldErrorClass(!!form.formState.errors.listenOn)}
+                        />
                       </FormControl>
                       <FormDescription>
                         Semicolon-separated list of IP addresses to listen on
@@ -597,7 +637,11 @@ export function DNSConfig() {
                     <FormItem>
                       <FormLabel>Allow Query</FormLabel>
                       <FormControl>
-                        <Input placeholder="localhost; 192.168.1.0/24;" {...field} />
+                        <Input 
+                          placeholder="localhost; 192.168.1.0/24;" 
+                          {...field}
+                          className={formFieldErrorClass(!!form.formState.errors.allowQuery)}
+                        />
                       </FormControl>
                       <FormDescription>
                         Semicolon-separated list of IP addresses/networks allowed to query
@@ -614,7 +658,11 @@ export function DNSConfig() {
                     <FormItem>
                       <FormLabel>Allow Recursion</FormLabel>
                       <FormControl>
-                        <Input placeholder="localhost;" {...field} />
+                        <Input 
+                          placeholder="localhost;" 
+                          {...field}
+                          className={formFieldErrorClass(!!form.formState.errors.allowRecursion)}
+                        />
                       </FormControl>
                       <FormDescription>
                         Semicolon-separated list of IP addresses/networks allowed recursive queries
@@ -631,7 +679,11 @@ export function DNSConfig() {
                     <FormItem>
                       <FormLabel>Forwarders</FormLabel>
                       <FormControl>
-                        <Input placeholder="8.8.8.8; 8.8.4.4;" {...field} />
+                        <Input 
+                          placeholder="8.8.8.8; 8.8.4.4;" 
+                          {...field}
+                          className={formFieldErrorClass(!!form.formState.errors.forwarders)}
+                        />
                       </FormControl>
                       <FormDescription>
                         Semicolon-separated list of DNS servers to forward queries to
@@ -648,7 +700,11 @@ export function DNSConfig() {
                     <FormItem>
                       <FormLabel>Allow Transfer</FormLabel>
                       <FormControl>
-                        <Input placeholder="none;" {...field} />
+                        <Input 
+                          placeholder="none;" 
+                          {...field}
+                          className={formFieldErrorClass(!!form.formState.errors.allowTransfer)}
+                        />
                       </FormControl>
                       <FormDescription>
                         Semicolon-separated list of IP addresses/networks allowed zone transfers
