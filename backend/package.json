@@ -1,7 +1,7 @@
 {
-  "name": "ts-node-express",
+  "name": "@ts-node-express/backend",
   "version": "1.0.0",
-  "description": "TypeScript Node.js Express API",
+  "description": "TypeScript Node.js Express API Backend",
   "main": "dist/server.js",
   "scripts": {
     "start": "node dist/server.js",
@@ -14,13 +14,15 @@
   "keywords": [
     "typescript",
     "node",
-    "express"
+    "express",
+    "trpc"
   ],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@libsql/client": "^0.15.4",
-    "@types/react-router-dom": "^5.3.3",
+    "@ts-node-express/api": "workspace:*",
+    "@trpc/server": "^10.45.2",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
@@ -28,7 +30,6 @@
     "drizzle-orm": "^0.43.1",
     "express": "^4.18.2",
     "jsonwebtoken": "^9.0.2",
-    "react-router-dom": "^7.5.3",
     "uuid": "^11.1.0",
     "zod": "^3.24.3"
   },

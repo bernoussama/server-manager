@@ -6,3 +6,9 @@ zone "example.com" IN {
   allow-update { none; };
 };
 
+zone "1.168.192.in-addr.arpa" IN {
+  type master;
+  file "test/dns/zones/reverse.example.com";
+  allow-update { none; };
+};
+

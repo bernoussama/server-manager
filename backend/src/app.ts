@@ -5,6 +5,7 @@ import authRoutes from './routes/authRoutes';
 import { errorHandler } from './middlewares/errorHandler';
 import { corsMiddleware } from './middlewares/cors';
 import dnsRoutes from './routes/dnsRoutes';
+import trpcRouter from './trpc/trpcRouter';
 
 const app = express();
 
@@ -18,6 +19,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/dns', dnsRoutes);
+
+// tRPC Router
+app.use('/api', trpcRouter);
 
 // Error handling
 app.use(errorHandler);

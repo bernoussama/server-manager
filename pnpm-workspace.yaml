@@ -1,0 +1,8 @@
+packages:
+  - 'ui'
+  - 'backend'
+  - 'packages/**'
+onlyBuiltDependencies:
+  - bcrypt
+  - esbuild
+  - msw

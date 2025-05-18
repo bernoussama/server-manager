@@ -112,8 +112,8 @@ describe('DNS Controller - generateBindZoneContent', () => {
       fileName: 'example.com.zone',
       allowUpdate: 'none',
       records: [
-        { id: '456', type: 'MX', name: '@', value: 'mail.example.com', priority: '10' },
-        { id: '789', type: 'MX', name: '@', value: 'backup-mail.example.com', priority: '20' }
+        { id: '456', type: 'MX', name: '@', value: 'mail.example.com', priority: 10 },
+        { id: '789', type: 'MX', name: '@', value: 'backup-mail.example.com', priority: 20 }
       ]
     };
 
@@ -177,7 +177,7 @@ describe('DNS Controller - generateBindZoneContent', () => {
       allowUpdate: 'none',
       records: [
         { id: '456', type: 'MX', name: '@', value: 'mail.example.com' }, // Missing priority
-        { id: '789', type: 'MX', name: '@', value: 'valid.example.com', priority: '10' }
+        { id: '789', type: 'MX', name: '@', value: 'valid.example.com', priority: 10 }
       ]
     };
     

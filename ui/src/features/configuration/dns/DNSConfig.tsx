@@ -6,6 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { updateDnsConfigurationAPI } from "@/lib/api/dns";
 import { v4 as uuidv4 } from 'uuid';
+import * as crypto from 'crypto';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useForm, useFieldArray, Control, UseFormReturn, FieldArrayWithId } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -18,6 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { PlusCircle } from 'lucide-react';
 import { cn, formFieldErrorClass } from '@/lib/utils';
+import { trpc } from '@/lib/trpc';
 
 const RECORD_TYPES = ['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS', 'PTR', 'SRV'] as const;
 type UiRecordType = typeof RECORD_TYPES[number];
@@ -450,7 +452,33 @@ const ZoneConfig: React.FC<ZoneConfigProps> = ({ zoneIndex, control, form, remov
 
 export function DNSConfig() {
   const [activeTab, setActiveTab] = React.useState("main-config");
+  const utils = trpc.useContext();
+  const { mutate: updateConfig, isPending: isSubmitting } = trpc.dns.updateConfig.useMutation({
+    onSuccess: () => {
+      toast({ title: "Success", description: "DNS configuration saved successfully!" });
+      utils.dns.getConfig.invalidate();
+    },
+    onError: (err: any) => {
+      if (err.data && Array.isArray(err.data.errors)) {
+        err.data.errors.forEach((error: { path: (string | number)[], message: string }) => {
+          form.setError(error.path.join('.') as any, { 
+            type: 'manual', 
+            message: error.message 
+          });
+        });
+        toast({ title: "Validation Failed", description: "Please check the errors on the form.", variant: "destructive" });
+      } else {
+        toast({
+          title: "Error",
+          description: err?.data?.message || err?.message || "Failed to save DNS configuration.",
+          variant: "destructive",
+        });
+      }
+    }
+  });
   
+  const { data: dnsData } = trpc.dns.getConfig.useQuery();
+
   const form = useForm<DnsConfigFormValues>({
     resolver: zodResolver(dnsConfigSchema),
     defaultValues: {
@@ -521,24 +549,14 @@ export function DNSConfig() {
         }))
       };
 
-      await updateDnsConfigurationAPI(transformedData);
-      toast({ title: "Success", description: "DNS configuration saved successfully!" });
+      // Use tRPC mutation instead of direct API call
+      updateConfig(transformedData);
     } catch (err: any) {
-      if (err.data && Array.isArray(err.data.errors)) {
-        err.data.errors.forEach((error: { path: (string | number)[], message: string }) => {
-          form.setError(error.path.join('.') as any, { 
-            type: 'manual', 
-            message: error.message 
-          });
-        });
-        toast({ title: "Validation Failed", description: "Please check the errors on the form.", variant: "destructive" });
-      } else {
-        toast({
-          title: "Error",
-          description: err?.data?.message || err?.message || "Failed to save DNS configuration.",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Error",
+        description: err?.message || "Failed to prepare DNS configuration.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -578,6 +596,44 @@ export function DNSConfig() {
     
     return config;
   };
+
+  React.useEffect(() => {
+    if (dnsData?.success && dnsData?.data) {
+      // Reset form with the server data
+      const serverConfig = dnsData.data;
+      
+      // Transform array data to string format for the form
+      const formData = {
+        dnsServerStatus: serverConfig.dnsServerStatus,
+        listenOn: serverConfig.listenOn.join('; '),
+        allowQuery: serverConfig.allowQuery.join('; '),
+        allowRecursion: serverConfig.allowRecursion.join('; '),
+        forwarders: serverConfig.forwarders.join('; '),
+        allowTransfer: serverConfig.allowTransfer.join('; '),
+        zones: serverConfig.zones.map((zone: any) => ({
+          id: zone.id || crypto.randomUUID(),
+          zoneName: zone.zoneName,
+          zoneType: zone.zoneType,
+          fileName: zone.fileName,
+          allowUpdate: Array.isArray(zone.allowUpdate) ? zone.allowUpdate.join('; ') : zone.allowUpdate,
+          records: zone.records.map((record: any) => {
+            // Handle different record types
+            return {
+              id: record.id || crypto.randomUUID(),
+              type: record.type,
+              name: record.name,
+              value: record.type === 'SRV' ? (record as any).target || '' : record.value,
+              priority: typeof record.priority === 'number' ? record.priority.toString() : '',
+              weight: typeof record.weight === 'number' ? record.weight.toString() : '',
+              port: typeof record.port === 'number' ? record.port.toString() : '',
+            };
+          })
+        }))
+      };
+      
+      form.reset(formData);
+    }
+  }, [dnsData, form]);
 
   return (
     <Form {...form}>
@@ -768,8 +824,8 @@ export function DNSConfig() {
           </TabsContent>
         </Tabs>
         
-        <Button type="submit" disabled={form.formState.isSubmitting}>
-          {form.formState.isSubmitting ? "Saving..." : "Save DNS Configuration"}
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? "Saving..." : "Save DNS Configuration"}
         </Button>
       </form>
     </Form>

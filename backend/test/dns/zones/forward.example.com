@@ -7,6 +7,6 @@ $TTL 3600
         86400 )      ; Negative Cache TTL
 ;
 @ IN NS ns1.example.com.
-@ IN A 192.168.1.100
+@ IN A 192.168.1.1
 www IN CNAME @
 @ IN MX 10 mail.example.com.

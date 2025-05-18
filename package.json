@@ -1,0 +1,23 @@
+{
+  "name": "ts-node-express-workspace",
+  "version": "1.0.0",
+  "description": "TypeScript Node.js Express API with tRPC",
+  "private": true,
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev": "pnpm -r dev",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test"
+  },
+  "keywords": [
+    "typescript",
+    "node",
+    "express",
+    "trpc"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "typescript": "^5.1.6"
+  }
+} 

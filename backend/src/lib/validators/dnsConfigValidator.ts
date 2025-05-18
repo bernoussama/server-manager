@@ -10,9 +10,9 @@ import { z } from 'zod';
  *   "type": "A",
  *   "name": "@",
  *   "value": "192.168.1.100",
- *   "priority": "", // Only used for MX, SRV records
- *   "weight": "",   // Only used for SRV records
- *   "port": ""      // Only used for SRV records
+ *   "priority": 10, // Only used for MX, SRV records
+ *   "weight": 5,    // Only used for SRV records
+ *   "port": 80      // Only used for SRV records
  * }
  */
 const dnsRecordSchema = z.object({
@@ -20,9 +20,9 @@ const dnsRecordSchema = z.object({
   type: z.enum(['A', 'AAAA', 'CNAME', 'TXT', 'NS', 'PTR', 'MX', 'SRV']),
   name: z.string(),
   value: z.string(),
-  priority: z.string().optional(),
-  weight: z.string().optional(),
-  port: z.string().optional(),
+  priority: z.number().optional(),
+  weight: z.number().optional(),
+  port: z.number().optional(),
   ttl: z.number().optional(),
 }).refine((record) => {
   // Additional validation for A records - must be valid IPv4 address
@@ -55,15 +55,15 @@ const dnsRecordSchema = z.object({
   }
   
   // Additional validation for MX records - must have priority
-  if (record.type === 'MX' && (!record.priority || record.priority.trim() === '')) {
+  if (record.type === 'MX' && (record.priority === undefined || record.priority === null)) {
     return false;
   }
   
   // Additional validation for SRV records - must have priority, weight, and port
   if (record.type === 'SRV' && 
-     (!record.priority || record.priority.trim() === '' || 
-      !record.weight || record.weight.trim() === '' || 
-      !record.port || record.port.trim() === '')) {
+     (record.priority === undefined || record.priority === null || 
+      record.weight === undefined || record.weight === null || 
+      record.port === undefined || record.port === null)) {
     return false;
   }
   
