@@ -1,4 +1,4 @@
-import { Zone, DnsRecord } from '../../lib/validators/dnsConfigValidator';
+import { Zone, DnsRecord } from '@server-manager/shared/validators';
 
 // Mock filesystem and exec functions
 jest.mock('fs/promises', () => ({

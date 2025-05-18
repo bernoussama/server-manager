@@ -24,23 +24,40 @@ export const dnsRecordSchema = z.object({
   weight: z.string().optional(),
   port: z.string().optional(),
   ttl: z.number().optional(),
-}).refine((record) => {
+}).superRefine((record, ctx) => {
   // Additional validation for A records - must be valid IPv4 address
   if (record.type === 'A') {
     // Check if it's a valid IPv4 address
     const ipv4Regex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
     if (!ipv4Regex.test(record.value)) {
-      return false;
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "A record must have a valid IPv4 address",
+        path: ['value']
+      });
+      return;
     }
     
     // Validate each octet is in range 0-255
     const octets = record.value.split('.');
-    if (octets.length !== 4) return false;
+    if (octets.length !== 4) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "A record must have a valid IPv4 address with 4 octets",
+        path: ['value']
+      });
+      return;
+    }
     
     for (const octet of octets) {
       const num = parseInt(octet, 10);
       if (isNaN(num) || num < 0 || num > 255) {
-        return false;
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Each octet in an IPv4 address must be between 0 and 255",
+          path: ['value']
+        });
+        return;
       }
     }
   }
@@ -50,27 +67,52 @@ export const dnsRecordSchema = z.object({
     // Basic IPv6 validation - this is simplified
     const ipv6Regex = /^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$|^::$|^::1$|^([0-9a-fA-F]{1,4}:){1,7}:$|^:([0-9a-fA-F]{1,4}:){1,7}$|^([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}$|^([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}$|^([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}$|^([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}$|^([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}$|^[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})$|^:((:[0-9a-fA-F]{1,4}){1,7}|:)$/;
     if (!ipv6Regex.test(record.value)) {
-      return false;
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "AAAA record must have a valid IPv6 address",
+        path: ['value']
+      });
+      return;
     }
   }
   
   // Additional validation for MX records - must have priority
   if (record.type === 'MX' && (!record.priority || record.priority.trim() === '')) {
-    return false;
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "MX record must have a priority",
+      path: ['priority']
+    });
+    return;
   }
   
   // Additional validation for SRV records - must have priority, weight, and port
-  if (record.type === 'SRV' && 
-     (!record.priority || record.priority.trim() === '' || 
-      !record.weight || record.weight.trim() === '' || 
-      !record.port || record.port.trim() === '')) {
-    return false;
+  if (record.type === 'SRV') {
+    if (!record.priority || record.priority.trim() === '') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "SRV record must have a priority",
+        path: ['priority']
+      });
+      return;
+    }
+    if (!record.weight || record.weight.trim() === '') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "SRV record must have a weight",
+        path: ['weight']
+      });
+      return;
+    }
+    if (!record.port || record.port.trim() === '') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "SRV record must have a port",
+        path: ['port']
+      });
+      return;
+    }
   }
-  
-  return true;
-}, {
-  message: "Invalid record value for the specified record type. A records must be valid IPv4 addresses, AAAA records must be valid IPv6 addresses, MX records must have priority, and SRV records must have priority, weight, and port.",
-  path: ['value'], // This will highlight the value field in error messages
 });
 
 /**
@@ -180,4 +222,9 @@ export const dnsConfigurationSchema = z.object({
   // Optional advanced fields (can be added back if needed)
   dnssecValidation: z.boolean().optional().default(true),
   queryLogging: z.boolean().optional().default(false),
-}); 
+});
+
+// Export types
+export type DnsRecord = z.infer<typeof dnsRecordSchema>;
+export type Zone = z.infer<typeof zoneSchema>;
+export type DnsConfiguration = z.infer<typeof dnsConfigurationSchema>; 

@@ -3,6 +3,18 @@
 "version": "1.0.0",
 "main": "dist/index.js",
 "types": "dist/index.d.ts",
+"exports": {
+  ".": {
+    "import": "./dist/index.js",
+    "require": "./dist/index.js",
+    "types": "./dist/index.d.ts"
+  },
+  "./validators": {
+    "import": "./dist/validators/index.js", 
+    "require": "./dist/validators/index.js",
+    "types": "./dist/validators/index.d.ts"
+  }
+},
 "scripts": {
   "build": "tsc",
   "dev": "tsc --watch"

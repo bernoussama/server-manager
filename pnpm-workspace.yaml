@@ -1,2 +1,9 @@
 packages:
   - "packages/*"
+
+onlyBuiltDependencies:
+  - msw
+  - bcrypt
+  - esbuild
+ignoredBuiltDependencies:
+  # bcrypt is removed from here as it's already in onlyBuiltDependencies

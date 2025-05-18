@@ -23,7 +23,7 @@ import {
   SrvDnsRecord, 
   BaseDnsRecord, 
   DnsRecordType
-} from '@server-manager/shared';
+} from '../../../types/dns';
 
 // Define locally until fixed in shared package exports
 const RECORD_TYPES = ['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS', 'PTR', 'SRV'] as const;
@@ -40,7 +40,7 @@ const dnsRecordUISchema = z.object({
   id: z.string().uuid(),
   type: z.enum(RECORD_TYPES),
   name: z.string().min(1, "Name is required"),
-  value: z.string(),
+  value: z.string().min(1, "Value is required"),
   priority: z.string().optional(),
   weight: z.string().optional(),
   port: z.string().optional(),
@@ -50,9 +50,6 @@ const dnsRecordUISchema = z.object({
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['priority'], message: 'Priority is required' });
     } else if (!isNumeric(data.priority)) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['priority'], message: 'Priority must be a number' });
-    }
-    if (!isNonEmptyString(data.value)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['value'], message: 'Value (mail server hostname) is required' });
     }
   } else if (data.type === 'SRV') {
     if (!isNonEmptyString(data.priority)) {
@@ -69,13 +66,6 @@ const dnsRecordUISchema = z.object({
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['port'], message: 'Port is required' });
     } else if (!isNumeric(data.port)) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['port'], message: 'Port must be a number' });
-    }
-    if (!isNonEmptyString(data.value)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['value'], message: 'Target is required (in value field)' });
-    }
-  } else if (['A', 'AAAA', 'CNAME', 'TXT', 'NS', 'PTR'].includes(data.type)) {
-    if (!isNonEmptyString(data.value)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['value'], message: 'Value is required for this record type' });
     }
   }
 });

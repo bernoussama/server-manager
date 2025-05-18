@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middlewares/authMiddleware';
-import { dnsConfigurationSchema, DnsConfiguration, Zone, DnsRecord } from '../lib/validators/dnsConfigValidator';
+import { dnsConfigurationSchema, DnsConfiguration, Zone, DnsRecord } from '@server-manager/shared/validators';
 import { ZodError } from 'zod';
 import { writeFile, readFile, mkdir } from 'fs/promises';
 import { exec } from 'child_process';
@@ -50,7 +50,7 @@ export const generateBindZoneContent = (zone: Zone): string => {
   const serial = parseInt(`${year}${month}${day}01`); // Simple serial
 
   // Get SOA parameters - use defaults if not found
-  const primaryNameserver = zone.records.find(r => r.type === 'NS' && r.name === '@')?.value || `ns1.${zone.zoneName}.`;
+  const primaryNameserver = zone.records.find((r: DnsRecord) => r.type === 'NS' && r.name === '@')?.value || `ns1.${zone.zoneName}.`;
   
   // Ensure primaryNameserver has a trailing dot
   const primaryNs = primaryNameserver.endsWith('.') ? primaryNameserver : `${primaryNameserver}.`;
@@ -72,7 +72,7 @@ export const generateBindZoneContent = (zone: Zone): string => {
 `;
 
   // Add standard NS record if not explicitly defined
-  if (!zone.records.some(r => r.type === 'NS' && r.name === '@')) {
+  if (!zone.records.some((r: DnsRecord) => r.type === 'NS' && r.name === '@')) {
     zoneContent += `@ IN NS ${primaryNs}\n`;
   }
 
