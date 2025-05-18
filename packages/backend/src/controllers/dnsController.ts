@@ -9,6 +9,7 @@ import path from 'path';
 import { existsSync } from 'fs';
 import crypto from 'crypto';
 import fs from 'fs';
+import logger from '../lib/logger';
 
 const execAsync = promisify(exec);
 
@@ -28,11 +29,11 @@ const DEFAULT_TTL = 3600; // Default TTL for records
 const ensureDirectoryExists = async (dir: string): Promise<void> => {
   if (!existsSync(dir)) {
     try {
-      console.log(`Creating directory: ${dir}`);
+      logger.info(`Creating directory: ${dir}`);
       await mkdir(dir, { recursive: true });
-      console.log(`Directory created: ${dir}`);
+      logger.info(`Directory created: ${dir}`);
     } catch (error) {
-      console.error(`Error creating directory ${dir}:`, error);
+      logger.error(`Error creating directory ${dir}:`, error);
       throw new Error(`Failed to create directory ${dir}: ${(error as Error).message}`);
     }
   }
@@ -132,7 +133,7 @@ export const generateBindZoneContent = (zone: Zone): string => {
           const exchange = record.value.endsWith('.') ? record.value : `${record.value}.`;
           zoneContent += `${recordName} IN MX ${priority} ${exchange}\n`;
         } else {
-          console.warn(`Skipping malformed MX record (${recordName}): missing priority.`);
+          logger.warn(`Skipping malformed MX record (${recordName}): missing priority.`);
         }
         break;
       case 'TXT':
@@ -157,11 +158,11 @@ export const generateBindZoneContent = (zone: Zone): string => {
           const targetValue = record.value.endsWith('.') ? record.value : `${record.value}.`;
           zoneContent += `${recordName} IN SRV ${srvPriority} ${srvWeight} ${srvPort} ${targetValue}\n`;
         } else {
-          console.warn(`Skipping malformed SRV record (${recordName}): missing required properties.`);
+          logger.warn(`Skipping malformed SRV record (${recordName}): missing required properties.`);
         }
         break;
       default:
-        console.warn(`Unsupported DNS record type: ${record.type} for name ${recordName}.`);
+        logger.warn(`Unsupported DNS record type: ${record.type} for name ${recordName}.`);
     }
   }
 
@@ -259,11 +260,11 @@ const checkWritePermission = async (filePath: string): Promise<boolean> => {
     try {
       const stats = await fs.promises.stat(dirPath);
       if (!stats.isDirectory()) {
-        console.error(`Path exists but is not a directory: ${dirPath}`);
+        logger.error(`Path exists but is not a directory: ${dirPath}`);
         return false;
       }
     } catch (error) {
-      console.error(`Directory does not exist: ${dirPath}`);
+      logger.error(`Directory does not exist: ${dirPath}`);
       
       // In production, if key directories like /var/named don't exist, we should
       // fail because the BIND server is likely not installed
@@ -275,7 +276,7 @@ const checkWritePermission = async (filePath: string): Promise<boolean> => {
       try {
         await ensureDirectoryExists(dirPath);
       } catch (createError) {
-        console.error(`Failed to create directory: ${dirPath}`, createError);
+        logger.error(`Failed to create directory: ${dirPath}`, createError);
         return false;
       }
     }
@@ -286,7 +287,7 @@ const checkWritePermission = async (filePath: string): Promise<boolean> => {
     await execAsync(`rm ${testPath}`);
     return true;
   } catch (error) {
-    console.error(`No write permission for ${path.dirname(filePath)}:`, error);
+    logger.error(`No write permission for ${path.dirname(filePath)}:`, error);
     return false;
   }
 };
@@ -308,14 +309,14 @@ const writeFileWithBackup = async (filePath: string, content: string): Promise<v
     if (existsSync(filePath)) {
       const backupPath = `${filePath}.bak`;
       await writeFile(backupPath, await readFile(filePath, 'utf8'), 'utf8');
-      console.log(`Created backup of ${filePath} at ${backupPath}`);
+      logger.info(`Created backup of ${filePath} at ${backupPath}`);
     }
     
     // Write the new content
     await writeFile(filePath, content, 'utf8');
-    console.log(`Successfully wrote file to ${filePath}`);
+    logger.info(`Successfully wrote file to ${filePath}`);
   } catch (error) {
-    console.error(`Error writing file ${filePath}:`, error);
+    logger.error(`Error writing file ${filePath}:`, error);
     throw new Error(`Failed to write file: ${(error as Error).message}`);
   }
 };
@@ -331,29 +332,29 @@ const validateBindConfiguration = async (zones: Zone[]): Promise<void> => {
     try {
       // Validate the named.conf file using named-checkconf
       await execAsync(`named-checkconf ${actualConfPath}`);
-      console.log(`Validated ${actualConfPath} successfully`);
+      logger.info(`Validated ${actualConfPath} successfully`);
       
       // Validate each zone file
       for (const zone of zones) {
         const zoneFilePath = path.join(actualZonesDir, zone.fileName);
         await execAsync(`named-checkzone ${zone.zoneName} ${zoneFilePath}`);
-        console.log(`Validated zone file ${zoneFilePath} for zone ${zone.zoneName} successfully`);
+        logger.info(`Validated zone file ${zoneFilePath} for zone ${zone.zoneName} successfully`);
       }
     } catch (error) {
-      console.error('Error validating BIND configuration:', error);
+      logger.error('Error validating BIND configuration:', error);
       throw new Error(`Failed to validate BIND configuration: ${(error as Error).message}`);
     }
   } else {
     // In development mode, just log validation steps
-    console.log(`[DEV MODE] Would validate BIND configuration: ${actualConfPath}`);
+    logger.info(`[DEV MODE] Would validate BIND configuration: ${actualConfPath}`);
     
     // Validate each zone file
     for (const zone of zones) {
       const zoneFilePath = path.join(actualZonesDir, zone.fileName);
-      console.log(`[DEV MODE] Would validate zone file: ${zoneFilePath} for zone ${zone.zoneName}`);
+      logger.info(`[DEV MODE] Would validate zone file: ${zoneFilePath} for zone ${zone.zoneName}`);
     }
     
-    console.log('[DEV MODE] Validation successful (simulated)');
+    logger.info('[DEV MODE] Validation successful (simulated)');
   }
 };
 
@@ -364,14 +365,14 @@ const reloadBindService = async (): Promise<void> => {
   if (isProd && !(global as any)._DEV_OVERRIDE_BIND_CONF_PATH) {
     try {
       await execAsync('systemctl reload named');
-      console.log('BIND service reloaded successfully');
+      logger.info('BIND service reloaded successfully');
     } catch (error) {
-      console.error('Error reloading BIND service:', error);
+      logger.error('Error reloading BIND service:', error);
       throw new Error(`Failed to reload BIND service: ${(error as Error).message}`);
     }
   } else {
-    console.log(`[DEV MODE] Would reload BIND service with command: sudo systemctl reload named`);
-    console.log('[DEV MODE] BIND service reloaded successfully (simulated)');
+    logger.info(`[DEV MODE] Would reload BIND service with command: sudo systemctl reload named`);
+    logger.info('[DEV MODE] BIND service reloaded successfully (simulated)');
   }
 };
 
@@ -415,11 +416,11 @@ export const updateDnsConfiguration = async (req: AuthRequest, res: Response) =>
       return zone;
     });
 
-    console.log('Received DNS Configuration:', JSON.stringify(validatedConfig, null, 2));
-    console.log(`Running in ${isProd ? 'PRODUCTION' : 'DEVELOPMENT'} mode`);
-    console.log(`Using BIND_ZONES_DIR: ${BIND_ZONES_DIR}`);
-    console.log(`Using BIND_CONF_PATH: ${BIND_CONF_PATH}`);
-    console.log(`Using ZONE_CONF_PATH: ${ZONE_CONF_PATH}`);
+    logger.info('Received DNS Configuration:', { config: JSON.stringify(validatedConfig) });
+    logger.debug(`Running in ${isProd ? 'PRODUCTION' : 'DEVELOPMENT'} mode`);
+    logger.debug(`Using BIND_ZONES_DIR: ${BIND_ZONES_DIR}`);
+    logger.debug(`Using BIND_CONF_PATH: ${BIND_CONF_PATH}`);
+    logger.debug(`Using ZONE_CONF_PATH: ${ZONE_CONF_PATH}`);
     
     // In production, check if the BIND server is properly installed
     if (isProd) {
@@ -438,12 +439,12 @@ export const updateDnsConfiguration = async (req: AuthRequest, res: Response) =>
           const isCorrectType = type === 'directory' ? stats.isDirectory() : stats.isFile();
           
           if (!isCorrectType) {
-            console.error(`Critical BIND path ${criticalPath} is not a ${type}`);
+            logger.error(`Critical BIND path ${criticalPath} is not a ${type}`);
             missingPaths.push(`${criticalPath} (not a ${type})`);
           }
         } catch (error: any) {
           if (error.code === 'ENOENT') {
-            console.error(`Critical BIND path does not exist: ${criticalPath}`);
+            logger.error(`Critical BIND path does not exist: ${criticalPath}`);
             missingPaths.push(criticalPath);
           }
         }
@@ -452,7 +453,7 @@ export const updateDnsConfiguration = async (req: AuthRequest, res: Response) =>
       // If any critical paths are missing, return detailed error
       if (missingPaths.length > 0) {
         // In development mode, we can proceed by creating test directories instead
-        console.log('Missing critical BIND paths. Using development paths instead...');
+        logger.info('Missing critical BIND paths. Using development paths instead...');
         
         // Reset the paths to development paths
         const devZonesDir = './test/dns/zones';
@@ -463,7 +464,7 @@ export const updateDnsConfiguration = async (req: AuthRequest, res: Response) =>
         await ensureDirectoryExists(devConfDir);
         
         // Add debug logging to inform that we're switching to development paths
-        console.log(`Switched to development mode paths. Using:
+        logger.debug(`Switched to development mode paths. Using:
 - Zones directory: ${devZonesDir}
 - Config directory: ${devConfDir}`);
         
@@ -514,7 +515,7 @@ export const updateDnsConfiguration = async (req: AuthRequest, res: Response) =>
     const actualZoneConfPath = (global as any)._DEV_OVERRIDE_ZONE_CONF_PATH || ZONE_CONF_PATH;
     
     // Log the actual paths being used
-    console.log(`Using actual paths:
+    logger.debug(`Using actual paths:
 - Zones directory: ${actualZonesDir}
 - Config file: ${actualConfPath}
 - Zones config file: ${actualZoneConfPath}`);
@@ -528,7 +529,7 @@ export const updateDnsConfiguration = async (req: AuthRequest, res: Response) =>
       const zoneContent = generateBindZoneContent(zone);
       const zoneFilePath = path.join(actualZonesDir, zone.fileName);
       
-      console.log(`Generating zone file for ${zone.zoneName} at ${zoneFilePath}`);
+      logger.info(`Generating zone file for ${zone.zoneName} at ${zoneFilePath}`);
       await writeFileWithBackup(zoneFilePath, zoneContent);
     }
     
@@ -561,7 +562,7 @@ export const updateDnsConfiguration = async (req: AuthRequest, res: Response) =>
         });
       }
     } else {
-      console.log('DNS server is disabled, skipping reload');
+      logger.info('DNS server is disabled, skipping reload');
     }
     
     res.status(200).json({ 
@@ -577,7 +578,7 @@ export const updateDnsConfiguration = async (req: AuthRequest, res: Response) =>
       });
     }
     
-    console.error('Error updating DNS configuration:', error);
+    logger.error('Error updating DNS configuration:', error);
     res.status(500).json({ 
       message: error instanceof Error ? error.message : 'Failed to update DNS configuration' 
     });
@@ -589,9 +590,9 @@ export const updateDnsConfiguration = async (req: AuthRequest, res: Response) =>
  */
 export const getCurrentDnsConfiguration = async (req: AuthRequest, res: Response) => {
   try {
-    console.log(`Running in ${isProd ? 'PRODUCTION' : 'DEVELOPMENT'} mode`);
-    console.log(`Using BIND_CONF_PATH: ${BIND_CONF_PATH}`);
-    console.log(`Using ZONE_CONF_PATH: ${ZONE_CONF_PATH}`);
+    logger.debug(`Running in ${isProd ? 'PRODUCTION' : 'DEVELOPMENT'} mode`);
+    logger.debug(`Using BIND_CONF_PATH: ${BIND_CONF_PATH}`);
+    logger.debug(`Using ZONE_CONF_PATH: ${ZONE_CONF_PATH}`);
     
     // Read the named.conf file to check if it exists
     let namedConfExists = false;
@@ -601,14 +602,14 @@ export const getCurrentDnsConfiguration = async (req: AuthRequest, res: Response
       await readFile(BIND_CONF_PATH, 'utf8');
       namedConfExists = true;
     } catch (error) {
-      console.log(`Named.conf does not exist at ${BIND_CONF_PATH}`);
+      logger.info(`Named.conf does not exist at ${BIND_CONF_PATH}`);
     }
     
     try {
       await readFile(ZONE_CONF_PATH, 'utf8');
       zonesConfExists = true;
     } catch (error) {
-      console.log(`Zone conf does not exist at ${ZONE_CONF_PATH}`);
+      logger.info(`Zone conf does not exist at ${ZONE_CONF_PATH}`);
     }
     
     // Get the status of the named service if in production
@@ -617,9 +618,9 @@ export const getCurrentDnsConfiguration = async (req: AuthRequest, res: Response
       try {
         const { stdout } = await execAsync('systemctl is-active named');
         serviceRunning = stdout.trim() === 'active';
-        console.log(`Named service is ${serviceRunning ? 'running' : 'not running'}`);
+        logger.info(`Named service is ${serviceRunning ? 'running' : 'not running'}`);
       } catch (error) {
-        console.log('Error checking named service status, assuming not running');
+        logger.info('Error checking named service status, assuming not running');
       }
     }
     
@@ -669,7 +670,7 @@ export const getCurrentDnsConfiguration = async (req: AuthRequest, res: Response
       hint: 'Submit a new configuration to get started' 
     });
   } catch (error) {
-    console.error('Error getting DNS configuration:', error);
+    logger.error('Error getting DNS configuration:', error);
     res.status(500).json({ 
       message: error instanceof Error ? error.message : 'Failed to get DNS configuration' 
     });
