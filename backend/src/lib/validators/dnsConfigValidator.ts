@@ -1,81 +1,97 @@
 import { z } from 'zod';
 
-const genericRecord = z.object({
-  name: z.string().min(1, { message: 'Record name is required' }),
-  ttl: z.number().int().nonnegative().optional().default(3600),
-  comment: z.string().optional(),
+// Define the DNS record schema
+const dnsRecordSchema = z.object({
+  id: z.string().uuid().optional(),
+  type: z.enum(['A', 'AAAA', 'CNAME', 'TXT', 'NS', 'PTR', 'MX', 'SRV']),
+  name: z.string(),
+  value: z.string(),
+  priority: z.string().optional(),
+  weight: z.string().optional(),
+  port: z.string().optional(),
+  ttl: z.number().optional(),
 });
 
-const aaaaLike = genericRecord.extend({
-  type: z.enum(['A', 'AAAA', 'CNAME', 'TXT', 'NS', 'PTR']),
-  value: z.string().min(1),
+// Define the zone schema
+const zoneSchema = z.object({
+  id: z.string().uuid().optional(),
+  zoneName: z.string().min(1, { message: 'Zone name is required' }),
+  zoneType: z.enum(['master', 'slave', 'forward']),
+  fileName: z.string(),
+  allowUpdate: z.string().default('none'),
+  records: z.array(dnsRecordSchema).default([]),
 });
 
-const mxRecord = genericRecord.extend({
-  type: z.literal('MX'),
-  value: z.string().min(1),
-  priority: z.number().int().nonnegative(),
-});
+// Helper function to parse string lists (like "8.8.8.8; 8.8.4.4;")
+const parseStringList = (input: string, validatorFn?: (item: string) => boolean): string[] => {
+  if (!input) return [];
+  
+  // Split by semicolons and remove any trailing semicolons
+  const items = input.split(';')
+    .map(item => item.trim())
+    .filter(item => item.length > 0);
+  
+  if (validatorFn) {
+    items.forEach(item => {
+      if (!validatorFn(item)) {
+        throw new Error(`Invalid item in list: ${item}`);
+      }
+    });
+  }
+  
+  return items;
+};
 
-const srvRecord = genericRecord.extend({
-  type: z.literal('SRV'),
-  priority: z.number().int().nonnegative(),
-  weight: z.number().int().nonnegative(),
-  port: z.number().int().min(1).max(65535),
-  target: z.string().min(1),
-});
+// Create a custom refinement for string lists
+const stringListRefinement = (key: string, validatorFn?: (item: string) => boolean) => {
+  return z.string().transform((val, ctx) => {
+    try {
+      return parseStringList(val, validatorFn);
+    } catch (error) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Invalid ${key} list: ${(error as Error).message}`,
+        path: [key],
+      });
+      return z.NEVER;
+    }
+  });
+};
 
-const soaRecord = genericRecord.extend({
-  type: z.literal('SOA'),
-  primary: z.string().min(1),
-  admin: z.string().email(),
-  serial: z.number().int().positive(),
-  refresh: z.number().int().positive(),
-  retry: z.number().int().positive(),
-  expire: z.number().int().positive(),
-  minimum: z.number().int().nonnegative(),
-});
+// IP address validation function
+const isValidIpAddress = (ip: string): boolean => {
+  // Simple IPv4 regex
+  const ipv4Regex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+  const match = ip.match(ipv4Regex);
+  if (!match) return false;
+  
+  // Check that each octet is in range
+  for (let i = 1; i <= 4; i++) {
+    const octet = parseInt(match[i], 10);
+    if (octet < 0 || octet > 255) return false;
+  }
+  
+  return true;
+};
 
-const dnsRecordSchema = z.discriminatedUnion('type', [
-  aaaaLike,
-  mxRecord,
-  srvRecord,
-  soaRecord,
-]);
-
+// Define the main DNS configuration schema
 export const dnsConfigurationSchema = z.object({
   // Server Configuration
   dnsServerStatus: z.boolean().default(false),
-  listenOn: z.array(z.string().ip({ version: 'v4' })).default(['127.0.0.1']),
-  allowQuery: z.array(z.string()).default(['localhost', '127.0.0.1']),
-  allowRecursion: z.array(z.string()).default(['localhost', 'localnets', 'local']),
-  forwarders: z.array(z.string().ip({ version: 'v4' })).optional(),
+  listenOn: stringListRefinement('listenOn', isValidIpAddress),
+  allowQuery: stringListRefinement('allowQuery'),
+  allowRecursion: stringListRefinement('allowRecursion'),
+  forwarders: stringListRefinement('forwarders', isValidIpAddress),
+  allowTransfer: stringListRefinement('allowTransfer'),
   
-  // Zone Configuration
-  domainName: z.string().min(1, { message: 'Domain name is required' }),
-  primaryNameserver: z.string().min(1, { message: 'Primary nameserver is required' }),
-  adminEmail: z.string().email().default('admin@example.com'),
-  
-  // Zone Records
-  records: z.array(dnsRecordSchema).default([]),
-  
-  // Advanced Options
-  forwardOnly: z.boolean().default(false),
-  dnssecValidation: z.boolean().default(true),
-  queryLogging: z.boolean().default(false),
-  
-  // Zone Transfer
-  allowTransfer: z.array(z.string()).default(['none']),
-  allowUpdate: z.array(z.string()).default(['none']),
-  
-  // Performance
-  maxCacheTtl: z.number().int().positive().default(604800), // 1 week
-  maxNcacheTtl: z.number().int().positive().default(10800), // 3 hours
-  
-  // Logging
-  logFile: z.string().default('/var/log/named/named.log'),
-  logLevel: z.enum(['critical', 'error', 'warning', 'notice', 'info', 'debug']).default('error'),
+  // Multiple Zones
+  zones: z.array(zoneSchema).min(1, { message: 'At least one zone is required' }),
+
+  // Optional advanced fields (can be added back if needed)
+  dnssecValidation: z.boolean().optional().default(true),
+  queryLogging: z.boolean().optional().default(false),
 });
 
-export type DnsConfiguration = z.infer<typeof dnsConfigurationSchema>;
 export type DnsRecord = z.infer<typeof dnsRecordSchema>;
+export type Zone = z.infer<typeof zoneSchema>;
+export type DnsConfiguration = z.infer<typeof dnsConfigurationSchema>;

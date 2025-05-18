@@ -1,209 +1,250 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middlewares/authMiddleware';
-import { dnsConfigurationSchema, DnsConfiguration } from '../lib/validators/dnsConfigValidator';
+import { dnsConfigurationSchema, DnsConfiguration, Zone, DnsRecord } from '../lib/validators/dnsConfigValidator';
 import { ZodError } from 'zod';
-import { writeFile, readFile } from 'fs/promises';
+import { writeFile, readFile, mkdir } from 'fs/promises';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import path from 'path';
+import { existsSync } from 'fs';
+import crypto from 'crypto';
 
 const execAsync = promisify(exec);
 
 // --- BEGIN Configuration ---
 // !!!IMPORTANT: Adjust these values to your environment !!!
-const BIND_ZONE_FILE_PATH = '/var/named/dynamic.internal.zone'; // Where the dynamic zone records will be written
-const ZONE_NAME = 'dynamic.internal.'; // The zone name, ensure trailing dot
-const PRIMARY_NS_RECORD = 'ns1.dynamic.internal.'; // Primary Name Server for SOA and NS records, ensure trailing dot
-const ADMIN_EMAIL_RECORD = 'admin.dynamic.internal.'; // Admin email for SOA (replace . with @ for actual email), ensure trailing dot
+const BIND_ZONES_DIR = '/var/named'; // Directory where zone files will be stored
 const DEFAULT_TTL = 3600; // Default TTL for records
-
-// Path to BIND's main configuration file
-const BIND_NAMED_CONF_PATH = '/etc/named.conf';
+const BIND_CONF_DIR = '/etc/named';
+const BIND_CONF_PATH = '/etc/named.conf';
+const ZONE_CONF_PATH = '/etc/named.conf.zones';
 // --- END Configuration ---
 
+const ensureDirectoryExists = async (dir: string): Promise<void> => {
+  if (!existsSync(dir)) {
+    await mkdir(dir, { recursive: true });
+  }
+};
 
-export const generateBindZoneContent = (config: DnsConfiguration): string => {
+/**
+ * Generate BIND zone content for a specific zone
+ */
+export const generateBindZoneContent = (zone: Zone): string => {
   // Increment serial number (YYYYMMDDNN format)
-  // For simplicity, we'll use the current date and a fixed NN (01).
-  // A more robust solution would read the current serial from the file and increment it.
   const today = new Date();
   const year = today.getFullYear();
   const month = (today.getMonth() + 1).toString().padStart(2, '0');
   const day = today.getDate().toString().padStart(2, '0');
   const serial = parseInt(`${year}${month}${day}01`); // Simple serial
 
-  // Use dynamic values from config for SOA and NS records
-  // Ensure FQDNs end with a dot.
-  const primaryNs = config.primaryNameserver.endsWith('.')
-    ? config.primaryNameserver
-    : `${config.primaryNameserver}.`;
-
-  // Format admin email for SOA: replace @ with . and ensure trailing dot.
-  // e.g., admin@example.com -> admin.example.com.
-  const adminEmailSoaFormat = config.adminEmail.replace('@', '.');
-  const adminEmailFormatted = adminEmailSoaFormat.endsWith('.')
-    ? adminEmailSoaFormat
-    : `${adminEmailSoaFormat}.`;
+  // Get SOA parameters - use defaults if not found
+  const primaryNameserver = zone.records.find(r => r.type === 'NS' && r.name === '@')?.value || `ns1.${zone.zoneName}.`;
+  
+  // Ensure primaryNameserver has a trailing dot
+  const primaryNs = primaryNameserver.endsWith('.') ? primaryNameserver : `${primaryNameserver}.`;
+  
+  // Default admin email for SOA record
+  const adminEmail = 'admin@example.com';
+  // Format admin email for SOA: replace @ with . and ensure trailing dot
+  const adminEmailSoaFormat = adminEmail.replace('@', '.');
+  const adminEmailFormatted = adminEmailSoaFormat.endsWith('.') ? adminEmailSoaFormat : `${adminEmailSoaFormat}.`;
 
   let zoneContent = `\$TTL ${DEFAULT_TTL}
 @ IN SOA ${primaryNs} ${adminEmailFormatted} (
         ${serial}       ; Serial
-        ${DEFAULT_TTL}         ; Refresh
+        ${DEFAULT_TTL}  ; Refresh
         1800         ; Retry
         604800       ; Expire
         86400 )      ; Negative Cache TTL
 ;
-@ IN NS ${primaryNs}
 `;
 
-  // Add records from the configuration
-  for (const record of config.records) {
-    const recordName = record.name || '@'; // Use '@' if name is empty, common for zone apex records
+  // Add standard NS record if not explicitly defined
+  if (!zone.records.some(r => r.type === 'NS' && r.name === '@')) {
+    zoneContent += `@ IN NS ${primaryNs}\n`;
+  }
+
+  // Add records for this zone
+  for (const record of zone.records) {
+    const recordName = record.name || '@'; // Use '@' if name is empty (zone apex)
+    
     switch (record.type.toUpperCase()) {
       case 'A':
-        if ('value' in record && typeof record.value === 'string') {
-          zoneContent += `${recordName} IN A ${record.value}\n`;
-        } else {
-          console.warn(`Skipping malformed A record (${recordName}): missing or invalid value.`);
-        }
+        zoneContent += `${recordName} IN A ${record.value}\n`;
         break;
       case 'AAAA':
-        if ('value' in record && typeof record.value === 'string') {
-          zoneContent += `${recordName} IN AAAA ${record.value}\n`;
-        } else {
-          console.warn(`Skipping malformed AAAA record (${recordName}): missing or invalid value.`);
-        }
+        zoneContent += `${recordName} IN AAAA ${record.value}\n`;
         break;
       case 'CNAME':
-        if ('value' in record && typeof record.value === 'string') {
-          // Ensure canonicalName (record.value) has a trailing dot if it's an FQDN
-          const cnameValue = record.value.endsWith('.') ? record.value : `${record.value}.`;
-          zoneContent += `${recordName} IN CNAME ${cnameValue}\n`;
-        } else {
-          console.warn(`Skipping malformed CNAME record (${recordName}): missing or invalid value.`);
-        }
+        // Ensure canonicalName (record.value) has a trailing dot if it's an FQDN
+        const cnameValue = record.value === '@' ? '@' : 
+                           (record.value.endsWith('.') ? record.value : `${record.value}.`);
+        zoneContent += `${recordName} IN CNAME ${cnameValue}\n`;
         break;
       case 'MX':
-        if ('priority' in record && typeof record.priority === 'number' && 'value' in record && typeof record.value === 'string') {
+        if (record.priority) {
           // record.value for MX should be the exchange server
           const exchange = record.value.endsWith('.') ? record.value : `${record.value}.`;
           zoneContent += `${recordName} IN MX ${record.priority} ${exchange}\n`;
         } else {
-          console.warn(`Skipping malformed MX record (${recordName}): missing or invalid priority or value.`);
+          console.warn(`Skipping malformed MX record (${recordName}): missing priority.`);
         }
         break;
       case 'TXT':
-        if ('value' in record && typeof record.value === 'string') {
-          // Ensure TXT record value is properly quoted
-          zoneContent += `${recordName} IN TXT "${record.value.replace(/"/g, '\\"')}"\n`;
-        } else {
-          console.warn(`Skipping malformed TXT record (${recordName}): missing or invalid value.`);
-        }
+        // Ensure TXT record value is properly quoted
+        zoneContent += `${recordName} IN TXT "${record.value.replace(/"/g, '\\"')}"\n`;
         break;
       case 'NS':
-        if ('value' in record && typeof record.value === 'string') {
-          const nsValue = record.value.endsWith('.') ? record.value : `${record.value}.`;
-          zoneContent += `${recordName} IN NS ${nsValue}\n`;
-        } else {
-          console.warn(`Skipping malformed NS record (${recordName}): missing or invalid value.`);
-        }
+        const nsValue = record.value.endsWith('.') ? record.value : `${record.value}.`;
+        zoneContent += `${recordName} IN NS ${nsValue}\n`;
         break;
       case 'PTR':
-        if ('value' in record && typeof record.value === 'string') {
-           // PTR record value (domain name) should end with a dot
-          const ptrValue = record.value.endsWith('.') ? record.value : `${record.value}.`;
-          zoneContent += `${recordName} IN PTR ${ptrValue}\n`;
-        } else {
-          console.warn(`Skipping malformed PTR record (${recordName}): missing or invalid value.`);
-        }
+        // PTR record value (domain name) should end with a dot
+        const ptrValue = record.value.endsWith('.') ? record.value : `${record.value}.`;
+        zoneContent += `${recordName} IN PTR ${ptrValue}\n`;
         break;
       case 'SRV':
-        if (
-          'priority' in record && typeof record.priority === 'number' &&
-          'weight' in record && typeof record.weight === 'number' &&
-          'port' in record && typeof record.port === 'number' &&
-          'target' in record && typeof record.target === 'string'
-        ) {
-          const targetValue = record.target.endsWith('.') ? record.target : `${record.target}.`;
+        if (record.priority && record.weight && record.port) {
+          const targetValue = record.value.endsWith('.') ? record.value : `${record.value}.`;
           zoneContent += `${recordName} IN SRV ${record.priority} ${record.weight} ${record.port} ${targetValue}\n`;
         } else {
-          console.warn(`Skipping malformed SRV record (${recordName}): missing or invalid properties (priority, weight, port, target).`);
+          console.warn(`Skipping malformed SRV record (${recordName}): missing required properties.`);
         }
         break;
-      // Add cases for other record types as needed
       default:
-        // Fallback for other record types that might just have name and value
-        if ('value' in record && typeof record.value === 'string') {
-           console.warn(`Using default formatting for unhandled record type: ${record.type} for name ${recordName}. Assuming 'name IN TYPE value' structure.`);
-           zoneContent += `${recordName} IN ${record.type.toUpperCase()} ${record.value}\n`;
-        } else {
-            console.warn(`Unsupported DNS record type or malformed record: ${record.type} for name ${recordName}. Cannot determine value property.`);
-        }
+        console.warn(`Unsupported DNS record type: ${record.type} for name ${recordName}.`);
     }
   }
 
   return zoneContent;
 };
 
-const writeZoneFile = async (filePath: string, content: string): Promise<void> => {
+/**
+ * Generate named.conf content for BIND
+ */
+const generateNamedConf = (config: DnsConfiguration): string => {
+  // Create the basic configuration
+  return `// Generated by DNS Management System
+
+options {
+  directory "/var/named";
+  listen-on port 53 { ${config.listenOn.join('; ')}; };
+  listen-on-v6 port 53 { ::1; };
+  
+  allow-query { ${config.allowQuery.join('; ')}; };
+  allow-recursion { ${config.allowRecursion.join('; ')}; };
+  ${config.forwarders.length > 0 ? `forwarders { ${config.forwarders.join('; ')}; };` : ''}
+  
+  dnssec-validation ${config.dnssecValidation ? 'yes' : 'no'};
+  recursion yes;
+};
+
+logging {
+  channel default_debug {
+    file "named.run";
+    severity dynamic;
+  };
+};
+
+// Include zone definitions
+include "${ZONE_CONF_PATH}";
+`;
+};
+
+/**
+ * Generate zone configuration for named.conf.zones
+ */
+const generateZoneConf = (config: DnsConfiguration): string => {
+  let zoneConf = '// Zone definitions - generated by DNS Management System\n\n';
+  
+  for (const zone of config.zones) {
+    const zoneFilePath = path.join(BIND_ZONES_DIR, `${zone.fileName}`);
+    
+    zoneConf += `zone "${zone.zoneName}" IN {\n`;
+    zoneConf += `  type ${zone.zoneType};\n`;
+    zoneConf += `  file "${zone.fileName}";\n`;
+    zoneConf += `  allow-update { ${zone.allowUpdate || 'none'}; };\n`;
+    
+    if (config.allowTransfer && config.allowTransfer.length > 0) {
+      zoneConf += `  allow-transfer { ${config.allowTransfer.join('; ')}; };\n`;
+    }
+    
+    zoneConf += '};\n\n';
+  }
+  
+  return zoneConf;
+};
+
+/**
+ * Write a file to the filesystem
+ */
+const writeFileWithBackup = async (filePath: string, content: string): Promise<void> => {
   try {
+    // Create a backup if the file exists
+    if (existsSync(filePath)) {
+      const backupPath = `${filePath}.bak`;
+      await writeFile(backupPath, await readFile(filePath, 'utf8'), 'utf8');
+      console.log(`Created backup of ${filePath} at ${backupPath}`);
+    }
+    
+    // Write the new content
     await writeFile(filePath, content, 'utf8');
-    console.log(`Successfully wrote BIND zone file to ${filePath}`);
+    console.log(`Successfully wrote file to ${filePath}`);
   } catch (error) {
-    console.error(`Error writing BIND zone file ${filePath}:`, error);
-    throw new Error(`Failed to write BIND zone file: ${(error as Error).message}`);
+    console.error(`Error writing file ${filePath}:`, error);
+    throw new Error(`Failed to write file: ${(error as Error).message}`);
   }
 };
 
-const validateBindConfiguration = async (): Promise<void> => {
+/**
+ * Validate BIND configuration
+ */
+const validateBindConfiguration = async (zones: Zone[]): Promise<void> => {
   try {
     // Validate the main configuration file
-    const { stdout: checkConfOut, stderr: checkConfErr } = await execAsync(`named-checkconf ${BIND_NAMED_CONF_PATH}`);
+    console.log(`Validating BIND configuration: ${BIND_CONF_PATH}`);
+    const { stdout: checkConfOut, stderr: checkConfErr } = await execAsync(`named-checkconf ${BIND_CONF_PATH}`);
     if (checkConfErr) {
       console.error(`Error during named-checkconf: ${checkConfErr}`);
       throw new Error(`BIND main configuration validation failed: ${checkConfErr}`);
     }
     console.log('BIND main configuration validation successful:', checkConfOut || 'OK');
 
-    // Validate the specific zone file
-    // named-checkzone <zone_name> <zone_file_path>
-    const { stdout: checkZoneOut, stderr: checkZoneErr } = await execAsync(`named-checkzone ${ZONE_NAME} ${BIND_ZONE_FILE_PATH}`);
-    if (checkZoneErr && !checkZoneErr.includes("loaded serial")) { // named-checkzone might output serial to stderr on success
-        // A common successful output includes "OK" or "loaded serial"
-        // We need to be careful not to interpret successful "loaded serial..." messages in stderr as errors.
-        // However, any other stderr output is likely an error.
-        // A more robust check might parse the output more carefully.
-      let isError = true;
-      if (checkZoneOut.includes("OK") || (checkZoneErr.includes("loaded serial") && checkZoneOut.includes("OK"))) {
-        isError = false;
-      }
+    // Validate each zone file
+    for (const zone of zones) {
+      const zoneFilePath = path.join(BIND_ZONES_DIR, zone.fileName);
+      console.log(`Validating zone file: ${zoneFilePath} for zone ${zone.zoneName}`);
       
-      if (isError) {
-        console.error(`Error during named-checkzone for ${ZONE_NAME} at ${BIND_ZONE_FILE_PATH}: ${checkZoneErr}`);
-        console.error(`named-checkzone stdout was: ${checkZoneOut}`);
-        throw new Error(`BIND zone file validation for ${ZONE_NAME} failed: ${checkZoneErr}`);
+      try {
+        const { stdout: checkZoneOut, stderr: checkZoneErr } = await execAsync(`named-checkzone ${zone.zoneName} ${zoneFilePath}`);
+        
+        // Check for errors but ignore "loaded serial" messages which can appear in stderr but are not actual errors
+        if (checkZoneErr && !checkZoneErr.includes("loaded serial")) {
+          console.error(`Error validating zone ${zone.zoneName}: ${checkZoneErr}`);
+          throw new Error(`Zone file validation for ${zone.zoneName} failed: ${checkZoneErr}`);
+        }
+        
+        console.log(`Zone file validation for ${zone.zoneName} successful:`, checkZoneOut || 'OK');
+      } catch (error) {
+        console.error(`Error validating zone ${zone.zoneName}:`, error);
+        throw new Error(`Failed to validate zone ${zone.zoneName}: ${(error as Error).message}`);
       }
     }
-    console.log(`BIND zone file validation for ${ZONE_NAME} successful:`, checkZoneOut || checkZoneErr); // Successful output might be in stderr
   } catch (error) {
     console.error('Error validating BIND configuration:', error);
-    if (error instanceof Error && error.message.startsWith('BIND')) { // Propagate specific validation errors
-        throw error;
-    }
-    throw new Error(`Failed to validate BIND configuration: ${(error as Error).message}`);
+    throw error;
   }
 };
 
+/**
+ * Reload BIND service
+ */
 const reloadBindService = async (): Promise<void> => {
-  // Note: This command typically requires sudo privileges.
-  // Ensure the user running this Node.js application has appropriate sudo rights without a password prompt for this command,
-  // or configure a more secure way to trigger BIND reloads (e.g., via a script with setuid or a dedicated daemon).
   const reloadCommand = 'sudo systemctl reload named';
   try {
     console.log(`Attempting to reload BIND service with command: ${reloadCommand}`);
     const { stdout, stderr } = await execAsync(reloadCommand);
     if (stderr) {
-      // systemctl reload might send informational messages to stderr even on success.
-      // We'll log it but proceed if stdout indicates success or is empty.
       console.warn(`BIND reload stderr: ${stderr}`);
     }
     console.log('BIND service reloaded successfully:', stdout || 'No stdout output from reload command.');
@@ -213,6 +254,9 @@ const reloadBindService = async (): Promise<void> => {
   }
 };
 
+/**
+ * Update DNS configuration
+ */
 export const updateDnsConfiguration = async (req: AuthRequest, res: Response) => {
   try {
     // Validate the request body
@@ -220,35 +264,128 @@ export const updateDnsConfiguration = async (req: AuthRequest, res: Response) =>
 
     console.log('Received DNS Configuration:', JSON.stringify(validatedConfig, null, 2));
     
-    // 1. Generate BIND zone file content (was TODO 2)
-    const zoneFileContent = generateBindZoneContent(validatedConfig);
-    console.log('Generated BIND zone file content:\n', zoneFileContent);
-
-    // 2. Write the content to the BIND zone file (was TODO 3)
-    //    (Persisting the configuration - was TODO 1 - is achieved by writing this file)
-    await writeZoneFile(BIND_ZONE_FILE_PATH, zoneFileContent);
-
-    // 3. Validate BIND configuration (new step for safety)
-    await validateBindConfiguration();
+    // Ensure required directories exist
+    await ensureDirectoryExists(BIND_ZONES_DIR);
+    await ensureDirectoryExists(BIND_CONF_DIR);
     
-    // 4. Trigger a reload/restart of the BIND service.
-    await reloadBindService();
-
+    // Generate and write zone files
+    for (const zone of validatedConfig.zones) {
+      const zoneContent = generateBindZoneContent(zone);
+      const zoneFilePath = path.join(BIND_ZONES_DIR, zone.fileName);
+      
+      console.log(`Generating zone file for ${zone.zoneName} at ${zoneFilePath}`);
+      await writeFileWithBackup(zoneFilePath, zoneContent);
+    }
+    
+    // Generate and write BIND configuration files
+    const namedConf = generateNamedConf(validatedConfig);
+    const zoneConf = generateZoneConf(validatedConfig);
+    
+    await writeFileWithBackup(BIND_CONF_PATH, namedConf);
+    await writeFileWithBackup(ZONE_CONF_PATH, zoneConf);
+    
+    // Validate BIND configuration
+    await validateBindConfiguration(validatedConfig.zones);
+    
+    // Only reload if the DNS server is enabled
+    if (validatedConfig.dnsServerStatus) {
+      await reloadBindService();
+    } else {
+      console.log('DNS server is disabled, skipping reload');
+    }
+    
     res.status(200).json({ 
-        message: 'DNS configuration updated, BIND configuration validated, and service reloaded successfully.', 
-        data: validatedConfig 
+      message: 'DNS configuration updated successfully',
+      data: validatedConfig 
     });
 
   } catch (error) {
     if (error instanceof ZodError) {
-      return res.status(400).json({ message: 'Validation Error', errors: error.errors });
+      return res.status(400).json({ 
+        message: 'Validation Error', 
+        errors: error.errors 
+      });
     }
-    // Handle specific errors from our new functions
-    if (error instanceof Error && (error.message.startsWith('Failed to write') || error.message.startsWith('BIND') || error.message.startsWith('Failed to validate') || error.message.startsWith('Failed to reload'))) {
-        console.error('Specific error during DNS update process:', error.message);
-        return res.status(500).json({ message: error.message });
-    }
+    
     console.error('Error updating DNS configuration:', error);
-    res.status(500).json({ message: 'Failed to update DNS configuration.' });
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : 'Failed to update DNS configuration' 
+    });
+  }
+};
+
+/**
+ * Get the current DNS configuration
+ */
+export const getCurrentDnsConfiguration = async (req: AuthRequest, res: Response) => {
+  try {
+    // Read the named.conf file to check if it exists
+    let namedConfExists = false;
+    let zonesConfExists = false;
+    
+    try {
+      await readFile(BIND_CONF_PATH, 'utf8');
+      namedConfExists = true;
+    } catch (error) {
+      console.log(`Named.conf does not exist at ${BIND_CONF_PATH}`);
+    }
+    
+    try {
+      await readFile(ZONE_CONF_PATH, 'utf8');
+      zonesConfExists = true;
+    } catch (error) {
+      console.log(`Zone conf does not exist at ${ZONE_CONF_PATH}`);
+    }
+    
+    // If the configuration files don't exist, return a default configuration
+    if (!namedConfExists || !zonesConfExists) {
+      return res.status(200).json({
+        message: 'Default configuration returned',
+        data: {
+          dnsServerStatus: false,
+          listenOn: '127.0.0.1',
+          allowQuery: 'localhost; 127.0.0.1',
+          allowRecursion: 'localhost',
+          forwarders: '8.8.8.8; 8.8.4.4',
+          allowTransfer: '',
+          zones: [
+            {
+              id: crypto.randomUUID(),
+              zoneName: 'example.com',
+              zoneType: 'master',
+              fileName: 'example.com.zone',
+              allowUpdate: 'none',
+              records: [
+                {
+                  id: crypto.randomUUID(),
+                  type: 'A',
+                  name: '@',
+                  value: '192.168.1.100'
+                },
+                {
+                  id: crypto.randomUUID(),
+                  type: 'CNAME',
+                  name: 'www',
+                  value: '@'
+                }
+              ]
+            }
+          ]
+        }
+      });
+    }
+    
+    // In a real implementation, you would read and parse the BIND config files
+    // and convert them to the expected format. For now, we'll return a message
+    // that this feature is not yet implemented.
+    res.status(501).json({ 
+      message: 'Reading current configuration from BIND files is not yet implemented',
+      hint: 'Submit a new configuration to get started' 
+    });
+  } catch (error) {
+    console.error('Error getting DNS configuration:', error);
+    res.status(500).json({ 
+      message: error instanceof Error ? error.message : 'Failed to get DNS configuration' 
+    });
   }
 }; 

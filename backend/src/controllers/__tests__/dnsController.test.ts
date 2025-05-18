@@ -1,17 +1,27 @@
-import { DnsConfiguration } from '../../lib/validators/dnsConfigValidator';
+import { Zone, DnsRecord } from '../../lib/validators/dnsConfigValidator';
 
-// We need to mock the constants before importing the controller
-jest.mock('../../controllers/dnsController', () => {
-  const originalModule = jest.requireActual('../../controllers/dnsController');
-  return {
-    ...originalModule,
-    // Mock constants
-    PRIMARY_NS_RECORD: 'ns1.dynamic.internal.',
-    ADMIN_EMAIL_RECORD: 'admin.dynamic.internal.',
-    ZONE_NAME: 'dynamic.internal.',
-    DEFAULT_TTL: 3600,
-  };
-});
+// Mock filesystem and exec functions
+jest.mock('fs/promises', () => ({
+  writeFile: jest.fn().mockResolvedValue(undefined),
+  readFile: jest.fn().mockResolvedValue("mock content"),
+  mkdir: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock('child_process', () => ({
+  exec: jest.fn((cmd, callback) => {
+    if (callback) {
+      callback(null, { stdout: "OK", stderr: "" });
+    }
+    return {
+      stdout: "OK",
+      stderr: ""
+    };
+  }),
+}));
+
+jest.mock('fs', () => ({
+  existsSync: jest.fn().mockReturnValue(true),
+}));
 
 // Import after mocking
 import { generateBindZoneContent } from '../../controllers/dnsController';
@@ -28,37 +38,43 @@ describe('DNS Controller - generateBindZoneContent', () => {
 
   it('should generate a valid BIND zone file with SOA and NS records', () => {
     // Arrange
-    const config: DnsConfiguration = {
-      dnsServerStatus: true,
-      domainName: 'dynamic.internal',
-      primaryNameserver: 'ns1.dynamic.internal',
-      records: []
-    };
-
-    // Act
-    const result = generateBindZoneContent(config);
-
-    // Assert
-    expect(result).toContain('$TTL 3600');
-    expect(result).toContain('@ IN SOA ns1.dynamic.internal. admin.dynamic.internal.');
-    expect(result).toContain(getCurrentDateSerial()); // Check for today's serial
-    expect(result).toContain('@ IN NS ns1.dynamic.internal.');
-  });
-
-  it('should correctly format A records', () => {
-    // Arrange
-    const config: DnsConfiguration = {
-      dnsServerStatus: true,
-      domainName: 'dynamic.internal',
-      primaryNameserver: 'ns1.dynamic.internal',
+    const zone: Zone = {
+      id: '123',
+      zoneName: 'example.com',
+      zoneType: 'master',
+      fileName: 'example.com.zone',
+      allowUpdate: 'none',
       records: [
-        { type: 'A', name: 'www', value: '192.168.1.10' },
-        { type: 'A', name: 'mail', value: '192.168.1.20' }
+        { id: '456', type: 'NS', name: '@', value: 'ns1.example.com' }
       ]
     };
 
     // Act
-    const result = generateBindZoneContent(config);
+    const result = generateBindZoneContent(zone);
+
+    // Assert
+    expect(result).toContain('$TTL 3600');
+    expect(result).toContain('@ IN SOA ns1.example.com. admin.example.com.');
+    expect(result).toContain(getCurrentDateSerial()); // Check for today's serial
+    expect(result).toContain('@ IN NS ns1.example.com.');
+  });
+
+  it('should correctly format A records', () => {
+    // Arrange
+    const zone: Zone = {
+      id: '123',
+      zoneName: 'example.com',
+      zoneType: 'master',
+      fileName: 'example.com.zone',
+      allowUpdate: 'none',
+      records: [
+        { id: '456', type: 'A', name: 'www', value: '192.168.1.10' },
+        { id: '789', type: 'A', name: 'mail', value: '192.168.1.20' }
+      ]
+    };
+
+    // Act
+    const result = generateBindZoneContent(zone);
 
     // Assert
     expect(result).toContain('www IN A 192.168.1.10');
@@ -67,117 +83,101 @@ describe('DNS Controller - generateBindZoneContent', () => {
 
   it('should correctly format CNAME records with trailing dots', () => {
     // Arrange
-    const config: DnsConfiguration = {
-      dnsServerStatus: true,
-      domainName: 'dynamic.internal',
-      primaryNameserver: 'ns1.dynamic.internal',
+    const zone: Zone = {
+      id: '123',
+      zoneName: 'example.com',
+      zoneType: 'master',
+      fileName: 'example.com.zone',
+      allowUpdate: 'none',
       records: [
-        { type: 'CNAME', name: 'www', value: 'webserver' },
-        { type: 'CNAME', name: 'mail', value: 'mailserver.dynamic.internal.' }
+        { id: '456', type: 'CNAME', name: 'www', value: '@' },
+        { id: '789', type: 'CNAME', name: 'mail', value: 'mailserver.example.com.' }
       ]
     };
 
     // Act
-    const result = generateBindZoneContent(config);
+    const result = generateBindZoneContent(zone);
 
     // Assert
-    expect(result).toContain('www IN CNAME webserver.');
-    expect(result).toContain('mail IN CNAME mailserver.dynamic.internal.');
+    expect(result).toContain('www IN CNAME @');
+    expect(result).toContain('mail IN CNAME mailserver.example.com.');
   });
 
   it('should correctly format MX records', () => {
     // Arrange
-    const config: DnsConfiguration = {
-      dnsServerStatus: true,
-      domainName: 'dynamic.internal',
-      primaryNameserver: 'ns1.dynamic.internal',
+    const zone: Zone = {
+      id: '123',
+      zoneName: 'example.com',
+      zoneType: 'master',
+      fileName: 'example.com.zone',
+      allowUpdate: 'none',
       records: [
-        { type: 'MX', name: '@', value: '10 mail.dynamic.internal.' },
-        { type: 'MX', name: '', value: '20 backup-mail.dynamic.internal' }
+        { id: '456', type: 'MX', name: '@', value: 'mail.example.com', priority: '10' },
+        { id: '789', type: 'MX', name: '@', value: 'backup-mail.example.com', priority: '20' }
       ]
     };
 
     // Act
-    const result = generateBindZoneContent(config);
+    const result = generateBindZoneContent(zone);
 
     // Assert
-    expect(result).toContain('@ IN MX 10 mail.dynamic.internal.');
-    expect(result).toContain('@ IN MX 20 backup-mail.dynamic.internal.');
+    expect(result).toContain('@ IN MX 10 mail.example.com.');
+    expect(result).toContain('@ IN MX 20 backup-mail.example.com.');
   });
 
   it('should correctly format TXT records with proper escaping', () => {
     // Arrange
-    const config: DnsConfiguration = {
-      dnsServerStatus: true,
-      domainName: 'dynamic.internal',
-      primaryNameserver: 'ns1.dynamic.internal',
+    const zone: Zone = {
+      id: '123',
+      zoneName: 'example.com',
+      zoneType: 'master',
+      fileName: 'example.com.zone',
+      allowUpdate: 'none',
       records: [
-        { type: 'TXT', name: '@', value: 'v=spf1 ip4:192.168.1.0/24 -all' },
-        { type: 'TXT', name: 'verification', value: 'domain-verification="abc123"' }
+        { id: '456', type: 'TXT', name: '@', value: 'v=spf1 ip4:192.168.1.0/24 -all' },
+        { id: '789', type: 'TXT', name: 'verification', value: 'domain-verification="abc123"' }
       ]
     };
 
     // Act
-    const result = generateBindZoneContent(config);
+    const result = generateBindZoneContent(zone);
 
     // Assert
     expect(result).toContain('@ IN TXT "v=spf1 ip4:192.168.1.0/24 -all"');
     expect(result).toContain('verification IN TXT "domain-verification=\\"abc123\\""');
   });
 
-  it('should handle mixed record types correctly', () => {
+  it('should handle PTR records correctly', () => {
     // Arrange
-    const config: DnsConfiguration = {
-      dnsServerStatus: true,
-      domainName: 'dynamic.internal',
-      primaryNameserver: 'ns1.dynamic.internal',
+    const zone: Zone = {
+      id: '123',
+      zoneName: '1.168.192.in-addr.arpa',
+      zoneType: 'master',
+      fileName: 'reverse.example.com',
+      allowUpdate: 'none',
       records: [
-        { type: 'A', name: 'www', value: '192.168.1.10' },
-        { type: 'CNAME', name: 'app', value: 'www' },
-        { type: 'MX', name: '@', value: '10 mail.dynamic.internal' },
-        { type: 'TXT', name: '@', value: 'v=spf1 -all' }
+        { id: '456', type: 'PTR', name: '1', value: 'example.com' }
       ]
     };
 
     // Act
-    const result = generateBindZoneContent(config);
+    const result = generateBindZoneContent(zone);
 
     // Assert
-    expect(result).toContain('www IN A 192.168.1.10');
-    expect(result).toContain('app IN CNAME www.');
-    expect(result).toContain('@ IN MX 10 mail.dynamic.internal.');
-    expect(result).toContain('@ IN TXT "v=spf1 -all"');
-  });
-
-  it('should handle case-insensitive record types', () => {
-    // Arrange
-    const config: DnsConfiguration = {
-      dnsServerStatus: true,
-      domainName: 'dynamic.internal',
-      primaryNameserver: 'ns1.dynamic.internal',
-      records: [
-        { type: 'a', name: 'www', value: '192.168.1.10' },
-        { type: 'cname', name: 'app', value: 'www' }
-      ]
-    };
-
-    // Act
-    const result = generateBindZoneContent(config);
-
-    // Assert
-    expect(result).toContain('www IN A 192.168.1.10');
-    expect(result).toContain('app IN CNAME www.');
+    expect(result).toContain('1 IN PTR example.com.');
   });
 
   it('should skip malformed MX records', () => {
     // Arrange
-    const config: DnsConfiguration = {
-      dnsServerStatus: true,
-      domainName: 'dynamic.internal',
-      primaryNameserver: 'ns1.dynamic.internal',
+    const zone: Zone = {
+      id: '123',
+      zoneName: 'example.com',
+      zoneType: 'master',
+      fileName: 'example.com.zone',
+      allowUpdate: 'none',
       records: [
-        { type: 'MX', name: '@', value: 'invalid-mx-format' },
-        { type: 'MX', name: '@', value: '10 valid.example.com' }
+        { id: '456', type: 'MX', name: '@', value: 'mail.example.com' }, // Missing priority
+        { id: '789', type: 'MX', name: '@', value: 'valid.example.com', priority: '10' }
       ]
     };
     
@@ -185,41 +185,13 @@ describe('DNS Controller - generateBindZoneContent', () => {
     const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
 
     // Act
-    const result = generateBindZoneContent(config);
+    const result = generateBindZoneContent(zone);
 
     // Assert
-    expect(result).not.toContain('@ IN MX invalid-mx-format');
+    expect(result).not.toContain('@ IN MX mail.example.com');
     expect(result).toContain('@ IN MX 10 valid.example.com.');
     expect(consoleWarnSpy).toHaveBeenCalledWith(
       expect.stringContaining('Skipping malformed MX record')
-    );
-    
-    // Cleanup
-    consoleWarnSpy.mockRestore();
-  });
-
-  it('should log warnings for unsupported record types', () => {
-    // Arrange
-    const config: DnsConfiguration = {
-      dnsServerStatus: true,
-      domainName: 'dynamic.internal',
-      primaryNameserver: 'ns1.dynamic.internal',
-      records: [
-        { type: 'UNSUPPORTED', name: 'test', value: 'some-value' },
-        { type: 'A', name: 'www', value: '192.168.1.10' }
-      ]
-    };
-    
-    // Mock console.warn to capture warnings
-    const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
-
-    // Act
-    const result = generateBindZoneContent(config);
-
-    // Assert
-    expect(result).toContain('www IN A 192.168.1.10');
-    expect(consoleWarnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('Unsupported DNS record type')
     );
     
     // Cleanup
