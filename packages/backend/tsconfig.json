@@ -10,9 +10,9 @@
     "forceConsistentCasingInFileNames": true,
     "moduleResolution": "node16",
     "resolveJsonModule": true,
+    "isolatedModules": true,
     "outDir": "./dist",
     "rootDir": "./src",
-    "isolatedModules": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules"]

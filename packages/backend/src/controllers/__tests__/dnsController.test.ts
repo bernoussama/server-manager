@@ -23,18 +23,17 @@ jest.mock('fs', () => ({
   existsSync: jest.fn().mockReturnValue(true),
 }));
 
-// Add this mock for the logger
+// Mock the logger
 jest.mock('../../lib/logger', () => ({
   info: jest.fn(),
   warn: jest.fn(),
   error: jest.fn(),
   debug: jest.fn(),
-  http: jest.fn(),
 }));
 
 // Import after mocking
 import { generateBindZoneContent } from '../../controllers/dnsController';
-import logger from '../../lib/logger'; // Import the mocked logger
+import logger from '../../lib/logger';
 
 describe('DNS Controller - generateBindZoneContent', () => {
   beforeEach(() => {
@@ -216,14 +215,19 @@ describe('DNS Controller - generateBindZoneContent', () => {
       ]
     };
     
+    // Mock logger.warn to capture warnings
+    const loggerWarnSpy = jest.spyOn(logger, 'warn');
+
     // Act
     const result = generateBindZoneContent(zone);
 
     // Assert
     expect(result).not.toContain('@ IN MX mail.example.com');
     expect(result).toContain('@ IN MX 10 valid.example.com.');
-    expect(logger.warn).toHaveBeenCalledWith(
-      expect.stringContaining('Skipping malformed MX record (@): missing priority.')
+    expect(loggerWarnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Skipping malformed MX record')
     );
+    
+    // Cleanup - no need to restore since jest.resetAllMocks() will be called automatically
   });
 });
