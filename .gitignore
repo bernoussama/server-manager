@@ -7,3 +7,4 @@ dist
 **/meta
 **/test/dns
 **/.vite
+docs/scratchpad.md

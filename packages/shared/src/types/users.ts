@@ -7,7 +7,6 @@ export interface User {
   createdAt?: string | Date;
   updatedAt?: string | Date;
   name?: string;
-  age?: number;
 }
 
 // Type for inserting a new user with credentials
@@ -15,7 +14,6 @@ export interface NewUserWithPassword {
   email: string;
   password: string;
   name?: string;
-  age?: number;
 }
 
 // Type for inserting a new user in the database (internal)
@@ -23,7 +21,6 @@ export interface NewUserCredentials {
   email: string;
   passwordHash: string;
   name?: string;
-  age?: number;
 }
 
 // User data for the frontend
@@ -31,7 +28,6 @@ export interface UserResponse {
   id: number;
   email: string;
   name?: string;
-  age?: number;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -39,7 +35,6 @@ export interface UserResponse {
 // User creation payload
 export interface CreateUserPayload {
   name: string;
-  age: number;
   email: string;
   password?: string;
 }
@@ -47,7 +42,6 @@ export interface CreateUserPayload {
 // User update payload
 export interface UpdateUserPayload {
   name?: string;
-  age?: number;
   email?: string;
 }
 

@@ -22,23 +22,25 @@ import {
   MxDnsRecord, 
   SrvDnsRecord, 
   BaseDnsRecord, 
-  DnsRecordType
-} from '../../../types/dns';
+  DnsRecordType,
+  DnsConfigFormValues as SharedDnsConfigFormValues
+} from '@server-manager/shared';
 
-// Import directly from local files
+// Import validators directly from the shared package
 import {
   isNonEmptyString,
-  isNumeric
-} from '../../../../../shared/src/validators/dnsFormValidator';
-import { RECORD_TYPES, dnsRecordUISchema, dnsConfigSchema } from '../../../../../shared/src/validators/dnsFormValidator';
-import { 
+  isNumeric,
+  RECORD_TYPES, 
+  dnsRecordUISchema, 
+  dnsConfigSchema, 
+  UiRecordType,
   transformUiRecordToApiRecord, 
   parseStringToArray,
   transformFormToApiData 
-} from '../../../../../shared/src/validators/dnsTransformers';
+} from '@server-manager/shared/validators';
 
 // Define the UiRecordType here
-type UiRecordType = typeof RECORD_TYPES[number];
+// type UiRecordType = typeof RECORD_TYPES[number]; // Removed, will use imported one
 
 export type DnsConfigFormValues = z.infer<typeof dnsConfigSchema>;
 

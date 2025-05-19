@@ -1,15 +1,16 @@
 import { toast } from '@/hooks/use-toast';
+import { ApiResponse } from '@server-manager/shared';
 
 // Define the base URL for API requests
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 // Base interface for API responses
-interface ApiResponse<T> {
-  data?: T;
-  success?: boolean;
-  message?: string;
-  error?: string;
-}
+// interface ApiResponse<T> {
+//   data?: T;
+//   success?: boolean;
+//   message?: string;
+//   error?: string;
+// }
 
 // Generic error handler
 const handleError = (error: unknown): never => {
