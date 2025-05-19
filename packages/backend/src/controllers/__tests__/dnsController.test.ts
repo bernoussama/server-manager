@@ -23,10 +23,45 @@ jest.mock('fs', () => ({
   existsSync: jest.fn().mockReturnValue(true),
 }));
 
+// Add this mock for the logger
+jest.mock('../../lib/logger', () => ({
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+  debug: jest.fn(),
+  http: jest.fn(),
+}));
+
 // Import after mocking
 import { generateBindZoneContent } from '../../controllers/dnsController';
+import logger from '../../lib/logger'; // Import the mocked logger
 
 describe('DNS Controller - generateBindZoneContent', () => {
+  beforeEach(() => {
+    // Clear mock calls before each test
+    (logger.warn as jest.Mock).mockClear();
+    (logger.info as jest.Mock).mockClear();
+    (logger.error as jest.Mock).mockClear();
+    (logger.debug as jest.Mock).mockClear();
+    (logger.http as jest.Mock).mockClear();
+
+    // Clear other mocks if they are called across tests and need resetting
+    const fsPromisesMocks = require('fs/promises');
+    (fsPromisesMocks.writeFile as jest.Mock).mockClear();
+    (fsPromisesMocks.readFile as jest.Mock).mockClear();
+    (fsPromisesMocks.mkdir as jest.Mock).mockClear();
+
+    const childProcessMocks = require('child_process');
+    (childProcessMocks.exec as jest.Mock).mockClear();
+    
+    const fsMocks = require('fs');
+    (fsMocks.existsSync as jest.Mock).mockClear();
+    // Re-set default mock values if needed, e.g. existsSync might need to return true by default
+    (fsMocks.existsSync as jest.Mock).mockReturnValue(true); 
+    (fsPromisesMocks.readFile as jest.Mock).mockResolvedValue("mock content"); // Reset default for readFile
+
+  });
+
   // Helper function to get the current date in YYYYMMDD format for serial number validation
   const getCurrentDateSerial = () => {
     const today = new Date();
@@ -181,20 +216,14 @@ describe('DNS Controller - generateBindZoneContent', () => {
       ]
     };
     
-    // Mock console.warn to capture warnings
-    const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
-
     // Act
     const result = generateBindZoneContent(zone);
 
     // Assert
     expect(result).not.toContain('@ IN MX mail.example.com');
     expect(result).toContain('@ IN MX 10 valid.example.com.');
-    expect(consoleWarnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('Skipping malformed MX record')
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('Skipping malformed MX record (@): missing priority.')
     );
-    
-    // Cleanup
-    consoleWarnSpy.mockRestore();
   });
 });
