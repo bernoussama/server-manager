@@ -1,0 +1,45 @@
+{
+  "name": "server-manager",
+  "version": "1.0.0",
+  "description": "A web application for managing servers",
+  "main": "index.js",
+  "private": true,
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev:shared": "pnpm --filter @server-manager/shared dev",
+    "dev:backend": "pnpm --filter @server-manager/backend dev",
+    "dev:ui": "pnpm --filter @server-manager/ui dev",
+    "dev": "concurrently \"pnpm dev:shared\" \"pnpm dev:backend\" \"pnpm dev:ui\"",
+    "clean": "pnpm -r exec -- rm -rf dist node_modules"
+  },
+  "author": "bernoussama",
+  "license": "GPL-3.0-only",
+  "packageManager": "pnpm@10.11.0",
+  "devDependencies": {
+    "@types/node": "^22.15.18",
+    "concurrently": "^9.1.2",
+    "typescript": "^5.8.3"
+  },
+  "keywords": [
+    "server",
+    "manager",
+    "ui",
+    "linux",
+    "server-manager",
+    "server-manager-ui",
+    "devops",
+    "server-management",
+    "server-monitoring",
+    "server-administration",
+    "server-management-ui",
+    "administration",
+    "management",
+    "monitoring",
+    "administration",
+    "management",
+    "monitoring",
+    "administration",
+    "management",
+    "monitoring"
+  ]
+}
