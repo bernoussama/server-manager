@@ -5,5 +5,14 @@ dist
 .env
 drizzle
 
+**/.env
+.env
+**/.vite
+
 # windsurf rules
 .windsurfrules
+**/node_modules
+**/coverage
+**/dist
+**/dist-test
+**/dist-test-coverage
