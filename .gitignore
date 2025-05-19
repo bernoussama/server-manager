@@ -7,3 +7,4 @@ dist
 **/meta
 **/test/dns
 **/.vite
+packages/backend/test/dns/*
