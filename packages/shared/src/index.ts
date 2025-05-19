@@ -1,5 +1,5 @@
 // packages/shared/src/index.ts
-export * from './types/index';
+export * from './types/index.js';
 export {
   dnsConfigurationSchema,
   parseStringList,
@@ -14,4 +14,4 @@ export {
   transformUiRecordToApiRecord,
   parseStringToArray,
   transformFormToApiData
-} from './validators';
+} from './validators/index.js';

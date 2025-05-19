@@ -2,16 +2,18 @@ import { Request, Response } from "express";
 import { db } from "../lib/db";
 import { users } from "../models/user";
 import { eq } from "drizzle-orm";
-import { z } from "zod";
+// import { z } from "zod"; // Removed zod import, will use shared
 import { authService } from '../lib/auth';
 import logger from '../lib/logger';
+import { createUserSchema, updateUserSchema } from '@server-manager/shared/validators'; // Import shared validators
+import { ZodError } from 'zod'; // Import ZodError for handling validation errors
 
-// Validation schema for user input
-const userSchema = z.object({
-  name: z.string().min(2).max(50),
-  age: z.number().min(0).max(150),
-  email: z.string().email(),
-});
+// Validation schema for user input (Removed)
+// const userSchema = z.object({
+//   name: z.string().min(2).max(50),
+//   age: z.number().min(0).max(150),
+//   email: z.string().email(),
+// });
 
 class UsersController {
   /**
@@ -63,14 +65,11 @@ class UsersController {
    * Create a new user
    */
   async createUser(req: Request, res: Response) {
-    const { email, password } = req.body;
-    
-    if (!email) {
-      logger.warn(`Attempted to create user with missing required field: email`);
-      return res.status(400).json({ message: 'Email is required' });
-    }
-    
     try {
+      // Validate request body using shared schema
+      const validatedData = createUserSchema.parse(req.body);
+      const { email, password, name } = validatedData;
+
       // Check if user already exists
       const existingUser = await db.select()
         .from(users)
@@ -81,13 +80,15 @@ class UsersController {
         return res.status(409).json({ message: 'User with this email already exists' });
       }
       
-      const passwordHash = await authService.hashPassword(password || "defaultPassword123");
+      const passwordHash = await authService.hashPassword(password || "defaultPassword123"); // Ensure password exists or use a default (consider implications)
       
+      // Prepare data for insertion
+      const newUserPayload = { email, name, passwordHash }; // name is now required
+      // if (name) newUserPayload.name = name; // No longer conditional
+      // if (age) newUserPayload.age = age; // Removed age
+
       // Insert the new user
-      const result = await db.insert(users).values({
-        email,
-        passwordHash
-      }).returning();
+      const result = await db.insert(users).values(newUserPayload).returning();
       
       logger.info(`Created new user with email: ${email}`);
       
@@ -96,11 +97,17 @@ class UsersController {
       // Create a sanitized user object without the password hash
       const userResponse = {
         id: user.id,
-        email: user.email
+        email: user.email,
+        name: user.name, // name is now part of the users table model
+        // age: user.age,   // age removed
       };
       
       res.status(201).json(userResponse);
     } catch (error) {
+      if (error instanceof ZodError) {
+        logger.warn('User creation validation failed:', error.errors);
+        return res.status(400).json({ message: 'Validation failed', errors: error.errors });
+      }
       logger.error("Error creating user:", error);
       res.status(500).json({ message: 'Failed to create user' });
     }
@@ -111,7 +118,6 @@ class UsersController {
    */
   async updateUser(req: Request, res: Response) {
     const userId = parseInt(req.params.id, 10);
-    const { email } = req.body;
     
     if (isNaN(userId)) {
       logger.warn(`Invalid user ID provided for update: ${req.params.id}`);
@@ -119,6 +125,10 @@ class UsersController {
     }
     
     try {
+      // Validate request body
+      const validatedData = updateUserSchema.parse(req.body);
+      const { email, name } = validatedData;
+
       // Check if user exists
       const userResults = await db.select()
         .from(users)
@@ -130,11 +140,10 @@ class UsersController {
       }
       
       // Build update object with only the provided fields
-      const updateData: any = {};
+      const updateData: any = { updatedAt: new Date() };
       if (email !== undefined) updateData.email = email;
-      
-      // Add updatedAt
-      updateData.updatedAt = new Date();
+      if (name !== undefined) updateData.name = name; // name is part of the users table model
+      // if (age !== undefined) updateData.age = age; // age removed
       
       // Update the user
       const result = await db.update(users)
@@ -149,11 +158,17 @@ class UsersController {
       // Create a sanitized user object without the password hash
       const userResponse = {
         id: updatedUser.id,
-        email: updatedUser.email
+        email: updatedUser.email,
+        name: updatedUser.name, // name is now part of the users table model
+        // age: updatedUser.age,   // age removed
       };
       
       res.status(200).json(userResponse);
     } catch (error) {
+      if (error instanceof ZodError) {
+        logger.warn(`User update validation failed for ID ${userId}:`, error.errors);
+        return res.status(400).json({ message: 'Validation failed', errors: error.errors });
+      }
       logger.error("Error updating user:", error);
       res.status(500).json({ message: 'Failed to update user' });
     }

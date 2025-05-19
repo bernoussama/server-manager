@@ -1,4 +1,5 @@
-import { DnsRecord, DnsRecordType, MxDnsRecord, SrvDnsRecord, BaseDnsRecord } from '../types/dns';
+import { DnsRecord, DnsRecordType, MxDnsRecord, SrvDnsRecord, BaseDnsRecord } from '../types/dns.js';
+import { z } from 'zod';
 
 /**
  * Transform UI record to API record
