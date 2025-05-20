@@ -8,4 +8,4 @@ dist
 **/test/dns
 **/.vite
 packages/backend/test/dns
-packages/backend/test/dns/zones
+packages/backend/test/dns/zones/**
