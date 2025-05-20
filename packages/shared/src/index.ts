@@ -10,6 +10,7 @@ export {
   RECORD_TYPES,
   dnsRecordUISchema,
   dnsConfigSchema,
+  soaSettingsSchema,
   uiZoneSchema,
   transformUiRecordToApiRecord,
   parseStringToArray,
