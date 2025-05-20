@@ -15,10 +15,11 @@ export {
   isNumeric,
   RECORD_TYPES,
   dnsRecordUISchema,
-  dnsConfigSchema
+  dnsConfigSchema,
+  soaSettingsSchema,
+  UiRecordType
 } from './dnsFormValidator';
 export { zoneSchema as uiZoneSchema } from './dnsFormValidator';
-export type { UiRecordType } from './dnsFormValidator';
 
 // Re-export transformers
 export { 
