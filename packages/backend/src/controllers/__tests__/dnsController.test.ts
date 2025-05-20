@@ -42,7 +42,6 @@ describe('DNS Controller - generateBindZoneContent', () => {
     (logger.info as jest.Mock).mockClear();
     (logger.error as jest.Mock).mockClear();
     (logger.debug as jest.Mock).mockClear();
-    (logger.http as jest.Mock).mockClear();
 
     // Clear other mocks if they are called across tests and need resetting
     const fsPromisesMocks = require('fs/promises');

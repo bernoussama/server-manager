@@ -9,28 +9,27 @@
 ### In Progress
 
  - [ ] Implement dns configuration feature
+   - [✓] Fix DNS controller tests
 
 ### Done
 
  - [X] Implement dns configuration UI
 
 ## Current Task
-Documentation and Review for System Metrics Library
+DNS Configuration Implementation
 
 ## Current Role
 Executor
 
 ## Implementation Plan Reference
-[./implementation-plan/system-metrics-library.md](./implementation-plan/system-metrics-library.md)
+[./implementation-plan/dns-configuration.md](./implementation-plan/dns-configuration.md)
 
 ## Current Status / Progress Tracking
-- Unit tests for `systemMetrics.ts` created in `packages/backend/src/lib/__tests__/systemMetrics.test.ts`.
-- Integration test for `/api/system-metrics` endpoint created in `packages/backend/src/controllers/__tests__/systemMetricsController.test.ts`.
-- `supertest` and its types installed.
-- Ready for documentation and review.
+- Fixed issue in `dnsController.test.ts` related to mocking a nonexistent logger.http method
+- All tests now pass successfully
 
 ## Executor's Feedback or Assistance Requests
-- None.
+- None
 
 ## Lessons Learned
 - [2024-07-26] Parsing command outputs requires careful attention to potential variations and error states.
@@ -40,3 +39,4 @@ Executor
 - [2024-07-26] The `free -m` command output needs careful parsing; splitting by `\s+` handles variable spacing.
 - [2024-07-26] The `df -h` output parsing needs to account for potential spaces in filesystem names by joining initial parts and taking fixed-position elements from the end.
 - [2024-07-26] When installing dependencies in a pnpm monorepo, use `pnpm add --filter <package-name> <dependency>` to target the correct workspace package.
+- [2024-07-27] When mocking logger functions in tests, only mock methods that actually exist in the logger. Check the logger implementation before creating mocks to avoid "Cannot read properties of undefined" errors.
