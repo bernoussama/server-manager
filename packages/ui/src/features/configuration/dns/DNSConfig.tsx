@@ -42,6 +42,18 @@ type UiRecordType = typeof RECORD_TYPES[number];
 
 export type DnsConfigFormValues = z.infer<typeof dnsConfigSchema>;
 
+// Add interface for SOA settings
+interface SoaSettings {
+  ttl: string;
+  primaryNameserver: string;
+  adminEmail: string;
+  serial: string;
+  refresh: string;
+  retry: string;
+  expire: string;
+  minimumTtl: string;
+}
+
 // Component for DNS record form fields
 interface DnsRecordFormFieldsProps {
   zoneIndex: number;
@@ -199,6 +211,168 @@ interface ZoneConfigProps {
   removeZone: (index: number) => void;
 }
 
+// SOA Settings Component
+const SoaSettingsForm: React.FC<{ zoneIndex: number; control: Control<DnsConfigFormValues>; form: UseFormReturn<DnsConfigFormValues> }> = ({ 
+  zoneIndex, control, form 
+}) => {
+  return (
+    <div className="border rounded-md p-4 space-y-4 mb-4">
+      <h3 className="text-md font-medium">SOA Record Settings</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <FormField
+          control={control}
+          name={`zones.${zoneIndex}.soaSettings.ttl`}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>TTL (seconds)</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="86400" 
+                  {...field}
+                  className={formFieldErrorClass(!!form.formState.errors.zones?.[zoneIndex]?.soaSettings?.ttl)}
+                />
+              </FormControl>
+              <FormDescription>Time to live in seconds</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={control}
+          name={`zones.${zoneIndex}.soaSettings.primaryNameserver`}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Primary Nameserver</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="ns1.example.com." 
+                  {...field}
+                  className={formFieldErrorClass(!!form.formState.errors.zones?.[zoneIndex]?.soaSettings?.primaryNameserver)}
+                />
+              </FormControl>
+              <FormDescription>Include the trailing dot</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={control}
+          name={`zones.${zoneIndex}.soaSettings.adminEmail`}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Admin Email</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="admin.example.com." 
+                  {...field}
+                  className={formFieldErrorClass(!!form.formState.errors.zones?.[zoneIndex]?.soaSettings?.adminEmail)}
+                />
+              </FormControl>
+              <FormDescription>Use dots instead of @ (admin.example.com)</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={control}
+          name={`zones.${zoneIndex}.soaSettings.serial`}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Serial</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="2023060101" 
+                  {...field}
+                  className={formFieldErrorClass(!!form.formState.errors.zones?.[zoneIndex]?.soaSettings?.serial)}
+                />
+              </FormControl>
+              <FormDescription>Format: YYYYMMDDNN</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <FormField
+          control={control}
+          name={`zones.${zoneIndex}.soaSettings.refresh`}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Refresh</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="3600" 
+                  {...field}
+                  className={formFieldErrorClass(!!form.formState.errors.zones?.[zoneIndex]?.soaSettings?.refresh)}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={control}
+          name={`zones.${zoneIndex}.soaSettings.retry`}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Retry</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="1800" 
+                  {...field}
+                  className={formFieldErrorClass(!!form.formState.errors.zones?.[zoneIndex]?.soaSettings?.retry)}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={control}
+          name={`zones.${zoneIndex}.soaSettings.expire`}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Expire</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="604800" 
+                  {...field}
+                  className={formFieldErrorClass(!!form.formState.errors.zones?.[zoneIndex]?.soaSettings?.expire)}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={control}
+          name={`zones.${zoneIndex}.soaSettings.minimumTtl`}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Minimum TTL</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="86400" 
+                  {...field}
+                  className={formFieldErrorClass(!!form.formState.errors.zones?.[zoneIndex]?.soaSettings?.minimumTtl)}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+    </div>
+  );
+};
+
 const ZoneConfig: React.FC<ZoneConfigProps> = ({ zoneIndex, control, form, removeZone }) => {
   const { fields, append, remove } = useFieldArray({
     control,
@@ -317,6 +491,11 @@ const ZoneConfig: React.FC<ZoneConfigProps> = ({ zoneIndex, control, form, remov
         
         <Separator className="my-4" />
         
+        {/* Add SOA Settings Component */}
+        <SoaSettingsForm zoneIndex={zoneIndex} control={control} form={form} />
+        
+        <Separator className="my-4" />
+        
         <div className="space-y-4">
           <div className="flex justify-between items-center">
             <Label className="text-lg">DNS Records</Label>
@@ -352,6 +531,15 @@ const ZoneConfig: React.FC<ZoneConfigProps> = ({ zoneIndex, control, form, remov
 export function DNSConfig() {
   const [activeTab, setActiveTab] = React.useState("main-config");
   
+  // Get current date in YYYYMMDD format
+  const getCurrentDateSerial = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = (today.getMonth() + 1).toString().padStart(2, '0');
+    const day = today.getDate().toString().padStart(2, '0');
+    return `${year}${month}${day}01`;
+  };
+  
   const form = useForm<DnsConfigFormValues>({
     resolver: zodResolver(dnsConfigSchema),
     defaultValues: {
@@ -368,6 +556,16 @@ export function DNSConfig() {
           zoneType: "master",
           fileName: "forward.example.com",
           allowUpdate: "none",
+          soaSettings: {
+            ttl: "86400",
+            primaryNameserver: "ns1.example.com.",
+            adminEmail: "admin.example.com.",
+            serial: getCurrentDateSerial(),
+            refresh: "3600",
+            retry: "1800",
+            expire: "604800",
+            minimumTtl: "86400"
+          },
           records: [
             { id: uuidv4(), type: "A", name: "@", value: "192.168.1.1", priority: "", weight: "", port: "" },
             { id: uuidv4(), type: "CNAME", name: "www", value: "@", priority: "", weight: "", port: "" },
@@ -380,6 +578,16 @@ export function DNSConfig() {
           zoneType: "master",
           fileName: "reverse.example.com",
           allowUpdate: "none",
+          soaSettings: {
+            ttl: "86400",
+            primaryNameserver: "ns1.example.com.",
+            adminEmail: "admin.example.com.",
+            serial: getCurrentDateSerial(),
+            refresh: "3600",
+            retry: "1800",
+            expire: "604800",
+            minimumTtl: "86400"
+          },
           records: [
             { id: uuidv4(), type: "PTR", name: "1", value: "example.com.", priority: "", weight: "", port: "" },
           ],
@@ -418,6 +626,7 @@ export function DNSConfig() {
           zoneType: zone.zoneType,
           fileName: zone.fileName,
           allowUpdate: toStringArray(zone.allowUpdate),
+          soaSettings: zone.soaSettings,
           records: zone.records.map(transformUiRecordToApiRecord)
         }))
       };
@@ -450,6 +659,16 @@ export function DNSConfig() {
       zoneType: "master",
       fileName: "",
       allowUpdate: "none",
+      soaSettings: {
+        ttl: "86400",
+        primaryNameserver: "ns1.example.com.",
+        adminEmail: "admin.example.com.",
+        serial: getCurrentDateSerial(),
+        refresh: "3600",
+        retry: "1800",
+        expire: "604800",
+        minimumTtl: "86400"
+      },
       records: [],
     });
     // Switch to zones tab when adding a new zone
@@ -469,17 +688,35 @@ export function DNSConfig() {
     config += `  allow-transfer { ${values.allowTransfer} };\n`;
     config += `};\n\n`;
     
-    values.zones.forEach((zone: {
-      zoneName: string;
-      zoneType: string;
-      fileName: string;
-      allowUpdate: string;
-    }) => {
+    values.zones.forEach((zone) => {
       config += `zone "${zone.zoneName}" IN {\n`;
       config += `  type ${zone.zoneType};\n`;
       config += `  file "${zone.fileName}";\n`;
       config += `  allow-update { ${zone.allowUpdate} };\n`;
       config += `};\n\n`;
+
+      // Generate zone file preview
+      config += `# Zone file: ${zone.fileName} \n`;
+      config += `$TTL ${zone.soaSettings?.ttl || '86400'}\n`;
+      config += `@ IN SOA ${zone.soaSettings?.primaryNameserver || 'ns1.example.com.'} ${zone.soaSettings?.adminEmail || 'admin.example.com.'} (\n`;
+      config += `        ${zone.soaSettings?.serial || getCurrentDateSerial()}  ;Serial\n`;
+      config += `        ${zone.soaSettings?.refresh || '3600'}        ;Refresh\n`;
+      config += `        ${zone.soaSettings?.retry || '1800'}        ;Retry\n`;
+      config += `        ${zone.soaSettings?.expire || '604800'}      ;Expire\n`;
+      config += `        ${zone.soaSettings?.minimumTtl || '86400'}       ;Minimum TTL\n`;
+      config += `)\n\n`;
+      
+      // Add record preview
+      zone.records.forEach(record => {
+        if (record.type === 'MX') {
+          config += `${record.name} IN ${record.type} ${record.priority} ${record.value}\n`;
+        } else if (record.type === 'SRV') {
+          config += `${record.name} IN ${record.type} ${record.priority} ${record.weight} ${record.port} ${record.value}\n`;
+        } else {
+          config += `${record.name} IN ${record.type} ${record.value}\n`;
+        }
+      });
+      config += `\n`;
     });
     
     return config;

@@ -73,6 +73,18 @@ export interface DnsServerConfig {
   allowUpdate?: string[];
 }
 
+// SOA Settings
+export interface SoaSettings {
+  ttl: string;
+  primaryNameserver: string;
+  adminEmail: string;
+  serial: string;
+  refresh: string;
+  retry: string;
+  expire: string;
+  minimumTtl: string;
+}
+
 // DNS Zone Configuration
 export interface DnsZoneConfig {
   id: string;
@@ -81,6 +93,7 @@ export interface DnsZoneConfig {
   fileName: string;
   allowUpdate?: string[];
   records: DnsRecord[];
+  soaSettings?: SoaSettings;
 }
 
 // Combined DNS Configuration
@@ -101,6 +114,7 @@ export interface DnsConfigFormValues extends Omit<DnsServerConfig, 'listenOn' | 
     zoneType: 'master' | 'slave' | 'forward';
     fileName: string;
     allowUpdate: string;
+    soaSettings: SoaSettings;
     records: {
       id: string;
       type: DnsRecordType;
