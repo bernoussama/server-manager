@@ -17,7 +17,8 @@ export {
   dnsRecordUISchema,
   dnsConfigSchema,
   soaSettingsSchema,
-  UiRecordType
+  UiRecordType,
+  SoaSettings
 } from './dnsFormValidator';
 export { zoneSchema as uiZoneSchema } from './dnsFormValidator';
 

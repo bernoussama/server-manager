@@ -58,7 +58,7 @@ export const dnsRecordUISchema = z.object({
 
 // Schema for SOA settings
 export const soaSettingsSchema = z.object({
-  ttl: z.string().min(1, "TTL is required"),
+  ttl: z.string().optional(),
   primaryNameserver: z.string().min(1, "Primary nameserver is required"),
   adminEmail: z.string().min(1, "Admin email is required"),
   // Not required, but if provided, must be a valid serial number
@@ -68,7 +68,7 @@ export const soaSettingsSchema = z.object({
   expire: z.string().optional(),
   minimumTtl: z.string().optional(),
 });
-
+export type SoaSettings = z.infer<typeof soaSettingsSchema>;
 // Schema for zone configuration in the UI form
 export const zoneSchema = z.object({
   id: z.string().uuid(),

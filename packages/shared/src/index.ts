@@ -11,6 +11,7 @@ export {
   dnsRecordUISchema,
   dnsConfigSchema,
   soaSettingsSchema,
+  SoaSettings,
   uiZoneSchema,
   transformUiRecordToApiRecord,
   parseStringToArray,
