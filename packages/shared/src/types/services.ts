@@ -1,28 +1,18 @@
 // Service Types
 
-// Allowed service types
-export type AllowedService = 'named' | 'dhcpd' | 'httpd';
+// Core service-related types are now defined and inferred from Zod schemas
+// in 'packages/shared/src/validators/serviceValidator.ts'.
+// This ensures a single source of truth for these types across
+// the backend (tRPC routers) and frontend.
 
-// Service status types
-export type ServiceStatus = 'running' | 'stopped' | 'failed' | 'unknown';
+// Examples of types available from serviceValidator.ts:
+// - AllowedServiceType (for 'named' | 'dhcpd' | 'httpd')
+// - ServiceStatusType (for 'running' | 'stopped' | 'failed' | 'unknown')
+// - ServiceResponseType (for the structure of a single service status object)
+// - ServiceInputType (for operations targeting a specific service)
 
-// Service response shape
-export interface ServiceResponse {
-  service: AllowedService;
-  status: ServiceStatus;
-  message: string;
-}
-
-// API response wrapper
-export interface ServiceResponseWrapper {
-  success: boolean;
-  data: ServiceResponse;
-  message?: string;
-  error?: string;
-}
-
-// Multiple services status response
-export interface ServicesStatusResponse {
-  success: boolean;
-  data: ServiceResponse[];
-} 
+// Old API wrapper types like ServiceResponseWrapper and ServicesStatusResponse
+// are no longer needed as tRPC handles the overall response structure and
+// error shapes consistently. The frontend client will directly receive
+// the data type defined in the tRPC router's output (e.g., ServiceResponseType
+// or an array ServiceResponseType[]).

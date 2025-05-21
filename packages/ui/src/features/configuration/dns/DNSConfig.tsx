@@ -4,7 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { updateDnsConfigurationAPI } from "@/lib/api/dns";
+// import { updateDnsConfigurationAPI } from "@/lib/api/dns"; // Will be replaced by tRPC
+import { t } from "@/lib/trpc"; // Import tRPC hook
 import { v4 as uuidv4 } from 'uuid';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useForm, useFieldArray, Control, UseFormReturn, FieldArrayWithId } from 'react-hook-form';
@@ -30,13 +31,14 @@ import {
 } from '@server-manager/shared';
 
 // Import validators and transformers from our local file
+// transformUiRecordToApiRecord, parseStringToArray, transformFormToApiData are removed as Zod now handles transformations
 import { 
   isNonEmptyString, 
   isNumeric,
   dnsConfigSchema,
-  transformUiRecordToApiRecord,
-  parseStringToArray,
-  transformFormToApiData,
+  // transformUiRecordToApiRecord, // No longer needed
+  // parseStringToArray, // No longer needed
+  // transformFormToApiData, // No longer needed
   RECORD_TYPES,
   UiRecordType
 } from './validators';
@@ -591,54 +593,44 @@ export function DNSConfig() {
     name: "zones",
   });
 
-  const onSubmit = async (data: DnsConfigFormValues) => {
-    console.log('Form data submitted:', data);
-    try {
-      // Helper function to safely transform a string input to array
-      const toStringArray = (input: string | string[] | undefined): string[] => {
-        if (!input) return [];
-        if (Array.isArray(input)) return input;
-        return input.split(';').map(s => s.trim()).filter(Boolean);
-      };
-
-      // Transform the form data to the API format
-      const transformedData = {
-        dnsServerStatus: data.dnsServerStatus,
-        listenOn: toStringArray(data.listenOn),
-        allowQuery: toStringArray(data.allowQuery),
-        allowRecursion: toStringArray(data.allowRecursion),
-        forwarders: toStringArray(data.forwarders),
-        allowTransfer: toStringArray(data.allowTransfer),
-        zones: data.zones.map(zone => ({
-          id: zone.id,
-          zoneName: zone.zoneName,
-          zoneType: zone.zoneType,
-          fileName: zone.fileName,
-          allowUpdate: toStringArray(zone.allowUpdate),
-          soaSettings: zone.soaSettings,
-          records: zone.records.map(transformUiRecordToApiRecord)
-        }))
-      };
-
-      await updateDnsConfigurationAPI(transformedData);
+  const updateDnsMutation = t.dns.updateConfiguration.useMutation({
+    onSuccess: () => {
       toast({ title: "Success", description: "DNS configuration saved successfully!" });
-    } catch (err: any) {
-      if (err.data && Array.isArray(err.data.errors)) {
-        err.data.errors.forEach((error: { path: (string | number)[], message: string }) => {
-          form.setError(error.path.join('.') as any, { 
-            type: 'manual', 
-            message: error.message 
-          });
+    },
+    onError: (err: any) => {
+      // Attempt to parse TRPCClientError for Zod validation issues if backend sends them
+      // This part might need adjustment based on actual error structure from backend
+      const errorData = err.data;
+      if (errorData?.code === 'BAD_REQUEST' && errorData?.zodError?.fieldErrors) {
+        // Example: if backend sends Zod errors in a specific structure
+        Object.entries(errorData.zodError.fieldErrors).forEach(([field, errors]) => {
+          if (Array.isArray(errors) && errors.length > 0) {
+            form.setError(field as any, { // Type assertion might be needed
+              type: 'manual',
+              message: errors.join(', '),
+            });
+          }
         });
         toast({ title: "Validation Failed", description: "Please check the errors on the form.", variant: "destructive" });
       } else {
+        // General error handling
         toast({
           title: "Error",
-          description: err?.data?.message || err?.message || "Failed to save DNS configuration.",
+          description: err.message || "Failed to save DNS configuration.",
           variant: "destructive",
         });
       }
     }
+  });
+
+  const onSubmit = async (data: DnsConfigFormValues) => {
+    console.log('Form data submitted for tRPC:', data);
+    // The Zod schema (dnsConfigSchema from dnsConfigValidator.ts) used by react-hook-form's resolver
+    // now includes transformations for string-to-array (for listenOn, etc.)
+    // and string-to-number (for record priority, weight, port).
+    // So, the raw 'data' from the form should be directly compatible with the
+    // input type expected by the tRPC mutation.
+    updateDnsMutation.mutate(data);
   };
 
   const handleAddZone = () => {
@@ -900,8 +892,8 @@ export function DNSConfig() {
           </TabsContent>
         </Tabs>
         
-        <Button type="submit" disabled={form.formState.isSubmitting}>
-          {form.formState.isSubmitting ? "Saving..." : "Save DNS Configuration"}
+        <Button type="submit" disabled={updateDnsMutation.isPending}>
+          {updateDnsMutation.isPending ? "Saving..." : "Save DNS Configuration"}
         </Button>
       </form>
     </Form>

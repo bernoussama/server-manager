@@ -1,33 +1,25 @@
 // Export all validators
 
-// Import and re-export with explicit names
-import * as dnsConfigValidators from './dnsConfigValidator';
-import * as dnsFormValidators from './dnsFormValidator';
-import * as userValidators from './userValidator';
-import * as dnsTransformers from './dnsTransformers';
-
-// Re-export everything from dnsConfigValidator
+// Re-export everything from dnsConfigValidator.ts
+// This includes the main API schemas like dnsConfigurationSchema, zoneSchema, dnsRecordSchema, soaSettingsSchema
+// and their inferred types (DnsConfigurationType, ZoneType, DnsRecordType, SoaSettingsType, 
+// plus aliases DnsConfiguration, Zone, DnsRecord, SoaSettings).
 export * from './dnsConfigValidator';
 
-// Re-export from dnsFormValidator with renamed zoneSchema to avoid conflict
+// Re-export helper functions and UI-specific constants from dnsFormValidator.ts
 export { 
   isNonEmptyString,
   isNumeric,
   RECORD_TYPES,
-  dnsRecordUISchema,
-  dnsConfigSchema,
-  soaSettingsSchema,
-  UiRecordType,
-  SoaSettings
+  UiRecordType
 } from './dnsFormValidator';
-export { zoneSchema as uiZoneSchema } from './dnsFormValidator';
 
-// Re-export transformers
-export { 
-  transformUiRecordToApiRecord, 
-  parseStringToArray, 
-  transformFormToApiData 
-} from './dnsTransformers';
-
-// Re-export everything from userValidator
+// Re-export everything from userValidator.ts
+// This includes input schemas (userSignupInput, userLoginInput, userCreateInput, userUpdateInput, userIdInput)
+// and output schemas (userOutput, loginOutput) and their inferred types.
 export * from './userValidator'; 
+
+// Re-export everything from serviceValidator.ts (newly created)
+// This includes allowedServiceSchema, serviceStatusSchema, serviceResponseSchema, serviceInputSchema
+// and their inferred types.
+export * from './serviceValidator';

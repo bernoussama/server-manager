@@ -1,92 +1,23 @@
-import { z } from 'zod';
+// import { z } from 'zod'; // z is no longer used directly in this file
 
-// Helper validation functions
+// Helper validation functions (can be moved to a general utils file if used elsewhere)
 export const isNonEmptyString = (val: string | undefined): val is string =>
   val !== undefined && val.trim() !== '';
 
 export const isNumeric = (val: string | undefined): val is string =>
   isNonEmptyString(val) && !isNaN(parseInt(val));
 
-// Record types for the UI form
+// Record types for the UI select dropdown
 export const RECORD_TYPES = ['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS', 'PTR', 'SRV'] as const;
 export type UiRecordType = typeof RECORD_TYPES[number];
 
-// Schema for DNS records in the UI form
-export const dnsRecordUISchema = z.object({
-  id: z.string().uuid(),
-  type: z.enum(RECORD_TYPES),
-  name: z.string().min(1, "Name is required"),
-  value: z.string(),
-  priority: z.string().optional(),
-  weight: z.string().optional(),
-  port: z.string().optional(),
-}).superRefine((data, ctx) => {
-  if (data.type === 'MX') {
-    if (!isNonEmptyString(data.priority)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['priority'], message: 'Priority is required' });
-    } else if (!isNumeric(data.priority)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['priority'], message: 'Priority must be a number' });
-    }
-    if (!isNonEmptyString(data.value)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['value'], message: 'Value (mail server hostname) is required' });
-    }
-  } else if (data.type === 'SRV') {
-    if (!isNonEmptyString(data.priority)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['priority'], message: 'Priority is required' });
-    } else if (!isNumeric(data.priority)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['priority'], message: 'Priority must be a number' });
-    }
-    if (!isNonEmptyString(data.weight)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['weight'], message: 'Weight is required' });
-    } else if (!isNumeric(data.weight)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['weight'], message: 'Weight must be a number' });
-    }
-    if (!isNonEmptyString(data.port)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['port'], message: 'Port is required' });
-    } else if (!isNumeric(data.port)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['port'], message: 'Port must be a number' });
-    }
-    if (!isNonEmptyString(data.value)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['value'], message: 'Target is required (in value field)' });
-    }
-  } else if (['A', 'AAAA', 'CNAME', 'TXT', 'NS', 'PTR'].includes(data.type)) {
-    if (!isNonEmptyString(data.value)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['value'], message: 'Value is required for this record type' });
-    }
-  }
-});
-
-// Schema for SOA settings
-export const soaSettingsSchema = z.object({
-  ttl: z.string().optional(),
-  primaryNameserver: z.string().min(1, "Primary nameserver is required"),
-  adminEmail: z.string().min(1, "Admin email is required"),
-  // Not required, but if provided, must be a valid serial number
-  serial: z.string().optional(),
-  refresh: z.string().optional(),
-  retry: z.string().optional(),
-  expire: z.string().optional(),
-  minimumTtl: z.string().optional(),
-});
-export type SoaSettings = z.infer<typeof soaSettingsSchema>;
-// Schema for zone configuration in the UI form
-export const zoneSchema = z.object({
-  id: z.string().uuid(),
-  zoneName: z.string().min(1, "Zone name is required"),
-  zoneType: z.enum(['master', 'slave', 'forward']),
-  fileName: z.string().min(1, "File name is required"),
-  allowUpdate: z.string(),
-  soaSettings: soaSettingsSchema,
-  records: z.array(dnsRecordUISchema),
-});
-
-// Schema for the entire DNS configuration form
-export const dnsConfigSchema = z.object({
-  dnsServerStatus: z.boolean(),
-  listenOn: z.string(),
-  allowQuery: z.string(),
-  allowRecursion: z.string(),
-  forwarders: z.string(),
-  allowTransfer: z.string(),
-  zones: z.array(zoneSchema),
-}); 
+// Note: The Zod schemas previously in this file (dnsRecordUISchema, 
+// soaSettingsSchema, zoneSchema, dnsConfigSchema specific to form structure)
+// have been removed. The main API schemas from 'dnsConfigValidator.ts'
+// are now used directly by the form resolver in DNSConfig.tsx, and those
+// API schemas include transformations to handle various input formats (e.g.,
+// semicolon-separated strings to arrays, string numbers to actual numbers).
+// This consolidation simplifies the validation pipeline.
+// If any UI-specific validation logic (beyond what the API schema enforces)
+// is needed, it can be handled directly in the component or via a separate,
+// more focused UI validation schema if necessary.

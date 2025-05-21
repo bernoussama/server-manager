@@ -1,12 +1,9 @@
 import express from 'express';
-import serviceRoutes from './routes/serviceRoutes';
-import userRoutes from './routes/usersRoutes';
-import authRoutes from './routes/authRoutes';
+import { createExpressMiddleware } from '@trpc/server/adapters/express';
+import { appRouter } from './routers'; // Import the root tRPC router
 import { errorHandler } from './middlewares/errorHandler';
 import { corsMiddleware } from './middlewares/cors';
 import morganMiddleware from './middlewares/morgan';
-import dnsRoutes from './routes/dnsRoutes';
-import systemMetricsRoutes from './routes/systemMetricsRoutes';
 import logger from './lib/logger';
 
 const app = express();
@@ -25,14 +22,18 @@ app.get('/api/info', (req, res) => {
   res.json({ status: 'Server is running', timestamp: new Date() });
 });
 
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/services', serviceRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/dns', dnsRoutes);
-app.use('/api/system-metrics', systemMetricsRoutes);
+// tRPC middleware
+app.use(
+  '/trpc',
+  createExpressMiddleware({
+    router: appRouter,
+    // createContext, // Optional: if you have a context function
+  }),
+);
 
 // Error handling
+// Note: tRPC errors are typically handled within tRPC itself, 
+// but a general Express error handler can still be useful for other routes or middleware errors.
 app.use(errorHandler);
 
 export default app;

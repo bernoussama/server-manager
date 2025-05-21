@@ -1,7 +1,5 @@
 // Export all types
-export * from './api';
-export * from './dns';
-export * from './errors';
-export * from './items';
-export * from './services';
-export * from './users'; 
+export * from './dns';      // Now minimal, points to Zod-inferred types
+export * from './items';    // Kept as is for now
+export * from './services'; // Now minimal, points to Zod-inferred types
+export * from './users';    // Now minimal, points to Zod-inferred types

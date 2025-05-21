@@ -21,6 +21,7 @@
   "dependencies": {
     "@libsql/client": "^0.15.6",
     "@server-manager/shared": "workspace:*",
+    "@trpc/server": "^11.1.2",
     "@types/react-router-dom": "^5.3.3",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.2",

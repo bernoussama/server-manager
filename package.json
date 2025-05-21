@@ -41,5 +41,8 @@
     "administration",
     "management",
     "monitoring"
-  ]
+  ],
+  "dependencies": {
+    "pnpm": "^10.11.0"
+  }
 }

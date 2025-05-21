@@ -1,71 +1,30 @@
 // User Types
 
-// Database user type reference (produced from Drizzle)
-export interface User {
-  id: number;
-  email: string;
-  createdAt?: string | Date;
-  updatedAt?: string | Date;
-  name?: string;
-  age?: number;
-}
-
-// Type for inserting a new user with credentials
-export interface NewUserWithPassword {
-  email: string;
-  password: string;
-  name?: string;
-  age?: number;
-}
-
-// Type for inserting a new user in the database (internal)
+// This type represents the structure for creating a new user in the database,
+// including the password hash. It's primarily for backend internal use
+// between services or before hashing, if not directly using Drizzle's NewUser type.
 export interface NewUserCredentials {
   email: string;
   passwordHash: string;
-  name?: string;
-  age?: number;
+  // name?: string; // Not in current DB model
+  // age?: number;  // Not in current DB model
 }
 
-// User data for the frontend
-export interface UserResponse {
-  id: number;
-  email: string;
-  name?: string;
-  age?: number;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-// User creation payload
-export interface CreateUserPayload {
-  name: string;
-  age: number;
-  email: string;
-  password?: string;
-}
-
-// User update payload
-export interface UpdateUserPayload {
-  name?: string;
-  age?: number;
-  email?: string;
-}
-
-// Login request payload
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-// Login response
-export interface LoginResponse {
-  message: string;
-  token: string;
-  user: UserResponse;
-}
-
-// Auth request type for middleware
+// Represents the decoded user information, typically from a JWT token,
+// used for authentication context.
 export interface AuthUser {
   id: number;
   email: string;
+  // Add other JWT payload fields if necessary (e.g., roles)
 } 
+
+// Note: Other user-related types (for API inputs and outputs) are now
+// inferred from Zod schemas in 'packages/shared/src/validators/userValidator.ts'.
+// Examples:
+// - UserSignupInputType
+// - UserLoginInputType
+// - UserCreateInputType
+// - UserUpdateInputType
+// - UserIdInputType
+// - UserOutputType (for API responses, excludes sensitive data)
+// - LoginOutputType
