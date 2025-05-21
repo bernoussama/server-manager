@@ -75,6 +75,9 @@ const ensureNumber = (value: string | number | undefined): number | undefined =>
  * Generate BIND zone content for a specific zone
  */
 export const generateBindZoneContent = (zone: Zone): string => {
+
+  const soa = zone.soaSettings;
+
   // Increment serial number (YYYYMMDDNN format)
   const today = new Date();
   const year = today.getFullYear();
@@ -83,25 +86,32 @@ export const generateBindZoneContent = (zone: Zone): string => {
   const serial = parseInt(`${year}${month}${day}01`); // Simple serial
 
   // Get SOA parameters - use defaults if not found
-  const primaryNameserver = zone.records.find((r: DnsRecord) => r.type === 'NS' && r.name === '@')?.value || `ns1.${zone.zoneName}.`;
-  
+  const primaryNameserver = soa.primaryNameserver ||
+  zone.records.find((r: DnsRecord) => r.type === 'NS' && r.name === '@')?.value || `ns1.${zone.zoneName}.`;
   // Ensure primaryNameserver has a trailing dot
   const primaryNs = primaryNameserver.endsWith('.') ? primaryNameserver : `${primaryNameserver}.`;
   
   // Default admin email for SOA record
-  const adminEmail = 'admin@example.com';
+  const adminEmail = soa.adminEmail || 'admin@example.com';
   // Format admin email for SOA: replace @ with . and ensure trailing dot
   const adminEmailSoaFormat = adminEmail.replace('@', '.');
   const adminEmailFormatted = adminEmailSoaFormat.endsWith('.') ? adminEmailSoaFormat : `${adminEmailSoaFormat}.`;
 
-  let zoneContent = `\$TTL ${DEFAULT_TTL}
+  // SOA timers: use from SOA or fallback to defaults
+  const ttl = soa.ttl ? parseInt(soa.ttl) : DEFAULT_TTL;
+  const refresh = soa.refresh ? parseInt(soa.refresh) : DEFAULT_TTL;
+  const retry = soa.retry ? parseInt(soa.retry) : 1800;
+  const expire = soa.expire ? parseInt(soa.expire) : 604800;
+  const minimum = soa.minimumTtl ? parseInt(soa.minimumTtl) : 86400;
+
+  let zoneContent = `\$TTL ${ttl}
 @ IN SOA ${primaryNs} ${adminEmailFormatted} (
         ${serial}       ; Serial
-        ${DEFAULT_TTL}  ; Refresh
-        1800         ; Retry
-        604800       ; Expire
-        86400 )      ; Negative Cache TTL
-;
+        ${refresh}  ; Refresh
+        ${retry}    ; Retry
+        ${expire}   ; Expire
+        ${minimum}  ; Negative Cache TTL
+);
 `;
 
   // Add standard NS record if not explicitly defined
