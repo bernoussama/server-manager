@@ -61,11 +61,12 @@ export const soaSettingsSchema = z.object({
   ttl: z.string().min(1, "TTL is required"),
   primaryNameserver: z.string().min(1, "Primary nameserver is required"),
   adminEmail: z.string().min(1, "Admin email is required"),
-  serial: z.string().min(1, "Serial is required"),
-  refresh: z.string().min(1, "Refresh is required"),
-  retry: z.string().min(1, "Retry is required"),
-  expire: z.string().min(1, "Expire is required"),
-  minimumTtl: z.string().min(1, "Minimum TTL is required"),
+  // Not required, but if provided, must be a valid serial number
+  serial: z.string().optional(),
+  refresh: z.string().optional(),
+  retry: z.string().optional(),
+  expire: z.string().optional(),
+  minimumTtl: z.string().optional(),
 });
 
 // Schema for zone configuration in the UI form

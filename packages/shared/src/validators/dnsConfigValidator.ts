@@ -200,6 +200,19 @@ export const isValidIpAddress = (ip: string): boolean => {
   return true;
 };
 
+
+// Schema for SOA settings
+export const soaSettingsSchema = z.object({
+  ttl: z.string().min(1, "TTL is required"),
+  primaryNameserver: z.string().min(1, "Primary nameserver is required"),
+  adminEmail: z.string().min(1, "Admin email is required"),
+  serial: z.string().optional(),
+  refresh: z.string().optional(),
+  retry: z.string().optional(),
+  expire: z.string().optional(),
+  minimumTtl: z.string().optional(),
+});
+
 /**
  * Zone Schema
  * 
@@ -220,6 +233,7 @@ export const zoneSchema = z.object({
   zoneType: z.enum(['master', 'slave', 'forward']),
   fileName: z.string(),
   allowUpdate: z.union([z.string(), z.array(z.string())]),
+  soaSettings: soaSettingsSchema,
   records: z.array(dnsRecordSchema).default([]),
 });
 

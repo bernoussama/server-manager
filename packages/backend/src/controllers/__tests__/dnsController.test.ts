@@ -77,6 +77,11 @@ describe('DNS Controller - generateBindZoneContent', () => {
       zoneType: 'master',
       fileName: 'example.com.zone',
       allowUpdate: 'none',
+      soaSettings: {
+        ttl: '3600',
+        primaryNameserver: 'ns1.example.com',
+        adminEmail: 'admin.example.com',
+      },
       records: [
         { id: '456', type: 'NS', name: '@', value: 'ns1.example.com' }
       ]
@@ -100,6 +105,11 @@ describe('DNS Controller - generateBindZoneContent', () => {
       zoneType: 'master',
       fileName: 'example.com.zone',
       allowUpdate: 'none',
+      soaSettings: {
+        ttl: '3600',
+        primaryNameserver: 'ns1.example.com',
+        adminEmail: 'admin.example.com',
+      },
       records: [
         { id: '456', type: 'A', name: 'www', value: '192.168.1.10' },
         { id: '789', type: 'A', name: 'mail', value: '192.168.1.20' }
@@ -122,6 +132,11 @@ describe('DNS Controller - generateBindZoneContent', () => {
       zoneType: 'master',
       fileName: 'example.com.zone',
       allowUpdate: 'none',
+      soaSettings: {
+        ttl: '3600',
+        primaryNameserver: 'ns1.example.com',
+        adminEmail: 'admin.example.com',
+      },
       records: [
         { id: '456', type: 'CNAME', name: 'www', value: '@' },
         { id: '789', type: 'CNAME', name: 'mail', value: 'mailserver.example.com.' }
@@ -144,6 +159,11 @@ describe('DNS Controller - generateBindZoneContent', () => {
       zoneType: 'master',
       fileName: 'example.com.zone',
       allowUpdate: 'none',
+      soaSettings: {
+        ttl: '3600',
+        primaryNameserver: 'ns1.example.com',
+        adminEmail: 'admin.example.com',
+      },
       records: [
         { id: '456', type: 'MX', name: '@', value: 'mail.example.com', priority: '10' },
         { id: '789', type: 'MX', name: '@', value: 'backup-mail.example.com', priority: '20' }
@@ -166,6 +186,11 @@ describe('DNS Controller - generateBindZoneContent', () => {
       zoneType: 'master',
       fileName: 'example.com.zone',
       allowUpdate: 'none',
+      soaSettings: {
+        ttl: '3600',
+        primaryNameserver: 'ns1.example.com',
+        adminEmail: 'admin.example.com',
+      },
       records: [
         { id: '456', type: 'TXT', name: '@', value: 'v=spf1 ip4:192.168.1.0/24 -all' },
         { id: '789', type: 'TXT', name: 'verification', value: 'domain-verification="abc123"' }
@@ -188,6 +213,11 @@ describe('DNS Controller - generateBindZoneContent', () => {
       zoneType: 'master',
       fileName: 'reverse.example.com',
       allowUpdate: 'none',
+      soaSettings: {
+        ttl: '3600',
+        primaryNameserver: 'ns1.example.com',
+        adminEmail: 'admin.example.com',
+      },
       records: [
         { id: '456', type: 'PTR', name: '1', value: 'example.com' }
       ]
@@ -208,6 +238,11 @@ describe('DNS Controller - generateBindZoneContent', () => {
       zoneType: 'master',
       fileName: 'example.com.zone',
       allowUpdate: 'none',
+      soaSettings: {
+        ttl: '3600',
+        primaryNameserver: 'ns1.example.com',
+        adminEmail: 'admin.example.com',
+      },
       records: [
         { id: '456', type: 'MX', name: '@', value: 'mail.example.com' }, // Missing priority
         { id: '789', type: 'MX', name: '@', value: 'valid.example.com', priority: '10' }
