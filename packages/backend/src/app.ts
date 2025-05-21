@@ -6,6 +6,7 @@ import { errorHandler } from './middlewares/errorHandler';
 import { corsMiddleware } from './middlewares/cors';
 import morganMiddleware from './middlewares/morgan';
 import dnsRoutes from './routes/dnsRoutes';
+import httpRoutes from './routes/httpRoutes'; // Add this
 import systemMetricsRoutes from './routes/systemMetricsRoutes';
 import logger from './lib/logger';
 
@@ -30,6 +31,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/dns', dnsRoutes);
+app.use('/api/http', httpRoutes); // Add this
 app.use('/api/system-metrics', systemMetricsRoutes);
 
 // Error handling
