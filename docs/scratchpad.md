@@ -5,6 +5,7 @@
 ### Todo
 
  - [ ] make system resources page have actual data updated regularly
+ - [ ] Implement DNS JSON config save feature
 
 ### In Progress
 
@@ -16,17 +17,18 @@
  - [X] Implement dns configuration UI
 
 ## Current Task
-DNS Configuration Implementation
+DNS JSON Config Save Implementation
 
 ## Current Role
-Executor
+Planner
 
 ## Implementation Plan Reference
-[./implementation-plan/dns-configuration.md](./implementation-plan/dns-configuration.md)
+[./implementation-plan/dns-json-config-save.md](./implementation-plan/dns-json-config-save.md)
 
 ## Current Status / Progress Tracking
-- Fixed issue in `dnsController.test.ts` related to mocking a nonexistent logger.http method
-- All tests now pass successfully
+- Created implementation plan for DNS JSON config save feature
+- Analyzed existing DNS configuration code to understand current file save operations
+- Identified key areas where JSON files need to be added: zone files, named.conf, and named.conf.zones
 
 ## Executor's Feedback or Assistance Requests
 - None
