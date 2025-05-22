@@ -13,7 +13,9 @@ import logger from '../lib/logger';
 import {
   formatZoneJson,
   generateNamedConfJson,
-  generateZoneConfJson
+  generateZoneConfJson,
+  jsonToDnsConfiguration,
+  DnsConfigurationJson
 } from '../lib/dnsJsonUtils';
 
 const execAsync = promisify(exec);
@@ -659,23 +661,13 @@ export const getCurrentDnsConfiguration = async (req: AuthRequest, res: Response
     logger.debug(`Using BIND_CONF_PATH: ${BIND_CONF_PATH}`);
     logger.debug(`Using ZONE_CONF_PATH: ${ZONE_CONF_PATH}`);
     
-    // Read the named.conf file to check if it exists
-    let namedConfExists = false;
-    let zonesConfExists = false;
+    // Use override paths if set (for testing in prod env)
+    const actualZonesDir = (global as any)._DEV_OVERRIDE_BIND_ZONES_DIR || BIND_ZONES_DIR;
+    const actualConfPath = (global as any)._DEV_OVERRIDE_BIND_CONF_PATH || BIND_CONF_PATH;
     
-    try {
-      await readFile(BIND_CONF_PATH, 'utf8');
-      namedConfExists = true;
-    } catch (error) {
-      logger.info(`Named.conf does not exist at ${BIND_CONF_PATH}`);
-    }
-    
-    try {
-      await readFile(ZONE_CONF_PATH, 'utf8');
-      zonesConfExists = true;
-    } catch (error) {
-      logger.info(`Zone conf does not exist at ${ZONE_CONF_PATH}`);
-    }
+    // Path to the JSON configuration files
+    const namedConfJsonPath = `${actualConfPath}.json`;
+    const zoneConfJsonPath = `${ZONE_CONF_PATH}.json`;
     
     // Get the status of the named service if in production
     let serviceRunning = false;
@@ -689,10 +681,31 @@ export const getCurrentDnsConfiguration = async (req: AuthRequest, res: Response
       }
     }
     
-    // If the configuration files don't exist, return a default configuration
-    if (!namedConfExists || !zonesConfExists) {
+    // Try to read the JSON configuration files
+    let namedConfJson = null;
+    let zonesJson = null;
+    
+    try {
+      const namedConfData = await readFile(namedConfJsonPath, 'utf8');
+      namedConfJson = JSON.parse(namedConfData);
+      logger.debug(`Successfully read named.conf.json from ${namedConfJsonPath}`);
+    } catch (error) {
+      logger.info(`Named.conf.json does not exist or is invalid at ${namedConfJsonPath}`);
+    }
+    
+    try {
+      const zonesConfData = await readFile(zoneConfJsonPath, 'utf8');
+      zonesJson = JSON.parse(zonesConfData);
+      logger.debug(`Successfully read zone.conf.json from ${zoneConfJsonPath}`);
+    } catch (error) {
+      logger.info(`Zone.conf.json does not exist or is invalid at ${zoneConfJsonPath}`);
+    }
+    
+    // If JSON configuration files don't exist, return a default configuration
+    if (!namedConfJson || !zonesJson) {
+      logger.info('No existing JSON configuration found, returning default configuration');
       return res.status(200).json({
-        message: 'Default configuration returned',
+        message: 'Default configuration returned - no existing configuration found',
         data: {
           dnsServerStatus: serviceRunning,
           listenOn: '127.0.0.1',
@@ -700,6 +713,8 @@ export const getCurrentDnsConfiguration = async (req: AuthRequest, res: Response
           allowRecursion: 'localhost',
           forwarders: '8.8.8.8; 8.8.4.4',
           allowTransfer: '',
+          dnssecValidation: false,
+          queryLogging: false,
           zones: [
             {
               id: crypto.randomUUID(),
@@ -712,13 +727,19 @@ export const getCurrentDnsConfiguration = async (req: AuthRequest, res: Response
                   id: crypto.randomUUID(),
                   type: 'A',
                   name: '@',
-                  value: '192.168.1.100'
+                  value: '192.168.1.100',
+                  priority: '',
+                  weight: '',
+                  port: ''
                 },
                 {
                   id: crypto.randomUUID(),
                   type: 'CNAME',
                   name: 'www',
-                  value: '@'
+                  value: '@',
+                  priority: '',
+                  weight: '',
+                  port: ''
                 }
               ]
             }
@@ -727,12 +748,79 @@ export const getCurrentDnsConfiguration = async (req: AuthRequest, res: Response
       });
     }
     
-    // In a real implementation, you would read and parse the BIND config files
-    // and convert them to the expected format. For now, we'll return a message
-    // that this feature is not yet implemented.
-    res.status(501).json({ 
-      message: 'Reading current configuration from BIND files is not yet implemented',
-      hint: 'Submit a new configuration to get started' 
+    // Now read the individual zone files to get complete records
+    const zonesWithRecords = await Promise.all(
+      zonesJson.zones.map(async (zone: any) => {
+        try {
+          const zoneJsonPath = path.join(actualZonesDir, `${zone.file}.json`);
+          const zoneData = await readFile(zoneJsonPath, 'utf8');
+          const zoneJson = JSON.parse(zoneData);
+          
+          // Transform zone records to match UI expectations
+          const transformedRecords = zoneJson.records.map((record: any) => ({
+            id: record.id || crypto.randomUUID(),
+            type: record.type,
+            name: record.name,
+            value: record.value,
+            priority: record.priority?.toString() || '',
+            weight: record.weight?.toString() || '',
+            port: record.port?.toString() || ''
+          }));
+          
+          return {
+            id: zoneJson.id || crypto.randomUUID(),
+            zoneName: zoneJson.zoneName,
+            zoneType: zoneJson.zoneType,
+            fileName: zoneJson.fileName,
+            allowUpdate: Array.isArray(zoneJson.allowUpdate) 
+              ? zoneJson.allowUpdate.join('; ')
+              : zoneJson.allowUpdate || 'none',
+            records: transformedRecords
+          };
+        } catch (error) {
+          logger.warn(`Could not read zone file for ${zone.name}:`, error);
+          // Return zone info without records if zone file is missing
+          return {
+            id: crypto.randomUUID(),
+            zoneName: zone.name,
+            zoneType: zone.type,
+            fileName: zone.file,
+            allowUpdate: Array.isArray(zone.allowUpdate) 
+              ? zone.allowUpdate.join('; ')
+              : zone.allowUpdate || 'none',
+            records: []
+          };
+        }
+      })
+    );
+    
+    // Build the final configuration response
+    const configuration = {
+      dnsServerStatus: serviceRunning,
+      listenOn: Array.isArray(namedConfJson.options.listenOn) 
+        ? namedConfJson.options.listenOn.join('; ')
+        : namedConfJson.options.listenOn || '127.0.0.1',
+      allowQuery: Array.isArray(namedConfJson.options.allowQuery) 
+        ? namedConfJson.options.allowQuery.join('; ')
+        : namedConfJson.options.allowQuery || 'localhost',
+      allowRecursion: Array.isArray(namedConfJson.options.allowRecursion) 
+        ? namedConfJson.options.allowRecursion.join('; ')
+        : namedConfJson.options.allowRecursion || 'localhost',
+      forwarders: Array.isArray(namedConfJson.options.forwarders) 
+        ? namedConfJson.options.forwarders.join('; ')
+        : namedConfJson.options.forwarders || '8.8.8.8; 8.8.4.4',
+      allowTransfer: Array.isArray(namedConfJson.options.allowTransfer) 
+        ? namedConfJson.options.allowTransfer.join('; ')
+        : namedConfJson.options.allowTransfer || '',
+      dnssecValidation: namedConfJson.options.dnssecValidation || false,
+      queryLogging: namedConfJson.options.queryLogging || false,
+      zones: zonesWithRecords
+    };
+    
+    logger.info('Successfully loaded current DNS configuration from JSON files');
+    res.status(200).json({ 
+      message: 'Current DNS configuration loaded successfully',
+      data: configuration 
     });
   } catch (error) {
     logger.error('Error getting DNS configuration:', error);

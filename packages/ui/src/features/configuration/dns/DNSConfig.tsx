@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { updateDnsConfigurationAPI } from "@/lib/api/dns";
+import { updateDnsConfigurationAPI, getDnsConfigurationAPI } from "@/lib/api/dns";
 import { v4 as uuidv4 } from 'uuid';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useForm, useFieldArray, Control, UseFormReturn, FieldArrayWithId } from 'react-hook-form';
@@ -530,6 +530,8 @@ const ZoneConfig: React.FC<ZoneConfigProps> = ({ zoneIndex, control, form, remov
 
 export function DNSConfig() {
   const [activeTab, setActiveTab] = React.useState("main-config");
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [loadError, setLoadError] = React.useState<string | null>(null);
   
   // Get current date in YYYYMMDD format
   const getCurrentDateSerial = () => {
@@ -602,6 +604,81 @@ export function DNSConfig() {
     control: form.control,
     name: "zones",
   });
+
+  // Transform API response to form values
+  const transformApiToFormValues = React.useCallback((apiData: any): DnsConfigFormValues => {
+    const transformedZones = apiData.zones.map((zone: any) => ({
+      id: zone.id || uuidv4(),
+      zoneName: zone.zoneName,
+      zoneType: zone.zoneType,
+      fileName: zone.fileName,
+      allowUpdate: zone.allowUpdate || "none",
+      soaSettings: zone.soaSettings || {
+        ttl: "86400",
+        primaryNameserver: "ns1.example.com.",
+        adminEmail: "admin.example.com.",
+        serial: getCurrentDateSerial(),
+        refresh: "3600",
+        retry: "1800",
+        expire: "604800",
+        minimumTtl: "86400"
+      },
+      records: zone.records.map((record: any) => ({
+        id: record.id || uuidv4(),
+        type: record.type,
+        name: record.name,
+        value: record.value,
+        priority: record.priority || "",
+        weight: record.weight || "",
+        port: record.port || ""
+      }))
+    }));
+
+    return {
+      dnsServerStatus: apiData.dnsServerStatus || false,
+      listenOn: apiData.listenOn || "127.0.0.1",
+      allowQuery: apiData.allowQuery || "localhost",
+      allowRecursion: apiData.allowRecursion || "localhost",
+      forwarders: apiData.forwarders || "8.8.8.8; 8.8.4.4",
+      allowTransfer: apiData.allowTransfer || "",
+      dnssecValidation: apiData.dnssecValidation || false,
+      zones: transformedZones
+    };
+  }, []);
+
+  // Fetch current configuration on component mount
+  React.useEffect(() => {
+    const fetchConfiguration = async () => {
+      try {
+        setIsLoading(true);
+        setLoadError(null);
+        
+        const response = await getDnsConfigurationAPI();
+        const formValues = transformApiToFormValues(response.data);
+        
+        // Reset the form with fetched values
+        form.reset(formValues);
+        
+        toast({ 
+          title: "Configuration Loaded", 
+          description: "DNS configuration loaded successfully from server." 
+        });
+      } catch (error: any) {
+        console.error('Failed to load DNS configuration:', error);
+        setLoadError(error?.data?.message || error?.message || 'Failed to load configuration');
+        
+        toast({
+          title: "Loading Failed",
+          description: "Failed to load DNS configuration. Using default values.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchConfiguration();
+  }, [form, transformApiToFormValues]);
 
   const onSubmit = async (data: DnsConfigFormValues) => {
     console.log('Form data submitted:', data);
@@ -724,6 +801,33 @@ export function DNSConfig() {
     
     return config;
   };
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading DNS configuration...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state  
+  if (loadError) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <p className="text-destructive mb-4">Failed to load DNS configuration</p>
+          <p className="text-muted-foreground text-sm mb-4">{loadError}</p>
+          <Button onClick={() => window.location.reload()}>
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Form {...form}>

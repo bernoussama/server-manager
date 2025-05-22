@@ -12,16 +12,16 @@
       "type": "A",
       "name": "@",
       "value": "192.168.1.100",
-      "lastModified": "2025-05-22T22:45:57.988Z"
+      "lastModified": "2025-05-22T22:45:25.989Z"
     },
     {
       "id": "550e8400-e29b-41d4-a716-446655440002",
       "type": "CNAME",
       "name": "www",
       "value": "@",
-      "lastModified": "2025-05-22T22:45:57.988Z"
+      "lastModified": "2025-05-22T22:45:25.989Z"
     }
   ],
-  "lastModified": "2025-05-22T22:45:57.988Z",
+  "lastModified": "2025-05-22T22:45:25.989Z",
   "serialNumber": 2025052201
 }

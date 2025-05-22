@@ -219,4 +219,74 @@ export const generateZoneConfJson = (config: DnsConfiguration): string => {
     logger.error('Error generating zone conf JSON:', error);
     throw new Error(`Failed to generate zone conf JSON: ${(error as Error).message}`);
   }
+};
+
+/**
+ * Convert a JSON DNS record back to internal format
+ */
+export const jsonToDnsRecord = (jsonRecord: DnsRecordJson): DnsRecord => {
+  const record: DnsRecord = {
+    id: jsonRecord.id || '',
+    type: jsonRecord.type as any,
+    name: jsonRecord.name,
+    value: jsonRecord.value,
+    priority: jsonRecord.priority?.toString() || '',
+    weight: jsonRecord.weight?.toString() || '',
+    port: jsonRecord.port?.toString() || '',
+    ttl: jsonRecord.ttl,
+  };
+
+  return record;
+};
+
+/**
+ * Convert a JSON zone back to internal format
+ */
+export const jsonToZone = (jsonZone: ZoneJson): Zone => {
+  const ensureStringArray = (value: string | string[]): string => {
+    if (Array.isArray(value)) {
+      return value.join('; ');
+    }
+    return value || '';
+  };
+
+  const zone: Zone = {
+    id: jsonZone.id || '',
+    zoneName: jsonZone.zoneName,
+    zoneType: jsonZone.zoneType as any,
+    fileName: jsonZone.fileName,
+    allowUpdate: ensureStringArray(jsonZone.allowUpdate),
+    records: jsonZone.records.map(record => jsonToDnsRecord(record)),
+  };
+
+  return zone;
+};
+
+/**
+ * Convert arrays to semicolon-separated strings for UI consumption
+ */
+export const arrayToSemicolonString = (value: string | string[]): string => {
+  if (Array.isArray(value)) {
+    return value.join('; ');
+  }
+  return value || '';
+};
+
+/**
+ * Convert JSON DNS configuration back to internal format for UI
+ */
+export const jsonToDnsConfiguration = (jsonConfig: DnsConfigurationJson): DnsConfiguration => {
+  const config: DnsConfiguration = {
+    dnsServerStatus: jsonConfig.dnsServerStatus,
+    listenOn: arrayToSemicolonString(jsonConfig.listenOn),
+    allowQuery: arrayToSemicolonString(jsonConfig.allowQuery),
+    allowRecursion: arrayToSemicolonString(jsonConfig.allowRecursion),
+    forwarders: arrayToSemicolonString(jsonConfig.forwarders),
+    allowTransfer: arrayToSemicolonString(jsonConfig.allowTransfer),
+    dnssecValidation: jsonConfig.dnssecValidation || false,
+    queryLogging: jsonConfig.queryLogging || false,
+    zones: jsonConfig.zones.map(zone => jsonToZone(zone)),
+  };
+
+  return config;
 }; 
