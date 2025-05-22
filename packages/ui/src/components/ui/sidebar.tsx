@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
   items: {
@@ -54,9 +55,12 @@ export function Sidebar({ className, items, ...props }: SidebarProps) {
       >
         <div className="space-y-4 py-4">
           <div className="px-4 py-2">
-            <h2 className="mb-2 px-2 text-lg font-semibold tracking-tight">
-              System Dashboard
-            </h2>
+            <div className="flex items-center justify-between mb-2 px-2">
+              <h2 className="text-lg font-semibold tracking-tight">
+                System Dashboard
+              </h2>
+              <ThemeToggle />
+            </div>
           </div>
           <ScrollArea className="h-[calc(100vh-80px)] px-1">
             <div className="space-y-1 p-2">

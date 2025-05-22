@@ -1,0 +1,132 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Testing Conventions
+
+## Testing Frameworks
+
+### Backend Testing
+- **Jest**: Main testing framework for Node.js
+- **Supertest**: HTTP testing for Express APIs
+- **ts-jest**: TypeScript support for Jest
+- Test files located in [packages/backend/src/**/__tests__/](mdc:packages/backend/src/)
+
+### Frontend Testing  
+- **Vitest**: Fast testing framework (Vite-native)
+- **@testing-library/react**: React component testing utilities
+- **@testing-library/jest-dom**: Custom DOM matchers
+- **jsdom**: DOM environment for testing
+- **MSW (Mock Service Worker)**: API mocking for tests
+- Test files in [packages/ui/src/test/](mdc:packages/ui/src/test/)
+
+## Test File Patterns
+
+### Backend Test Structure
+```
+packages/backend/src/
+├── controllers/
+│   └── __tests__/
+│       ├── userController.test.ts
+│       └── serviceController.test.ts
+├── lib/
+│   └── __tests__/
+│       └── validators.test.ts
+└── models/
+    └── __tests__/
+        └── userModel.test.ts
+```
+
+### Frontend Test Structure
+```
+packages/ui/src/
+├── components/
+│   └── Button.test.tsx
+├── features/
+│   └── dashboard/
+│       └── Dashboard.test.tsx
+└── test/
+    ├── setup.ts
+    └── lib/
+        └── api/
+            └── apiClient.test.ts
+```
+
+## Testing Commands
+
+### Backend
+- `pnpm test` - Run all backend tests
+- `pnpm test:watch` - Run tests in watch mode
+- `jest --coverage` - Run with coverage report
+
+### Frontend
+- `pnpm test` - Run all frontend tests (Vitest)
+- `pnpm test:watch` - Run tests in watch mode
+- Tests run in Node.js environment with jsdom
+
+## Testing Patterns
+
+### API Testing (Backend)
+Use Supertest for testing Express routes:
+```typescript
+import request from 'supertest';
+import app from '../app';
+
+describe('GET /api/services', () => {
+  it('should return services list', async () => {
+    const response = await request(app)
+      .get('/api/services')
+      .expect(200);
+    
+    expect(response.body).toHaveProperty('services');
+  });
+});
+```
+
+### Component Testing (Frontend)
+Use React Testing Library for component tests:
+```typescript
+import { render, screen } from '@testing-library/react';
+import { Button } from './Button';
+
+describe('Button', () => {
+  it('renders with text', () => {
+    render(<Button>Click me</Button>);
+    expect(screen.getByRole('button')).toHaveTextContent('Click me');
+  });
+});
+```
+
+### API Mocking (Frontend)
+Use MSW for mocking API calls in tests:
+```typescript
+import { rest } from 'msw';
+import { setupServer } from 'msw/node';
+
+const server = setupServer(
+  rest.get('/api/services', (req, res, ctx) => {
+    return res(ctx.json({ services: [] }));
+  })
+);
+```
+
+## Shared Testing Utilities
+- Shared test data factories can be placed in [packages/shared/src/](mdc:packages/shared/src/)
+- Common testing utilities for validation schemas
+- Shared mock data generators using shared types
+
+## Coverage & Quality
+- Backend uses Jest coverage reporting
+- Frontend uses Vitest coverage (via c8)
+- Both packages should maintain good test coverage for critical paths
+- Focus on testing API endpoints, core business logic, and user interactions
+
+## Best Practices
+1. **Test structure**: Follow AAA pattern (Arrange, Act, Assert)
+2. **Test naming**: Descriptive test names explaining behavior
+3. **API tests**: Test both success and error scenarios
+4. **Component tests**: Test user interactions, not implementation details
+5. **Mocking**: Mock external dependencies and API calls
+6. **Shared validation**: Test Zod schemas with various input scenarios
+7. **Integration tests**: Test complete user workflows where valuable

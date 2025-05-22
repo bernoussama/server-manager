@@ -1,0 +1,60 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Backend API Patterns
+
+## Express Setup
+The backend uses Express.js with TypeScript and follows a structured approach:
+
+- [packages/backend/src/app.ts](mdc:packages/backend/src/app.ts) - Express app configuration with middleware
+- [packages/backend/src/server.ts](mdc:packages/backend/src/server.ts) - Server startup and port binding
+
+## Routing Structure
+Routes are organized by feature area:
+- [packages/backend/src/routes/](mdc:packages/backend/src/routes) - Route definitions
+- Controllers handle business logic in [packages/backend/src/controllers/](mdc:packages/backend/src/controllers)
+
+## Database & ORM
+- **Database**: SQLite with libsql client
+- **ORM**: Drizzle ORM for type-safe database operations
+- **Schema**: Database schema files in [packages/backend/src/db/](mdc:packages/backend/src/db)
+- **Migrations**: Located in [packages/backend/drizzle/](mdc:packages/backend/drizzle)
+
+## Validation
+- Uses **Zod** for runtime validation
+- Shared schemas from `@server-manager/shared` package
+- Custom validators in [packages/backend/src/lib/validators/](mdc:packages/backend/src/lib/validators)
+
+## Key Dependencies
+- **Express**: Web framework
+- **Drizzle ORM**: Database ORM with type safety
+- **Zod**: Schema validation
+- **Winston**: Logging
+- **bcrypt**: Password hashing
+- **jsonwebtoken**: JWT authentication
+- **cors**: Cross-origin resource sharing
+- **morgan**: HTTP request logging
+
+## Testing
+- **Jest**: Testing framework
+- **Supertest**: HTTP testing
+- Test files in [packages/backend/src/**/__tests__/](mdc:packages/backend/src)
+
+## Configuration
+Environment and app configuration files:
+- [packages/backend/src/config/](mdc:packages/backend/src/config) - Configuration modules
+- Uses **dotenv** for environment variables
+
+## API Endpoints Structure
+Based on the README, main endpoints include:
+- `/api/services` - Service management (start/stop/restart network services)
+- `/api/users` - User management
+- Services include DNS (bind), DHCP, and HTTP server management
+
+## Development Workflow
+- `pnpm dev:backend` - Start development server with nodemon
+- `pnpm test` - Run Jest tests
+- `pnpm build` - TypeScript compilation
+- `pnpm lint` - ESLint validation

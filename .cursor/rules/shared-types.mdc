@@ -1,0 +1,74 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Shared Types & Validation
+
+## Shared Package Overview
+The `@server-manager/shared` package provides common types, schemas, and validators used by both frontend and backend:
+
+- [packages/shared/src/index.ts](mdc:packages/shared/src/index.ts) - Main exports
+- [packages/shared/package.json](mdc:packages/shared/package.json) - Package configuration with multiple export paths
+
+## Type Definitions
+TypeScript type definitions shared across packages:
+- [packages/shared/src/types/](mdc:packages/shared/src/types/) - Common TypeScript interfaces and types
+- Used by both backend controllers/models and frontend components
+
+## Validation Schemas
+Zod schemas for runtime validation:
+- [packages/shared/src/schemas/](mdc:packages/shared/src/schemas/) - Zod schema definitions
+- [packages/shared/src/validators/](mdc:packages/shared/src/validators/) - Validation utilities
+- Exported separately via `/validators` path: `@server-manager/shared/validators`
+
+## Package Exports
+The shared package uses modern Node.js exports for multiple entry points:
+```json
+{
+  ".": "dist/index.js",           // Main types and utilities
+  "./validators": "dist/validators/index.js"  // Validation schemas
+}
+```
+
+## Usage Patterns
+
+### Backend Usage
+```typescript
+// Import shared types
+import { UserType, ServiceType } from '@server-manager/shared';
+
+// Import validation schemas
+import { userSchema, serviceSchema } from '@server-manager/shared/validators';
+```
+
+### Frontend Usage  
+```typescript
+// Import shared types for API responses
+import { UserType, ServiceStatus } from '@server-manager/shared';
+
+// Import schemas for form validation
+import { userSchema } from '@server-manager/shared/validators';
+```
+
+## Type Safety Benefits
+- **Consistent API contracts**: Same types used for request/response on both ends
+- **Runtime validation**: Zod schemas validate data at runtime
+- **Development-time safety**: TypeScript catches type mismatches during development
+- **Shared business logic**: Common validation rules defined once
+
+## Development Workflow
+- `pnpm dev:shared` - Watch mode compilation for development
+- `pnpm build` (in shared package) - Build TypeScript to dist/
+- Changes to shared package trigger rebuilds in dependent packages
+
+## Key Dependencies
+- **Zod**: Schema validation library
+- **TypeScript**: Type definitions and compilation
+
+## Best Practices
+1. Define all API request/response types in shared package
+2. Create Zod schemas for all data that crosses boundaries
+3. Use shared types consistently in both frontend and backend
+4. Keep business logic validation rules in shared validators
+5. Export types and validators through appropriate entry points

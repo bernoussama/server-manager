@@ -1,0 +1,79 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Frontend Patterns
+
+## React Setup
+The frontend is a React application built with Vite and TypeScript:
+
+- [packages/ui/src/main.tsx](mdc:packages/ui/src/main.tsx) - React app entry point with ReactDOM
+- [packages/ui/src/App.tsx](mdc:packages/ui/src/App.tsx) - Main App component with routing
+- [packages/ui/src/index.css](mdc:packages/ui/src/index.css) - Global styles and Tailwind imports
+
+## Component Architecture
+Components are organized by type and feature:
+
+- [packages/ui/src/components/](mdc:packages/ui/src/components) - Reusable UI components
+- [packages/ui/src/components/ui/](mdc:packages/ui/src/components/ui) - Base UI components (likely using Radix UI)
+- [packages/ui/src/features/](mdc:packages/ui/src/features) - Feature-specific components organized by domain
+- [packages/ui/src/pages/](mdc:packages/ui/src/pages) - Page-level components
+
+## Feature Organization
+Features are organized by domain:
+- [packages/ui/src/features/configuration/](mdc:packages/ui/src/features/configuration) - Configuration features
+- [packages/ui/src/features/configuration/dhcp/](mdc:packages/ui/src/features/configuration/dhcp) - DHCP configuration
+- [packages/ui/src/features/configuration/dns/](mdc:packages/ui/src/features/configuration/dns) - DNS configuration
+- [packages/ui/src/features/configuration/http/](mdc:packages/ui/src/features/configuration/http) - HTTP configuration
+- [packages/ui/src/features/dashboard/](mdc:packages/ui/src/features/dashboard) - Dashboard features
+- [packages/ui/src/features/services/](mdc:packages/ui/src/features/services) - Service management features
+
+## UI Component Library
+Uses a comprehensive set of Radix UI components:
+- **Radix UI**: Unstyled, accessible components (dialogs, dropdowns, forms, etc.)
+- **Tailwind CSS**: Utility-first CSS framework
+- **Lucide React**: Icon library
+- **class-variance-authority**: Component variant management
+- **tailwind-merge**: Tailwind class merging utility
+
+## State Management & Data Fetching
+- **React Hook Form**: Form management with validation
+- **Zod**: Schema validation (shared with backend)
+- **@tanstack/react-table**: Table component with sorting/filtering
+- Custom hooks in [packages/ui/src/hooks/](mdc:packages/ui/src/hooks)
+
+## Routing
+- **React Router DOM**: Client-side routing
+- Routes defined in [packages/ui/src/App.tsx](mdc:packages/ui/src/App.tsx)
+
+## API Integration
+- API client utilities in [packages/ui/src/lib/api/](mdc:packages/ui/src/lib/api)
+- Shared types from `@server-manager/shared` package ensure type safety between frontend and backend
+
+## Testing
+- **Vitest**: Testing framework (Vite-native alternative to Jest)
+- **@testing-library/react**: React component testing utilities
+- **@testing-library/jest-dom**: Custom Jest matchers for DOM elements
+- **MSW**: Mock Service Worker for API mocking
+- Test files in [packages/ui/src/test/](mdc:packages/ui/src/test)
+
+## Styling & Theming
+- **Tailwind CSS**: Primary styling approach
+- **next-themes**: Theme management (light/dark mode)
+- **tailwindcss-animate**: Animation utilities
+- **Sonner**: Toast notifications
+
+## Key Libraries
+- **date-fns**: Date manipulation
+- **recharts**: Charting library for dashboards
+- **react-day-picker**: Date picker component
+- **embla-carousel-react**: Carousel/slider component
+- **react-resizable-panels**: Resizable panel layouts
+
+## Development Workflow
+- `pnpm dev:ui` - Start Vite dev server with hot reload
+- `pnpm test` - Run Vitest tests
+- `pnpm test:watch` - Run tests in watch mode
+- `pnpm build` - Build for production
+- `pnpm lint` - ESLint validation
