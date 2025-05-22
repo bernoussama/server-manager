@@ -5,6 +5,4 @@ dist
 .vagrant
 .env
 **/meta
-**/test/dns
 **/.vite
-packages/backend/test/dns/*

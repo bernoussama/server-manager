@@ -2,15 +2,7 @@
 
 zone "example.com" IN {
   type master;
-  file "test/dns/zones/forward.example.com";
+  file "test/dns/zones/example.com.zone";
   allow-update { none; };
-  allow-transfer { none; };
-};
-
-zone "1.168.192.in-addr.arpa" IN {
-  type master;
-  file "test/dns/zones/reverse.example.com";
-  allow-update { none; };
-  allow-transfer { none; };
 };
 

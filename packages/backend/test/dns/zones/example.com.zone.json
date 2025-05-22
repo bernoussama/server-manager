@@ -1,0 +1,27 @@
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "zoneName": "example.com",
+  "zoneType": "master",
+  "fileName": "example.com.zone",
+  "allowUpdate": [
+    "none"
+  ],
+  "records": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440001",
+      "type": "A",
+      "name": "@",
+      "value": "192.168.1.100",
+      "lastModified": "2025-05-22T21:24:54.886Z"
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440002",
+      "type": "CNAME",
+      "name": "www",
+      "value": "@",
+      "lastModified": "2025-05-22T21:24:54.886Z"
+    }
+  ],
+  "lastModified": "2025-05-22T21:24:54.886Z",
+  "serialNumber": 2025052201
+}
