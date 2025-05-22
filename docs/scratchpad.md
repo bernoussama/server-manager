@@ -20,7 +20,7 @@
 DNS JSON Config Save Implementation
 
 ## Current Role
-Planner
+Executor
 
 ## Implementation Plan Reference
 [./implementation-plan/dns-json-config-save.md](./implementation-plan/dns-json-config-save.md)
