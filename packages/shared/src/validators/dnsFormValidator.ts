@@ -74,5 +74,6 @@ export const dnsConfigSchema = z.object({
   allowRecursion: z.string(),
   forwarders: z.string(),
   allowTransfer: z.string(),
+  dnssecValidation: z.boolean().optional().default(true),
   zones: z.array(zoneSchema),
 }); 
