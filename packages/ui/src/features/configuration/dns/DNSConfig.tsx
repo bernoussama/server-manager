@@ -17,42 +17,31 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { PlusCircle } from 'lucide-react';
 import { cn, formFieldErrorClass } from '@/lib/utils';
+
+// Import types from the shared package
 import { 
   DnsRecord, 
   MxDnsRecord, 
   SrvDnsRecord, 
   BaseDnsRecord, 
-  DnsRecordType
-} from '../../../types/dns';
+  DnsRecordType, 
+  SoaSettings,
+  DnsUpdateResponse 
+} from '@server-manager/shared';
 
-// Import directly from local files
-import {
-  isNonEmptyString,
-  isNumeric
-} from '../../../../../shared/src/validators/dnsFormValidator';
-import { RECORD_TYPES, dnsRecordUISchema, dnsConfigSchema } from '../../../../../shared/src/validators/dnsFormValidator';
+// Import validators and transformers from our local file
 import { 
-  transformUiRecordToApiRecord, 
+  isNonEmptyString, 
+  isNumeric,
+  dnsConfigSchema,
+  transformUiRecordToApiRecord,
   parseStringToArray,
-  transformFormToApiData 
-} from '../../../../../shared/src/validators/dnsTransformers';
-
-// Define the UiRecordType here
-type UiRecordType = typeof RECORD_TYPES[number];
+  transformFormToApiData,
+  RECORD_TYPES,
+  UiRecordType
+} from './validators';
 
 export type DnsConfigFormValues = z.infer<typeof dnsConfigSchema>;
-
-// Add interface for SOA settings
-interface SoaSettings {
-  ttl: string;
-  primaryNameserver: string;
-  adminEmail: string;
-  serial: string;
-  refresh: string;
-  retry: string;
-  expire: string;
-  minimumTtl: string;
-}
 
 // Component for DNS record form fields
 interface DnsRecordFormFieldsProps {

@@ -74,6 +74,7 @@ export const transformFormToApiData = (formData: any) => {
       zoneType: zone.zoneType,
       fileName: zone.fileName,
       allowUpdate: parseStringToArray(zone.allowUpdate),
+      soaSettings: zone.soaSettings,
       records: zone.records.map(transformUiRecordToApiRecord)
     }))
   };
