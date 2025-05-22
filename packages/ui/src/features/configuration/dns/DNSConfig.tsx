@@ -549,6 +549,7 @@ export function DNSConfig() {
       allowRecursion: "localhost;",
       forwarders: "8.8.8.8; 8.8.4.4;",
       allowTransfer: "none;",
+      dnssecValidation: false,
       zones: [
         {
           id: uuidv4(),
@@ -620,6 +621,7 @@ export function DNSConfig() {
         allowRecursion: toStringArray(data.allowRecursion),
         forwarders: toStringArray(data.forwarders),
         allowTransfer: toStringArray(data.allowTransfer),
+        dnssecValidation: data.dnssecValidation,
         zones: data.zones.map(zone => ({
           id: zone.id,
           zoneName: zone.zoneName,
@@ -686,6 +688,7 @@ export function DNSConfig() {
     config += `  allow-recursion { ${values.allowRecursion} };\n`;
     config += `  forwarders { ${values.forwarders} };\n`;
     config += `  allow-transfer { ${values.allowTransfer} };\n`;
+    config += `  dnssec-validation ${values.dnssecValidation ? 'yes' : 'no'};\n`;
     config += `};\n\n`;
     
     values.zones.forEach((zone) => {
@@ -860,6 +863,28 @@ export function DNSConfig() {
                         Semicolon-separated list of IP addresses/networks allowed zone transfers
                       </FormDescription>
                       <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="dnssecValidation"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                      <div className="space-y-0.5">
+                        <FormLabel>DNSSEC Validation</FormLabel>
+                        <FormDescription>
+                          Enable DNSSEC validation for resolving queries.
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                       <FormMessage />
                     </FormItem>
                   )}
                 />

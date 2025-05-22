@@ -271,7 +271,7 @@ export const dnsConfigurationSchema = z.object({
   zones: z.array(zoneSchema).min(1, { message: 'At least one zone is required' }),
 
   // Optional advanced fields (can be added back if needed)
-  dnssecValidation: z.boolean().optional().default(true),
+  dnssecValidation: z.boolean().optional().default(false),
   queryLogging: z.boolean().optional().default(false),
 });
 
