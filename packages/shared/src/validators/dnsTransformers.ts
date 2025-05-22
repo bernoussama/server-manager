@@ -67,6 +67,7 @@ export const transformFormToApiData = (formData: any) => {
     allowRecursion: parseStringToArray(formData.allowRecursion),
     forwarders: parseStringToArray(formData.forwarders),
     allowTransfer: parseStringToArray(formData.allowTransfer),
+    dnssecValidation: formData.dnssecValidation,
     zones: formData.zones.map((zone: any) => ({
       id: zone.id,
       zoneName: zone.zoneName,

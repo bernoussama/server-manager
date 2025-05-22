@@ -10,6 +10,11 @@ import { existsSync } from 'fs';
 import crypto from 'crypto';
 import fs from 'fs';
 import logger from '../lib/logger';
+import {
+  formatZoneJson,
+  generateNamedConfJson,
+  generateZoneConfJson
+} from '../lib/dnsJsonUtils';
 
 const execAsync = promisify(exec);
 
@@ -305,7 +310,18 @@ const checkWritePermission = async (filePath: string): Promise<boolean> => {
 /**
  * Write a file to the filesystem
  */
-const writeFileWithBackup = async (filePath: string, content: string): Promise<void> => {
+/**
+ * Write file with backup support and optional JSON companion file
+ */
+export const writeFileWithBackup = async (
+  filePath: string, 
+  content: string, 
+  options?: {
+    writeJsonVersion?: boolean;
+    jsonContent?: string;
+    jsonGenerator?: () => string;
+  }
+): Promise<void> => {
   try {
     // Check permissions in production
     if (isProd) {
@@ -325,6 +341,46 @@ const writeFileWithBackup = async (filePath: string, content: string): Promise<v
     // Write the new content
     await writeFile(filePath, content, 'utf8');
     logger.info(`Successfully wrote file to ${filePath}`);
+
+    // Write JSON version if requested
+    if (options?.writeJsonVersion) {
+      const jsonFilePath = `${filePath}.json`;
+      let jsonContent = options.jsonContent;
+      
+      // Generate JSON content if generator function provided
+      if (!jsonContent && options.jsonGenerator) {
+        try {
+          jsonContent = options.jsonGenerator();
+        } catch (error) {
+          logger.error(`Error generating JSON content for ${filePath}:`, error);
+          throw new Error(`Failed to generate JSON content: ${(error as Error).message}`);
+        }
+      }
+      
+      if (jsonContent) {
+        // Check permissions for JSON file in production
+        if (isProd) {
+          const hasJsonPermission = await checkWritePermission(jsonFilePath);
+          if (!hasJsonPermission) {
+            logger.warn(`No write permission for JSON file ${jsonFilePath}. Skipping JSON version.`);
+            return;
+          }
+        }
+
+        // Create backup for JSON file if it exists
+        if (existsSync(jsonFilePath)) {
+          const jsonBackupPath = `${jsonFilePath}.bak`;
+          await writeFile(jsonBackupPath, await readFile(jsonFilePath, 'utf8'), 'utf8');
+          logger.info(`Created backup of JSON file ${jsonFilePath} at ${jsonBackupPath}`);
+        }
+        
+        // Write JSON version
+        await writeFile(jsonFilePath, jsonContent, 'utf8');
+        logger.info(`Successfully wrote JSON version to ${jsonFilePath}`);
+      } else {
+        logger.warn(`No JSON content provided for ${filePath}, skipping JSON version`);
+      }
+    }
   } catch (error) {
     logger.error(`Error writing file ${filePath}:`, error);
     throw new Error(`Failed to write file: ${(error as Error).message}`);
@@ -540,15 +596,24 @@ export const updateDnsConfiguration = async (req: AuthRequest, res: Response) =>
       const zoneFilePath = path.join(actualZonesDir, zone.fileName);
       
       logger.info(`Generating zone file for ${zone.zoneName} at ${zoneFilePath}`);
-      await writeFileWithBackup(zoneFilePath, zoneContent);
+      await writeFileWithBackup(zoneFilePath, zoneContent, {
+        writeJsonVersion: true,
+        jsonGenerator: () => formatZoneJson(zone)
+      });
     }
     
     // Generate and write BIND configuration files
     const namedConf = generateNamedConf(validatedConfig);
     const zoneConf = generateZoneConf(validatedConfig);
     
-    await writeFileWithBackup(actualConfPath, namedConf);
-    await writeFileWithBackup(actualZoneConfPath, zoneConf);
+    await writeFileWithBackup(actualConfPath, namedConf, {
+      writeJsonVersion: true,
+      jsonGenerator: () => generateNamedConfJson(validatedConfig)
+    });
+    await writeFileWithBackup(actualZoneConfPath, zoneConf, {
+      writeJsonVersion: true,
+      jsonGenerator: () => generateZoneConfJson(validatedConfig)
+    });
     
     // Validate BIND configuration
     try {

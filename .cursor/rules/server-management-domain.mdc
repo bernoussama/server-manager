@@ -1,0 +1,122 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Server Management Domain
+
+## Application Purpose
+Server Manager is a web application for monitoring and controlling network services on Linux servers. It provides a unified interface for managing essential network infrastructure.
+
+## Core Services Managed
+
+### DNS Service (bind)
+- **Purpose**: Domain Name System server management
+- **Features**: Start/stop/restart DNS service, configuration management
+- **Config Location**: [packages/ui/src/features/configuration/dns/](mdc:packages/ui/src/features/configuration/dns/)
+- **API Endpoints**: `/api/services/dns/*`
+
+### DHCP Service  
+- **Purpose**: Dynamic Host Configuration Protocol server management
+- **Features**: IP address allocation, network configuration
+- **Config Location**: [packages/ui/src/features/configuration/dhcp/](mdc:packages/ui/src/features/configuration/dhcp/)
+- **API Endpoints**: `/api/services/dhcp/*`
+
+### HTTP Service
+- **Purpose**: Web server management (Apache/Nginx)
+- **Features**: Web server control, virtual host management
+- **Config Location**: [packages/ui/src/features/configuration/http/](mdc:packages/ui/src/features/configuration/http/)
+- **API Endpoints**: `/api/services/http/*`
+
+## Key Features
+
+### Service Management
+- **Start/Stop/Restart**: Control service lifecycle
+- **Status Monitoring**: Real-time service status checking
+- **Configuration**: Manage service-specific settings
+- **Logs**: View and monitor service logs
+
+### System Monitoring
+- **System Stats**: CPU usage, memory utilization, uptime
+- **Dashboard**: Overview of all services and system health
+- **Location**: [packages/ui/src/features/dashboard/](mdc:packages/ui/src/features/dashboard/)
+
+### User Management
+- **Authentication**: User login and session management
+- **Authorization**: Role-based access control
+- **User CRUD**: Create, read, update, delete user accounts
+- **API Endpoints**: `/api/users/*`
+
+## API Structure
+
+### Service Endpoints
+Based on [README.md](mdc:README.md), the API provides:
+```
+GET    /api/services           # List all services and their status
+GET    /api/services/:service  # Get specific service details
+POST   /api/services/:service/start    # Start a service
+POST   /api/services/:service/stop     # Stop a service  
+POST   /api/services/:service/restart  # Restart a service
+```
+
+### User Management Endpoints
+```
+GET    /api/users     # List all users
+GET    /api/users/:id # Get specific user
+POST   /api/users     # Create new user
+PUT    /api/users/:id # Update user
+DELETE /api/users/:id # Delete user
+```
+
+## Data Models
+
+### Service Model
+- Service name (dns, dhcp, http)
+- Current status (running, stopped, error)
+- Configuration parameters
+- Log data
+- Performance metrics
+
+### User Model  
+- User credentials and authentication
+- Role and permissions
+- Session management
+- Audit trail
+
+### System Model
+- CPU and memory statistics
+- Service health metrics
+- System uptime and performance data
+
+## Business Logic
+
+### Service Control
+- Validate service operations before execution
+- Handle service dependencies and conflicts
+- Provide feedback on operation success/failure
+- Log all service changes for audit purposes
+
+### Configuration Management
+- Validate configuration parameters
+- Apply changes safely with rollback capability
+- Version control for configuration changes
+- Template-based configuration generation
+
+### Monitoring & Alerting
+- Real-time status updates
+- Health checks and diagnostics
+- Performance threshold monitoring
+- Alert generation for critical issues
+
+## Security Considerations
+- **Authentication**: JWT-based user authentication
+- **Authorization**: Role-based access to different services
+- **Input Validation**: Zod schemas for all user inputs
+- **Service Isolation**: Controlled access to system services
+- **Audit Logging**: Track all administrative actions
+
+## Development Patterns
+- **Domain-Driven Design**: Features organized by service domain
+- **Command Pattern**: Service operations as discrete commands
+- **Observer Pattern**: Real-time status updates
+- **Factory Pattern**: Service-specific configuration generators

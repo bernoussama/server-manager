@@ -1,0 +1,55 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Server Manager Project Structure
+
+## Overview
+This is a TypeScript monorepo using pnpm workspaces for a Server Manager application that monitors and controls network services (DNS, DHCP, HTTP).
+
+## Monorepo Structure
+The project uses pnpm workspaces with three main packages:
+
+- **@server-manager/backend** - Express.js API server
+- **@server-manager/ui** - React frontend with Vite 
+- **@server-manager/shared** - Common types, schemas, and validators
+
+## Key Files
+- [package.json](mdc:package.json) - Root package with scripts for running all packages
+- [pnpm-workspace.yaml](mdc:pnpm-workspace.yaml) - pnpm workspace configuration
+- [tsconfig.json](mdc:tsconfig.json) - Root TypeScript configuration
+
+## Backend Package Structure
+Located in [packages/backend/](mdc:packages/backend/):
+- [src/server.ts](mdc:packages/backend/src/server.ts) - Main server entry point
+- [src/app.ts](mdc:packages/backend/src/app.ts) - Express app setup
+- [src/controllers/](mdc:packages/backend/src/controllers/) - API route handlers
+- [src/routes/](mdc:packages/backend/src/routes/) - Express route definitions
+- [src/db/](mdc:packages/backend/src/db/) - Database schema and configuration
+- [src/models/](mdc:packages/backend/src/models/) - Data models
+- [src/lib/](mdc:packages/backend/src/lib/) - Utility functions and validators
+- [src/middlewares/](mdc:packages/backend/src/middlewares/) - Express middleware
+- [src/config/](mdc:packages/backend/src/config/) - Configuration files
+
+## Frontend Package Structure  
+Located in [packages/ui/](mdc:packages/ui/):
+- [src/main.tsx](mdc:packages/ui/src/main.tsx) - React app entry point
+- [src/App.tsx](mdc:packages/ui/src/App.tsx) - Main App component
+- [src/components/](mdc:packages/ui/src/components/) - Reusable React components
+- [src/features/](mdc:packages/ui/src/features/) - Feature-specific components
+- [src/pages/](mdc:packages/ui/src/pages/) - Page components
+- [src/hooks/](mdc:packages/ui/src/hooks/) - Custom React hooks
+- [src/lib/](mdc:packages/ui/src/lib/) - Frontend utilities and API client
+
+## Shared Package Structure
+Located in [packages/shared/](mdc:packages/shared/):
+- [src/types/](mdc:packages/shared/src/types/) - TypeScript type definitions
+- [src/schemas/](mdc:packages/shared/src/schemas/) - Zod validation schemas
+- [src/validators/](mdc:packages/shared/src/validators/) - Validation utilities
+
+## Development Commands
+- `pnpm dev` - Start all packages in development mode
+- `pnpm dev:backend` - Start only backend in dev mode
+- `pnpm dev:ui` - Start only frontend in dev mode  
+- `pnpm build` - Build all packages for production

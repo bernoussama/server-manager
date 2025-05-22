@@ -1,0 +1,32 @@
+{
+  "options": {
+    "directory": "/var/named",
+    "listenOn": [
+      "127.0.0.1"
+    ],
+    "allowQuery": [
+      "localhost"
+    ],
+    "allowRecursion": [
+      "localhost"
+    ],
+    "forwarders": [
+      "8.8.8.8",
+      "8.8.4.4"
+    ],
+    "dnssecValidation": false,
+    "recursion": true
+  },
+  "zones": [
+    {
+      "name": "example.com",
+      "type": "master",
+      "file": "example.com.zone",
+      "allowUpdate": [
+        "none"
+      ]
+    }
+  ],
+  "lastModified": "2025-05-22T21:24:54.887Z",
+  "version": "1.0"
+}

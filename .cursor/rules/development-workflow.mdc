@@ -1,0 +1,151 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Development Workflow
+
+## Package Manager
+- **pnpm**: Fast, disk space efficient package manager
+- **Workspaces**: Configured via [pnpm-workspace.yaml](mdc:pnpm-workspace.yaml)
+- **Version**: Specified in [package.json](mdc:package.json) packageManager field
+
+## Development Scripts
+
+### Root Level Commands
+From project root directory:
+- `pnpm dev` - Start all packages in development mode (concurrent)
+- `pnpm dev:shared` - Start shared package in watch mode
+- `pnpm dev:backend` - Build shared, then start backend in dev mode  
+- `pnpm dev:ui` - Start frontend development server
+- `pnpm build` - Build all packages for production
+- `pnpm clean` - Remove dist and node_modules from all packages
+
+### Package-Specific Commands
+Use pnpm filtering to run commands in specific packages:
+```bash
+# Backend commands
+pnpm --filter @server-manager/backend dev
+pnpm --filter @server-manager/backend test
+pnpm --filter @server-manager/backend build
+
+# Frontend commands  
+pnpm --filter @server-manager/ui dev
+pnpm --filter @server-manager/ui test
+pnpm --filter @server-manager/ui build
+
+# Shared commands
+pnpm --filter @server-manager/shared build
+pnpm --filter @server-manager/shared dev
+```
+
+## Development Servers
+
+### Backend Development
+- **Port**: 3000 (configurable via environment)
+- **Hot Reload**: nodemon watches TypeScript files and restarts server
+- **Database**: SQLite with Drizzle ORM
+- **Logging**: Winston for structured logging, Morgan for HTTP requests
+
+### Frontend Development  
+- **Port**: 5173 (Vite default)
+- **Hot Reload**: Vite HMR for instant updates
+- **Proxy**: Likely configured to proxy API calls to backend:3000
+
+### Shared Package
+- **Watch Mode**: TypeScript compiler in watch mode (`tsc --watch`)
+- **Auto-rebuild**: Changes trigger rebuilds in dependent packages
+
+## Environment Setup
+
+### Prerequisites
+- Node.js 18+
+- pnpm package manager
+
+### Initial Setup
+1. Clone repository
+2. Run [setup.sh](mdc:setup.sh) - Automated setup script
+3. Or manual setup:
+   ```bash
+   pnpm install                    # Install all dependencies
+   cp .env.example .env           # Create environment file
+   pnpm dlx drizzle-kit generate  # Generate database migrations
+   pnpm dlx drizzle-kit push:sqlite # Apply migrations
+   ```
+
+## Code Quality Tools
+
+### TypeScript
+- [tsconfig.json](mdc:tsconfig.json) - Root TypeScript configuration
+- Each package has its own tsconfig extending the root
+- Strict type checking enabled
+
+### Linting
+- **ESLint**: Configured for both frontend and backend
+- **Backend**: `@typescript-eslint` rules
+- **Frontend**: React-specific ESLint rules
+- Run: `pnpm lint` in each package
+
+### Formatting
+- **Prettier**: Code formatting (backend)
+- **Configuration**: Package-specific prettier configs
+- Run: `pnpm format` in backend package
+
+## Database Workflow
+
+### Drizzle ORM
+- **Schema**: Defined in [packages/backend/src/db/](mdc:packages/backend/src/db)
+- **Migrations**: Generated in [packages/backend/drizzle/](mdc:packages/backend/drizzle)
+- **Commands**:
+  ```bash
+  pnpm dlx drizzle-kit generate    # Generate migrations
+  pnpm dlx drizzle-kit push:sqlite # Apply to database
+  pnpm dlx drizzle-kit studio     # Open Drizzle Studio
+  ```
+
+## Dependency Management
+
+### Workspace Dependencies
+- Backend depends on `@server-manager/shared`
+- UI depends on `@server-manager/shared`  
+- Use `workspace:*` protocol for internal dependencies
+
+### Adding Dependencies
+```bash
+# Add to specific package
+pnpm --filter @server-manager/backend add express
+pnpm --filter @server-manager/ui add react-query
+
+# Add to root (dev dependencies)
+pnpm add -D typescript
+```
+
+## Git Workflow
+- Feature branches for development
+- Conventional commits recommended
+- Run tests before committing
+- Use `git status` to verify changes
+
+## Common Development Tasks
+
+### Adding a New API Endpoint
+1. Define types in [packages/shared/src/types/](mdc:packages/shared/src/types)
+2. Create Zod schema in [packages/shared/src/schemas/](mdc:packages/shared/src/schemas)
+3. Add route in [packages/backend/src/routes/](mdc:packages/backend/src/routes)
+4. Implement controller in [packages/backend/src/controllers/](mdc:packages/backend/src/controllers)
+5. Add tests in `__tests__` directories
+6. Update API client in [packages/ui/src/lib/api/](mdc:packages/ui/src/lib/api)
+
+### Adding a New UI Component
+1. Create component in [packages/ui/src/components/](mdc:packages/ui/src/components)
+2. Add tests for component behavior
+3. Use shared types from `@server-manager/shared`
+4. Follow existing patterns for styling and accessibility
+
+## Best Practices
+1. **Type Safety**: Use shared types consistently
+2. **Testing**: Write tests for new features
+3. **Validation**: Use Zod schemas for data validation
+4. **Commits**: Use conventional commit messages
+5. **Dependencies**: Keep dependencies up to date
+6. **Hot Reload**: Leverage watch modes for fast development

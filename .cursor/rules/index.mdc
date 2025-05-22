@@ -1,0 +1,55 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Server Manager - Cursor Rules Index
+
+## Overview
+This is a comprehensive set of Cursor Rules for the Server Manager project - a TypeScript monorepo application for managing network services (DNS, DHCP, HTTP) on Linux servers.
+
+## Rule Files
+
+### 🏗️ [Project Structure](mdc:.cursor/rules/project-structure.mdc)
+Understanding the monorepo layout, package organization, and key directories. Start here for overall project navigation.
+
+### 🔧 [Backend API](mdc:.cursor/rules/backend-api.mdc)  
+Express.js API patterns, database setup with Drizzle ORM, routing structure, and backend development practices.
+
+### ⚛️ [Frontend Patterns](mdc:.cursor/rules/frontend-patterns.mdc)
+React application structure, UI components with Radix UI, Tailwind CSS patterns, and frontend development workflow.
+
+### 🔄 [Shared Types](mdc:.cursor/rules/shared-types.mdc)
+Type safety between frontend and backend, Zod validation schemas, and shared package usage patterns.
+
+### 🧪 [Testing Conventions](mdc:.cursor/rules/testing-conventions.mdc)
+Testing frameworks (Jest/Vitest), testing patterns, API testing with Supertest, and component testing approaches.
+
+### 🚀 [Development Workflow](mdc:.cursor/rules/development-workflow.mdc)
+pnpm workspace commands, development servers, environment setup, and common development tasks.
+
+### 🌐 [Server Management Domain](mdc:.cursor/rules/server-management-domain.mdc)
+Business logic, service management features, API endpoints, and domain-specific patterns for network service management.
+
+## Quick Start
+1. Read [Project Structure](mdc:.cursor/rules/project-structure.mdc) for overall layout
+2. Check [Development Workflow](mdc:.cursor/rules/development-workflow.mdc) for setup commands
+3. Review domain-specific patterns in [Server Management Domain](mdc:.cursor/rules/server-management-domain.mdc)
+
+## Key Technologies
+- **Monorepo**: pnpm workspaces
+- **Backend**: TypeScript + Express + Drizzle ORM + SQLite
+- **Frontend**: React + Vite + Tailwind CSS + Radix UI
+- **Shared**: Zod validation + TypeScript types
+- **Testing**: Jest (backend) + Vitest (frontend)
+
+## Development Commands
+```bash
+pnpm dev          # Start all packages in development mode
+pnpm dev:backend  # Backend development server
+pnpm dev:ui       # Frontend development server  
+pnpm test         # Run tests in current package
+pnpm build        # Build all packages
+```
+
+For detailed information on any aspect of the project, refer to the specific rule file above.

@@ -1,0 +1,14 @@
+{
+  "zones": [
+    {
+      "name": "example.com",
+      "type": "master",
+      "file": "example.com.zone",
+      "allowUpdate": [
+        "none"
+      ]
+    }
+  ],
+  "lastModified": "2025-05-22T21:24:54.889Z",
+  "version": "1.0"
+}

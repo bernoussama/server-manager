@@ -1,7 +1,6 @@
 import { Layers, Activity, Settings, Terminal, Globe, Network, Server, Home, BarChart } from 'lucide-react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { ThemeProvider } from './components/theme-provider';
-import { ThemeToggle } from './components/theme-toggle';
 import { Sidebar } from './components/ui/sidebar';
 import { SystemStats } from '@/features/dashboard/components/SystemStats';
 import { ServicesView } from '@/pages/ServicesView';
@@ -38,9 +37,6 @@ function AppContent() {
         <div className="flex flex-col space-y-8 p-8">
           <div className="flex justify-between items-center">
             <h1 className="text-3xl font-bold md:block hidden">{getCurrentTitle()}</h1>
-            <div className="flex items-center space-x-2">
-              <ThemeToggle />
-            </div>
           </div>
 
           <Routes>
