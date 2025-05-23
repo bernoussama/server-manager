@@ -1,8 +1,9 @@
 packages:
-  - "apps/*"
-  - "packages/*"
-
+  - apps/*
+  - packages/*
 onlyBuiltDependencies:
   - msw
   - bcrypt
   - esbuild
+overrides:
+  turbo: link:../../.local/share/pnpm/global/5/node_modules/turbo

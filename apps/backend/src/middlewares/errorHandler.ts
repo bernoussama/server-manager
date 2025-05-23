@@ -1,5 +1,5 @@
-import { Request, Response, NextFunction } from 'express';
-import { AppError } from '@server-manager/shared';
+import type { Request, Response, NextFunction } from 'express';
+import type { AppError } from '@server-manager/shared';
 import logger from '../lib/logger';
 
 export const errorHandler = (

@@ -1,5 +1,6 @@
-import { Request, Response, NextFunction } from 'express';
-import { SystemMetrics, MemoryUsage, CpuUsage, DiskUsage, ActiveService } from '../lib/systemMetrics';
+import type { Request, Response, NextFunction } from 'express';
+import { SystemMetrics } from '../lib/systemMetrics';
+import type { MemoryUsage, CpuUsage, DiskUsage, ActiveService } from '../lib/systemMetrics';
 import logger from '../lib/logger';
 
 const systemMetrics = new SystemMetrics();

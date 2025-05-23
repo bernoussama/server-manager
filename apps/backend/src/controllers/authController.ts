@@ -1,8 +1,9 @@
-import { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { db } from '../lib/db'; // Corrected import path
-import { users, NewUser } from '../models/user';
+import { users } from '../models/user';
+import type { NewUser } from '../models/user';
 import { eq } from 'drizzle-orm';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'; // Store this in .env!

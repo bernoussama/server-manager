@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { ServiceManager } from '../lib/ServiceManager';
-import { AllowedService, ServiceStatus, ServiceResponse } from '@server-manager/shared';
+import type { AllowedService, ServiceStatus, ServiceResponse } from '@server-manager/shared';
 import logger from '../lib/logger';
 
 // Initialize service manager

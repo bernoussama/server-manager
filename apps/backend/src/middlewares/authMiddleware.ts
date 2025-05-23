@@ -1,9 +1,9 @@
-import { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { db } from '../lib/db';
 import { users } from '../models/user';
 import { eq } from 'drizzle-orm';
-import { AuthUser } from '@server-manager/shared';
+import type { AuthUser } from '@server-manager/shared';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 

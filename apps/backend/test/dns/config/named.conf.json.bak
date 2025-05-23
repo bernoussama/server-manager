@@ -6,7 +6,8 @@
       "192.168.1.160"
     ],
     "allowQuery": [
-      "localhost"
+      "localhost",
+      "192.168.1.0/24"
     ],
     "allowRecursion": [
       "localhost"
@@ -36,6 +37,6 @@
       ]
     }
   ],
-  "lastModified": "2025-05-23T23:21:25.804Z",
+  "lastModified": "2025-05-23T23:20:57.861Z",
   "version": "1.0"
 }

@@ -1,0 +1,35 @@
+{
+  "id": "5d22938a-f972-4ce0-8793-db29529b924a",
+  "zoneName": "example.com",
+  "zoneType": "master",
+  "fileName": "forward.example.com",
+  "allowUpdate": [
+    "none"
+  ],
+  "records": [
+    {
+      "id": "60045490-eb08-420b-a89c-529b2e235c45",
+      "type": "A",
+      "name": "@",
+      "value": "192.168.1.1",
+      "lastModified": "2025-05-23T23:20:57.851Z"
+    },
+    {
+      "id": "acfb8dbf-e0fb-4ddf-aea0-b6314bf928ff",
+      "type": "CNAME",
+      "name": "www",
+      "value": "@",
+      "lastModified": "2025-05-23T23:20:57.851Z"
+    },
+    {
+      "id": "c931d1f9-c6c1-4a59-b6c4-fa9d43f9d035",
+      "type": "MX",
+      "name": "@",
+      "value": "mail.example.com",
+      "lastModified": "2025-05-23T23:20:57.851Z",
+      "priority": 10
+    }
+  ],
+  "lastModified": "2025-05-23T23:20:57.851Z",
+  "serialNumber": 2025052401
+}

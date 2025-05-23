@@ -1,0 +1,20 @@
+{
+  "id": "4d875ad3-49bd-4fa8-9bc8-dbd6b297422a",
+  "zoneName": "1.168.192.in-addr.arpa",
+  "zoneType": "master",
+  "fileName": "reverse.example.com",
+  "allowUpdate": [
+    "none"
+  ],
+  "records": [
+    {
+      "id": "fbf9526f-4776-49ac-8bb1-7d24d7b0bacc",
+      "type": "PTR",
+      "name": "1",
+      "value": "example.com.",
+      "lastModified": "2025-05-23T23:21:25.802Z"
+    }
+  ],
+  "lastModified": "2025-05-23T23:21:25.802Z",
+  "serialNumber": 2025052401
+}

@@ -9,7 +9,7 @@ options {
   allow-recursion { localhost; };
   forwarders { 8.8.8.8; 8.8.4.4; };
   
-  dnssec-validation yes;
+  dnssec-validation no;
   recursion yes;
 };
 
