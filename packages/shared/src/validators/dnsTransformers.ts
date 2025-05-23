@@ -1,4 +1,4 @@
-import { DnsRecord, DnsRecordType, MxDnsRecord, SrvDnsRecord, BaseDnsRecord } from '../types/dns';
+import type { DnsRecord, DnsRecordType, MxDnsRecord, SrvDnsRecord, BaseDnsRecord } from '../types/dns';
 
 /**
  * Transform UI record to API record
