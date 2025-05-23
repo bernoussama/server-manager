@@ -15,6 +15,7 @@ export {
   isNumeric,
   RECORD_TYPES,
   dnsRecordUISchema,
+  soaSettingsSchema,
   dnsConfigSchema
 } from './dnsFormValidator';
 export { zoneSchema as uiZoneSchema } from './dnsFormValidator';

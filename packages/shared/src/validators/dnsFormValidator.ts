@@ -56,6 +56,18 @@ export const dnsRecordUISchema = z.object({
   }
 });
 
+// Schema for SOA settings
+export const soaSettingsSchema = z.object({
+  ttl: z.string(),
+  primaryNameserver: z.string(),
+  adminEmail: z.string(),
+  serial: z.string(),
+  refresh: z.string(),
+  retry: z.string(),
+  expire: z.string(),
+  minimumTtl: z.string(),
+});
+
 // Schema for zone configuration in the UI form
 export const zoneSchema = z.object({
   id: z.string().uuid(),
@@ -63,6 +75,7 @@ export const zoneSchema = z.object({
   zoneType: z.enum(['master', 'slave', 'forward']),
   fileName: z.string().min(1, "File name is required"),
   allowUpdate: z.string(),
+  soaSettings: soaSettingsSchema.optional(),
   records: z.array(dnsRecordUISchema),
 });
 

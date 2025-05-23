@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { updateDnsConfigurationAPI, getDnsConfigurationAPI } from "@/lib/api/dns";
 import { v4 as uuidv4 } from 'uuid';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useForm, useFieldArray, Control, UseFormReturn, FieldArrayWithId } from 'react-hook-form';
+import { useForm, useFieldArray, type Control, type UseFormReturn, type FieldArrayWithId } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -17,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { PlusCircle } from 'lucide-react';
 import { cn, formFieldErrorClass } from '@/lib/utils';
-import { 
+import type { 
   DnsRecord, 
   MxDnsRecord, 
   SrvDnsRecord, 
@@ -25,20 +25,18 @@ import {
   DnsRecordType
 } from '../../../types/dns';
 
-// Import directly from local files
+// Import directly from shared package
 import {
   isNonEmptyString,
-  isNumeric
-} from '../../../../../../packages/shared/src/validators/dnsFormValidator';
-import { RECORD_TYPES, dnsRecordUISchema, dnsConfigSchema } from '../../../../../../packages/shared/src/validators/dnsFormValidator';
-import { 
-  transformUiRecordToApiRecord, 
+  isNumeric,
+  RECORD_TYPES,
+  dnsRecordUISchema,
+  dnsConfigSchema,
+  transformUiRecordToApiRecord,
   parseStringToArray,
-  transformFormToApiData 
-} from '../../../../../../packages/shared/src/validators/dnsTransformers';
-
-// Define the UiRecordType here
-type UiRecordType = typeof RECORD_TYPES[number];
+  transformFormToApiData,
+  type UiRecordType
+} from '@server-manager/shared/validators';
 
 export type DnsConfigFormValues = z.infer<typeof dnsConfigSchema>;
 
