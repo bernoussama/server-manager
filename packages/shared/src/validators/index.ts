@@ -16,10 +16,9 @@ export {
   RECORD_TYPES,
   dnsRecordUISchema,
   dnsConfigSchema,
-  soaSettingsSchema,
-  UiRecordType,
-  SoaSettings
+  soaSettingsSchema
 } from './dnsFormValidator';
+export type { UiRecordType, SoaSettings } from './dnsFormValidator';
 export { zoneSchema as uiZoneSchema } from './dnsFormValidator';
 
 // Re-export transformers

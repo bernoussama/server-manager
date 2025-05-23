@@ -3,12 +3,16 @@
   "version": "1.0.0",
   "description": "A web application for managing servers",
   "main": "index.js",
-  "private": true,
+  	"private": true,
+	"workspaces": [
+		"apps/*",
+		"packages/*"
+	],
   "scripts": {
     "build": "pnpm -r build",
     "dev:shared": "pnpm --filter @server-manager/shared dev",
-    "dev:backend": "pnpm --filter @server-manager/shared build && pnpm --filter @server-manager/backend dev",
-    "dev:ui": "pnpm --filter @server-manager/ui dev",
+    "dev:backend": "pnpm --filter @server-manager/shared build && pnpm --filter backend dev",
+    "dev:ui": "pnpm --filter ui dev",
     "dev": "concurrently \"pnpm dev:shared\" \"pnpm dev:backend\" \"pnpm dev:ui\"",
     "clean": "pnpm -r exec -- rm -rf dist node_modules"
   },
@@ -18,6 +22,7 @@
   "devDependencies": {
     "@types/node": "^22.15.18",
     "concurrently": "^9.1.2",
+    "turbo": "^2.5.3",
     "typescript": "^5.8.3"
   },
   "keywords": [

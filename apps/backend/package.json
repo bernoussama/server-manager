@@ -1,7 +1,12 @@
 {
-  "name": "@server-manager/backend",
+  "name": "backend",
   "version": "1.0.0",
   "description": "TypeScript Node.js Express API",
+  "type": "module",
+  "files": [
+    "dist/**/*"
+  ],
+  "private": true,
   "main": "dist/server.js",
   "scripts": {
     "start": "node dist/server.js",

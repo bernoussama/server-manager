@@ -1,15 +1,4 @@
 {
-    "extends": "../../tsconfig.json",
-    "compilerOptions": {
-      "composite": true,
-      "module": "ESNext",
-      "target": "ESNext",
-      "outDir": "./dist",
-      "sourceMap": true,
-      "emitDeclarationOnly": false,
-      "noEmit": false,
-      "declaration": true,
-      "declarationMap": true,
-    },
-    "include": ["src/**/*"]
-  }
+	"extends": "../../tsconfig.json",
+	"include": ["./src/**/*.ts"]
+}

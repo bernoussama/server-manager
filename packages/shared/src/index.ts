@@ -11,9 +11,9 @@ export {
   dnsRecordUISchema,
   dnsConfigSchema,
   soaSettingsSchema,
-  SoaSettings,
   uiZoneSchema,
   transformUiRecordToApiRecord,
   parseStringToArray,
   transformFormToApiData
 } from './validators';
+export type { SoaSettings } from './validators';
