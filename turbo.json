@@ -9,19 +9,13 @@
       ],
     "tasks": {
       "build": {
+        "dependsOn": ["^build"],
         "outputs": ["dist/**"]
       },
-      "check-types": {
-        "dependsOn": ["^check-types"]
-      },
       "dev": {
-        "cache": false
-      },
-      "generate": {
-          "dependsOn": ["^generate"],
-          "cache": false
-      },
-      "lint": {},
-      "test": {}
+        "cache": false,
+        "persistent": true,
+        "dependsOn": ["^build"]
       }
+    }
   }
