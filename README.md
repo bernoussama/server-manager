@@ -1,6 +1,6 @@
 # Server Manager
 
-A full-stack application for managing and monitoring network services built with TypeScript, Express, and React.
+A full-stack monorepo application for managing and monitoring network services built with TypeScript, Express, and React.
 
 ![License](https://img.shields.io/badge/license-GPLv3-blue.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.1.6-blue)
@@ -14,53 +14,88 @@ Server Manager is a powerful web application for monitoring and controlling esse
 
 The application allows you to:
 
-- Monitor system stats (CPU, memory, uptime)
-- Start, stop, and restart network services
-- Configure DNS, DHCP, and HTTP services
-- View service logs and status information
-- Manage user accounts
+- Monitor system metrics (CPU, memory, disk usage, uptime)
+- Start, stop, and restart network services (named, dhcpd, httpd)
+- Configure DNS zones and records with bind integration
+- Configure HTTP virtual hosts and Apache settings
+- Configure DHCP server settings
+- View service status and logs
+- Manage user accounts with authentication
 
 ## 🔧 Tech Stack
 
-### Backend
+### Backend (`apps/backend`)
 - **Language**: TypeScript
 - **Runtime**: Node.js
 - **Framework**: Express
-- **Database**: SQLite (via libsql/drizzle-orm)
-- **Validation**: Zod
-- **Development Tools**: ESLint, Prettier, Nodemon
+- **Database**: SQLite with Drizzle ORM
+- **Validation**: Zod (via shared package)
+- **Authentication**: JWT tokens with bcrypt password hashing
+- **Development Tools**: ESLint, Prettier, Nodemon, Jest
 
-### Frontend
+### Frontend (`apps/ui`)
 - **Language**: TypeScript
-- **Framework**: React
-- **UI Components**: Custom component library
+- **Framework**: React 18
+- **UI Components**: Custom component library with shadcn/ui
 - **Styling**: Tailwind CSS
 - **Icons**: Lucide React
 - **Build Tool**: Vite
 - **Testing**: Vitest
+- **State Management**: React Hook Form
+- **HTTP Client**: Fetch API with custom wrapper
+
+### Shared (`packages/shared`)
+- **Types**: Shared TypeScript interfaces and types
+- **Validators**: Zod schemas for data validation
+- **Transformers**: Data transformation utilities
+
+### Infrastructure
+- **Monorepo**: Turborepo with pnpm workspaces
+- **Package Manager**: pnpm
+- **Containerization**: Docker support
 
 ## 📁 Project Structure
 
 ```
-├── src/               # Backend source code
-│   ├── app.ts         # Express application setup
-│   ├── server.ts      # Server entry point
-│   ├── config/        # Configuration files
-│   ├── controllers/   # API route controllers
-│   ├── db/            # Database models and schema
-│   ├── lib/           # Utility libraries
-│   ├── middlewares/   # Express middlewares
-│   ├── models/        # Data models
-│   └── routes/        # API route definitions
-├── ui/                # Frontend source code
-│   ├── src/           # React application source
-│   │   ├── components/# React components
-│   │   ├── hooks/     # Custom React hooks
-│   │   └── lib/       # Frontend utilities
-│   ├── public/        # Static assets
-│   └── index.html     # HTML entry point
-├── drizzle/           # Database migrations
-└── test/              # API tests
+ts-node-express/
+├── apps/
+│   ├── backend/              # Express API server
+│   │   ├── src/
+│   │   │   ├── controllers/  # API route controllers
+│   │   │   │   ├── authController.ts
+│   │   │   │   ├── dnsController.ts
+│   │   │   │   ├── httpController.ts
+│   │   │   │   ├── servicesController.ts
+│   │   │   │   ├── systemMetricsController.ts
+│   │   │   │   └── usersController.ts
+│   │   │   ├── db/           # Database configuration
+│   │   │   ├── lib/          # Utility libraries
+│   │   │   ├── middlewares/  # Express middlewares
+│   │   │   ├── models/       # Data models
+│   │   │   ├── routes/       # API route definitions
+│   │   │   └── types/        # Type definitions
+│   │   ├── drizzle/          # Database migrations
+│   │   └── test/             # API tests and config files
+│   └── ui/                   # React frontend application
+│       └── src/
+│           ├── components/   # Reusable UI components
+│           ├── features/     # Feature-specific components
+│           │   ├── configuration/
+│           │   │   ├── dns/
+│           │   │   ├── dhcp/
+│           │   │   └── http/
+│           │   ├── dashboard/
+│           │   └── services/
+│           ├── hooks/        # Custom React hooks
+│           ├── lib/          # Frontend utilities and API clients
+│           └── pages/        # Page components
+├── packages/
+│   └── shared/               # Shared code between apps
+│       └── src/
+│           ├── types/        # TypeScript type definitions
+│           └── validators/   # Zod validation schemas
+├── docs/                     # Documentation
+└── Configuration files (package.json, turbo.json, etc.)
 ```
 
 ## 🚀 Getting Started
@@ -68,7 +103,7 @@ The application allows you to:
 ### Prerequisites
 
 - Node.js 18+
-- pnpm package manager (recommended)
+- pnpm package manager
 
 ### Installation
 
@@ -78,72 +113,93 @@ git clone https://github.com/bernoussama/server-manager.git
 cd server-manager
 ```
 
-2. Run the setup script to install dependencies and configure the environment:
+2. Install dependencies using pnpm workspaces:
 ```bash
-./setup.sh
+pnpm install
 ```
 
-Alternatively, you can set up manually:
-
+3. Set up environment variables:
 ```bash
-# Install backend dependencies
-pnpm install
+# Copy example environment file
+cp apps/backend/.env.example apps/backend/.env
 
-# Install frontend dependencies
-cd ui && pnpm install && cd ..
+# Edit the .env file with your configuration
+```
 
-# Create environment variables
-cp .env.example .env
-
-# Run database migrations
+4. Set up the database:
+```bash
+# Generate and run database migrations
+cd apps/backend
 pnpm dlx drizzle-kit generate
-pnpm dlx drizzle-kit push:sqlite
+pnpm dlx drizzle-kit push
 ```
 
 ### Running the Application
 
 #### Development Mode
 
-Start the backend:
+Start all applications in development mode:
 ```bash
+# From root directory
 pnpm dev
 ```
 
-Start the frontend (in a new terminal):
+Or start individual applications:
+
 ```bash
-cd ui && pnpm dev
+# Start backend only
+cd apps/backend && pnpm dev
+
+# Start frontend only (in a new terminal)
+cd apps/ui && pnpm dev
 ```
 
 Your backend API will run at http://localhost:3000 and the UI will be available at http://localhost:5173.
 
 #### Production Build
 
-Build the application:
+Build all applications:
 ```bash
-# Build backend
 pnpm build
-
-# Build frontend
-cd ui && pnpm build
 ```
 
 Run in production mode:
 ```bash
-pnpm start
+# Start backend
+cd apps/backend && pnpm start
+
+# Serve frontend (after building)
+cd apps/ui && pnpm preview
 ```
 
 ## 🔌 API Endpoints
 
-### Services API
+### Authentication API
+- `POST /api/auth/signup` - Register a new user
+- `POST /api/auth/login` - Login user
 
+### Services API
 - `GET /api/services` - Get all services status
 - `GET /api/services/:service` - Get specific service status
 - `POST /api/services/:service/start` - Start a service
 - `POST /api/services/:service/stop` - Stop a service
 - `POST /api/services/:service/restart` - Restart a service
 
-### Users API
+### DNS API
+- `GET /api/dns/config` - Get DNS configuration
+- `PUT /api/dns/config` - Update DNS configuration
 
+### HTTP API
+- `GET /api/http/config` - Get HTTP configuration
+- `PUT /api/http/config` - Update HTTP configuration
+- `POST /api/http/validate` - Validate HTTP configuration
+- `GET /api/http/status` - Get HTTP service status
+- `POST /api/http/service/:action` - Control HTTP service
+
+### System Metrics API
+- `GET /api/system-metrics` - Get system performance metrics
+
+### Users API
 - `GET /api/users` - Get all users
 - `GET /api/users/:id` - Get specific user
 - `POST /api/users` - Create a user
@@ -152,30 +208,74 @@ pnpm start
 
 ## 🧪 Testing
 
-The project includes API tests that can be run with:
-
+Run tests for the entire monorepo:
 ```bash
-# Run backend tests
 pnpm test
+```
 
-# Run frontend tests
-cd ui && pnpm test
+Run tests for individual applications:
+```bash
+# Backend tests
+cd apps/backend && pnpm test
+
+# Frontend tests
+cd apps/ui && pnpm test
+
+# Shared package tests
+cd packages/shared && pnpm test
 ```
 
 ## 📋 Development Commands
 
-Backend:
+### Root level (affects all workspaces):
+- `pnpm dev` - Start all applications in development mode
+- `pnpm build` - Build all applications
+- `pnpm test` - Run tests for all packages
+- `pnpm lint` - Lint all packages
+- `pnpm format` - Format code in all packages
+
+### Backend (`apps/backend`):
 - `pnpm start` - Run production build
 - `pnpm dev` - Run development server with hot reload
 - `pnpm build` - Build for production
 - `pnpm lint` - Run ESLint
 - `pnpm format` - Format code with Prettier
+- `pnpm test` - Run Jest tests
 
-Frontend:
-- `cd ui && pnpm dev` - Run development server
-- `cd ui && pnpm build` - Build for production
-- `cd ui && pnpm lint` - Run ESLint
-- `cd ui && pnpm test` - Run tests
+### Frontend (`apps/ui`):
+- `pnpm dev` - Run development server
+- `pnpm build` - Build for production
+- `pnpm preview` - Preview production build
+- `pnpm lint` - Run ESLint
+- `pnpm test` - Run Vitest tests
+
+### Shared (`packages/shared`):
+- `pnpm build` - Build shared package
+- `pnpm test` - Run tests
+- `pnpm lint` - Run ESLint
+
+## 🏗️ Architecture
+
+The application follows a modern monorepo architecture:
+
+- **Turborepo**: Manages the monorepo with optimized build caching and task orchestration
+- **Shared Package**: Contains common types, validators, and utilities used by both frontend and backend
+- **Type Safety**: End-to-end type safety with shared TypeScript interfaces
+- **API-First Design**: RESTful API with comprehensive validation using Zod schemas
+- **Component-Based UI**: Modular React components with feature-based organization
+
+## 🐳 Docker Support
+
+The backend includes Docker support:
+
+```bash
+# Build Docker image
+cd apps/backend
+docker build -t server-manager-backend .
+
+# Run with Docker
+docker run -p 3000:3000 server-manager-backend
+```
 
 ## 🤝 Contributing
 
