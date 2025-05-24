@@ -22,8 +22,9 @@ import type {
   MxDnsRecord, 
   SrvDnsRecord, 
   BaseDnsRecord, 
-  DnsRecordType
-} from '../../../types/dns';
+  DnsRecordType,
+  SoaSettings
+} from '@server-manager/shared';
 
 // Import directly from shared package
 import {
@@ -39,18 +40,6 @@ import {
 } from '@server-manager/shared/validators';
 
 export type DnsConfigFormValues = z.infer<typeof dnsConfigSchema>;
-
-// Add interface for SOA settings
-interface SoaSettings {
-  ttl: string;
-  primaryNameserver: string;
-  adminEmail: string;
-  serial: string;
-  refresh: string;
-  retry: string;
-  expire: string;
-  minimumTtl: string;
-}
 
 // Component for DNS record form fields
 interface DnsRecordFormFieldsProps {

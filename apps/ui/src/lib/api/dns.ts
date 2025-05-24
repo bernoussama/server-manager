@@ -1,4 +1,4 @@
-import type { DnsUpdateResponse, DnsConfiguration } from '../../types/dns';
+import type { DnsUpdateResponse, DnsConfiguration } from '@server-manager/shared';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
 
