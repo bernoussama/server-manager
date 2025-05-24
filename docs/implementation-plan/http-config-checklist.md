@@ -28,19 +28,19 @@
 ### 2. Frontend Enhancement (Priority: Medium)
 
 #### Enhanced HTTP Config Form
-- [ ] Replace basic form in `apps/ui/src/features/configuration/http/HTTPConfig.tsx`
-- [ ] Use react-hook-form with shared validators
-- [ ] Dynamic virtual host management
+- [x] Replace basic form in `apps/ui/src/features/configuration/http/HTTPConfig.tsx`
+- [x] Use react-hook-form with shared validators
+- [x] Dynamic virtual host management
 
 #### API Integration
-- [ ] `apps/ui/src/lib/api/http.ts`
-- [ ] Methods for all HTTP endpoints
-- [ ] Error handling and types
+- [x] `apps/ui/src/lib/api/http.ts`
+- [x] Methods for all HTTP endpoints
+- [x] Error handling and types
 
 #### Virtual Host Management
-- [ ] New component: `apps/ui/src/features/configuration/http/VirtualHostConfig.tsx`
-- [ ] Add/remove virtual hosts
-- [ ] SSL configuration per virtual host
+- [x] New component: `apps/ui/src/features/configuration/http/VirtualHostConfig.tsx` (integrated into main component)
+- [x] Add/remove virtual hosts
+- [x] SSL configuration per virtual host
 
 ### 3. Testing (Priority: Medium)
 

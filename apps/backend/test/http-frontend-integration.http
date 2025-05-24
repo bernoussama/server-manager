@@ -1,0 +1,224 @@
+### HTTP Frontend-Backend Integration Tests
+
+# First, login to get a token
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "john@example.com",
+  "password": "password123"
+}
+
+###
+
+@token = {{login.response.body.token}}
+
+# Test 1: Get current HTTP configuration (should work with frontend)
+GET http://localhost:3000/api/http/config
+Authorization: Bearer {{token}}
+
+###
+
+# Test 2: Get HTTP service status (for service control tab)
+GET http://localhost:3000/api/http/status
+Authorization: Bearer {{token}}
+
+###
+
+# Test 3: Validate HTTP configuration with frontend form data
+POST http://localhost:3000/api/http/validate
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "serverStatus": true,
+  "serverName": "example.com",
+  "serverAdmin": "admin@example.com",
+  "listenPorts": "80,443",
+  "serverTokens": "Prod",
+  "timeout": "60",
+  "keepAlive": true,
+  "virtualHosts": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440001",
+      "enabled": true,
+      "serverName": "example.com",
+      "serverAlias": "www.example.com",
+      "documentRoot": "/var/www/html",
+      "port": "80",
+      "directoryIndex": "index.html index.php",
+      "errorLog": "/var/log/httpd/example_error.log",
+      "accessLog": "/var/log/httpd/example_access.log",
+      "accessLogFormat": "combined",
+      "sslEnabled": false,
+      "sslCertificateFile": "",
+      "sslCertificateKeyFile": "",
+      "customDirectives": ""
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440002",
+      "enabled": true,
+      "serverName": "secure.example.com",
+      "serverAlias": "",
+      "documentRoot": "/var/www/secure",
+      "port": "443",
+      "directoryIndex": "index.html",
+      "errorLog": "/var/log/httpd/secure_error.log",
+      "accessLog": "/var/log/httpd/secure_access.log",
+      "accessLogFormat": "combined",
+      "sslEnabled": true,
+      "sslCertificateFile": "/etc/ssl/certs/secure.example.com.crt",
+      "sslCertificateKeyFile": "/etc/ssl/private/secure.example.com.key",
+      "customDirectives": "# SSL Security Headers\nHeader always set Strict-Transport-Security \"max-age=31536000; includeSubDomains\"\nHeader always set X-Content-Type-Options nosniff"
+    }
+  ]
+}
+
+###
+
+# Test 4: Update HTTP configuration with complete frontend form data
+PUT http://localhost:3000/api/http/config
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "serverStatus": true,
+  "serverName": "myserver.local",
+  "serverAdmin": "admin@myserver.local",
+  "listenPorts": "80,443,8080",
+  "serverTokens": "Prod",
+  "timeout": "90",
+  "keepAlive": true,
+  "virtualHosts": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440003",
+      "enabled": true,
+      "serverName": "myserver.local",
+      "serverAlias": "www.myserver.local,myserver",
+      "documentRoot": "/var/www/html",
+      "port": "80",
+      "directoryIndex": "index.html index.php index.htm",
+      "errorLog": "/var/log/httpd/myserver_error.log",
+      "accessLog": "/var/log/httpd/myserver_access.log",
+      "accessLogFormat": "combined",
+      "sslEnabled": false,
+      "sslCertificateFile": "",
+      "sslCertificateKeyFile": "",
+      "customDirectives": "# Custom directives for main site\nRewriteEngine On\nRewriteCond %{HTTPS} off\nRewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]"
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440004",
+      "enabled": true,
+      "serverName": "api.myserver.local",
+      "serverAlias": "",
+      "documentRoot": "/var/www/api",
+      "port": "443",
+      "directoryIndex": "index.php",
+      "errorLog": "/var/log/httpd/api_error.log",
+      "accessLog": "/var/log/httpd/api_access.log",
+      "accessLogFormat": "combined",
+      "sslEnabled": true,
+      "sslCertificateFile": "/etc/ssl/certs/api.myserver.local.crt",
+      "sslCertificateKeyFile": "/etc/ssl/private/api.myserver.local.key",
+      "customDirectives": "# API specific settings\nHeader always set Access-Control-Allow-Origin \"*\"\nHeader always set Access-Control-Allow-Methods \"GET, POST, PUT, DELETE, OPTIONS\"\nHeader always set Access-Control-Allow-Headers \"Content-Type, Authorization\""
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440005",
+      "enabled": true,
+      "serverName": "dev.myserver.local",
+      "serverAlias": "",
+      "documentRoot": "/var/www/dev",
+      "port": "8080",
+      "directoryIndex": "index.html",
+      "errorLog": "/var/log/httpd/dev_error.log",
+      "accessLog": "/var/log/httpd/dev_access.log",
+      "accessLogFormat": "combined",
+      "sslEnabled": false,
+      "sslCertificateFile": "",
+      "sslCertificateKeyFile": "",
+      "customDirectives": "# Development environment\nSetEnv APP_ENV development\nSetEnv DEBUG true"
+    }
+  ]
+}
+
+###
+
+# Test 5: Verify the configuration was saved properly
+GET http://localhost:3000/api/http/config
+Authorization: Bearer {{token}}
+
+###
+
+# Test 6: Test service control endpoints (restart)
+POST http://localhost:3000/api/http/service/restart
+Authorization: Bearer {{token}}
+
+###
+
+# Test 7: Check service status after restart
+POST http://localhost:3000/api/http/service/status
+Authorization: Bearer {{token}}
+
+###
+
+# Test 8: Test validation with invalid data (should return validation errors)
+POST http://localhost:3000/api/http/validate
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "serverStatus": true,
+  "serverName": "invalid_server_name",
+  "serverAdmin": "not-an-email",
+  "listenPorts": "80,70000",
+  "serverTokens": "InvalidTokenValue",
+  "timeout": "not-a-number",
+  "keepAlive": true,
+  "virtualHosts": [
+    {
+      "id": "invalid-uuid",
+      "enabled": true,
+      "serverName": "invalid server name with spaces",
+      "documentRoot": "relative/path",
+      "port": "invalid-port",
+      "sslEnabled": true,
+      "sslCertificateFile": "",
+      "sslCertificateKeyFile": ""
+    }
+  ]
+}
+
+###
+
+# Test 9: Test with minimal valid configuration
+PUT http://localhost:3000/api/http/config
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "serverStatus": false,
+  "serverName": "localhost",
+  "serverAdmin": "admin@localhost",
+  "listenPorts": "80",
+  "serverTokens": "Prod",
+  "timeout": "60",
+  "keepAlive": true,
+  "virtualHosts": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440006",
+      "enabled": true,
+      "serverName": "localhost",
+      "documentRoot": "/var/www/html",
+      "port": "80",
+      "directoryIndex": "index.html",
+      "accessLogFormat": "combined",
+      "sslEnabled": false,
+      "serverAlias": "",
+      "errorLog": "",
+      "accessLog": "",
+      "sslCertificateFile": "",
+      "sslCertificateKeyFile": "",
+      "customDirectives": ""
+    }
+  ]
+} 
