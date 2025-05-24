@@ -1,0 +1,2 @@
+{"level":"warn","message":"JWT_SECRET is not set","service":"api-server","timestamp":"2025-05-24 18:50:54"}
+{"level":"info","message":"Server is running on port 3000 in production mode","service":"api-server","timestamp":"2025-05-24 18:50:54"}
