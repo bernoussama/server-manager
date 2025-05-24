@@ -1,8 +1,7 @@
 import express from 'express';
-import type { Router } from 'express';
 import servicesController from '../controllers/servicesController';
 
-const router: Router = express.Router();
+const router: express.Router = express.Router();
 
 // Get status of all services
 router.get('/', servicesController.getAllServicesStatus);
