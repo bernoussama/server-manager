@@ -1,0 +1,81 @@
+version: 2
+updates:
+  # Root package.json
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "bernoussama"
+    assignees:
+      - "bernoussama"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+
+  # Backend app
+  - package-ecosystem: "npm"
+    directory: "/apps/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "bernoussama"
+    assignees:
+      - "bernoussama"
+    commit-message:
+      prefix: "deps(backend)"
+      include: "scope"
+
+  # UI app
+  - package-ecosystem: "npm"
+    directory: "/apps/ui"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "bernoussama"
+    assignees:
+      - "bernoussama"
+    commit-message:
+      prefix: "deps(ui)"
+      include: "scope"
+
+  # Shared package
+  - package-ecosystem: "npm"
+    directory: "/packages/shared"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "bernoussama"
+    assignees:
+      - "bernoussama"
+    commit-message:
+      prefix: "deps(shared)"
+      include: "scope"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "bernoussama"
+    assignees:
+      - "bernoussama"
+    commit-message:
+      prefix: "ci"
+      include: "scope" 
