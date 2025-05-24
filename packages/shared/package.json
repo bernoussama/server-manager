@@ -6,18 +6,18 @@
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "require": "./dist/index.cjs",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/index.cjs"
     },
     "./validators": {
+      "types": "./dist/validators/index.d.ts",
       "import": "./dist/validators/index.js", 
-      "require": "./dist/validators/index.cjs",
-      "types": "./dist/validators/index.d.ts"
+      "require": "./dist/validators/index.cjs"
     }
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && tsup",
     "dev": "tsc --watch"
   },
     "keywords": [],

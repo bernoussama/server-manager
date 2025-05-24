@@ -4,14 +4,13 @@
   "description": "TypeScript Node.js Express API",
   "type": "module",
   "files": [
-    "dist/**/*"
+    "dist/"
   ],
   "private": true,
-  "main": "dist/server.js",
   "scripts": {
     "start": "node dist/server.js",
     "dev": "tsx watch --clear-screen=false src/server",
-    "build": "tsc",
+    "build": "tsc && tsup",
     "lint": "eslint . --ext .ts",
     "format": "prettier --write 'src/**/*.ts'",
     "test": "jest"

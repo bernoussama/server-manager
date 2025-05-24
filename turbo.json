@@ -16,6 +16,10 @@
         "cache": false,
         "persistent": true,
         "dependsOn": ["^build"]
-      }
+      },
+      "generate": {
+			"dependsOn": ["^generate"],
+			"cache": false
+		}
     }
   }
