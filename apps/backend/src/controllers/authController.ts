@@ -1,11 +1,15 @@
 import type { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { db } from '../lib/db'; // Corrected import path
+import { db } from '../lib/db';
 import { users, type NewUser } from '../models/user';
 import { eq } from 'drizzle-orm';
+import logger from '../lib/logger';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'; // Store this in .env!
+const JWT_SECRET = process.env.JWT_SECRET as string; // Store this in .env!
+if (!JWT_SECRET) {
+  logger.warn('JWT_SECRET is not set');
+}
 const SALT_ROUNDS = 10;
 
 export async function signup(req: Request, res: Response, next: NextFunction) {

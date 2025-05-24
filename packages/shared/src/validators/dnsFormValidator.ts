@@ -56,16 +56,15 @@ export const dnsRecordUISchema = z.object({
   }
 });
 
-// Schema for SOA settings
 export const soaSettingsSchema = z.object({
-  ttl: z.string(),
+  ttl: z.string().regex(/^\d+$/, { message: 'TTL must be a number' }),
   primaryNameserver: z.string(),
-  adminEmail: z.string(),
-  serial: z.string(),
-  refresh: z.string(),
-  retry: z.string(),
-  expire: z.string(),
-  minimumTtl: z.string(),
+  adminEmail: z.string().email({ message: 'Invalid email format' }),
+  serial: z.string().regex(/^\d+$/, { message: 'Serial must be numeric' }),
+  refresh: z.string().regex(/^\d+$/, { message: 'Refresh must be a number' }),
+  retry: z.string().regex(/^\d+$/, { message: 'Retry must be a number' }),
+  expire: z.string().regex(/^\d+$/, { message: 'Expire must be a number' }),
+  minimumTtl: z.string().regex(/^\d+$/, { message: 'Minimum TTL must be a number' }),
 });
 
 // Schema for zone configuration in the UI form

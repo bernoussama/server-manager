@@ -42,33 +42,33 @@ export const updateDnsConfigurationAPI = async (formData: any): Promise<DnsUpdat
   }
 };
 
+// Extracted common error‐handling helper
+const handleApiError = (error: any, operation: string): never => {
+  console.error(`Failed to ${operation}:`, error);
+  if (error.status && error.data) {
+    throw error;
+  }
+  throw {
+    status: null,
+    data: { message: 'Network error or failed to parse response.', errors: [] }
+  };
+};
+
 export const getDnsConfigurationAPI = async (): Promise<DnsConfigResponse> => {
   try {
     const response = await fetch(`${API_BASE_URL}/dns/config`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        // Add Authorization header if your API requires authentication
-        // 'Authorization': `Bearer ${your_auth_token}`,
-      },
     });
 
     const responseData: DnsConfigResponse = await response.json();
 
     if (!response.ok) {
-      // If the server returns a non-OK status, throw an error with the response data
       console.error('API Error:', responseData);
       throw { status: response.status, data: responseData };
     }
 
     return responseData;
   } catch (error: any) {
-    console.error('Failed to get DNS configuration:', error);
-    // Rethrow a structured error. If it's an error from our fetch block, it will have status and data.
-    // Otherwise, it's a network error or something else.
-    if (error.status && error.data) {
-        throw error;
-    }
-    throw { status: null, data: { message: 'Network error or failed to parse response.', errors: [] } };
+    throw handleApiError(error, 'get DNS configuration');
   }
-}; 
+};
