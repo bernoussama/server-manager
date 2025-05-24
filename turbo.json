@@ -1,11 +1,9 @@
 {
     "$schema": "https://turborepo.com/schema.json",
         "globalDependencies": [
-          "tsup.config.ts",
           "package.json",
           "pnpm-lock.yaml",
           "pnpm-workspace.yaml",
-          "tsup.config.ts",
           "tsconfig.json",
           "turbo.json"
       ],
@@ -19,12 +17,11 @@
       "dev": {
         "cache": false
       },
-  
-          "generate": {
-              "dependsOn": ["^generate"],
-              "cache": false
-          },
-          "lint": {},
-          "test": {}
+      "generate": {
+          "dependsOn": ["^generate"],
+          "cache": false
+      },
+      "lint": {},
+      "test": {}
       }
   }
