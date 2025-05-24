@@ -374,9 +374,6 @@ importers:
       '@types/node':
         specifier: ^22.15.18
         version: 22.15.21
-      tsup:
-        specifier: ^8.5.0
-        version: 8.5.0(jiti@1.21.7)(postcss@8.5.3)(tsx@4.19.4)(typescript@5.8.3)(yaml@2.8.0)
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
