@@ -7,6 +7,7 @@ A full-stack monorepo application for managing and monitoring network services b
 ![Node.js](https://img.shields.io/badge/Node.js-18+-green)
 ![Express](https://img.shields.io/badge/Express-4.18.2-lightblue)
 ![React](https://img.shields.io/badge/React-18.3.1-61DAFB)
+[![CI](https://github.com/bernoussama/server-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/bernoussama/server-manager/actions/workflows/ci.yml)
 
 ## 📋 Overview
 
