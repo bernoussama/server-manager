@@ -8,3 +8,4 @@ dist
 **/meta
 **/.vite
 .turbo
+apps/backend/test/dns
