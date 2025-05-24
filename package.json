@@ -13,7 +13,7 @@
     "dev:shared": "pnpm --filter @server-manager/shared dev",
     "dev:backend": "pnpm --filter backend dev",
     "dev:ui": "pnpm --filter ui dev",
-    "dev": "concurrently \"pnpm dev:shared\" \"pnpm dev:backend\" \"pnpm dev:ui\"",
+    "dev": "turbo run dev",
     "clean": "pnpm -r exec -- rm -rf dist node_modules"
   },
   "author": "bernoussama",

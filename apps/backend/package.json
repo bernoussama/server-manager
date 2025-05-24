@@ -10,7 +10,7 @@
   "main": "dist/server.js",
   "scripts": {
     "start": "node dist/server.js",
-    "dev": "tsx watch src/server",
+    "dev": "tsx watch --clear-screen=false src/server",
     "build": "tsc",
     "lint": "eslint . --ext .ts",
     "format": "prettier --write 'src/**/*.ts'",
