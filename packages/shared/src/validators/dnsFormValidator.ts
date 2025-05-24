@@ -59,7 +59,7 @@ export const dnsRecordUISchema = z.object({
 export const soaSettingsSchema = z.object({
   ttl: z.string().regex(/^\d+$/, { message: 'TTL must be a number' }),
   primaryNameserver: z.string(),
-  adminEmail: z.string().email({ message: 'Invalid email format' }),
+  adminEmail: z.string().min(1, "Admin email is required"),
   serial: z.string().regex(/^\d+$/, { message: 'Serial must be numeric' }),
   refresh: z.string().regex(/^\d+$/, { message: 'Refresh must be a number' }),
   retry: z.string().regex(/^\d+$/, { message: 'Retry must be a number' }),
