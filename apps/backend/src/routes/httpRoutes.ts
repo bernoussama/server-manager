@@ -11,7 +11,7 @@ import {
 const router: Router = express.Router();
 
 // Apply authentication middleware to all routes
-router.use(protect);
+// router.use(protect);
 
 // HTTP Configuration routes
 router.get('/config', getCurrentHttpConfiguration);
