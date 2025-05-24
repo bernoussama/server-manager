@@ -9,3 +9,4 @@ dist
 **/.vite
 .turbo
 apps/backend/test/dns/*
+apps/backend/test/dns/config
