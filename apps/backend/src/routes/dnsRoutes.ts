@@ -1,8 +1,9 @@
 import express from 'express';
+import type { Router } from 'express';
 import { updateDnsConfiguration, getCurrentDnsConfiguration } from '../controllers/dnsController';
 import { protect } from '../middlewares/authMiddleware';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 // Route to get current DNS configuration
 router.get('/config', getCurrentDnsConfiguration);

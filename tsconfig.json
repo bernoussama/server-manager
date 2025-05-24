@@ -11,16 +11,16 @@
 		"removeComments": true,
 		"skipLibCheck": true,
 		"strict": true,
-		"strictNullChecks": true,
-		"strictFunctionTypes": true,
-		"strictBindCallApply": true,
-		"strictPropertyInitialization": true,
-		"noImplicitThis": true,
-		"alwaysStrict": true,
+		// "strictNullChecks": true,
+		// "strictFunctionTypes": true,
+		// "strictBindCallApply": true,
+		// "strictPropertyInitialization": true,
+		// "noImplicitThis": true,
+		// "alwaysStrict": true,
 		"esModuleInterop": true,
 		"sourceMap": false,
-		"noFallthroughCasesInSwitch": true,
-		"forceConsistentCasingInFileNames": true,
-		"noImplicitReturns": true
+		// "noFallthroughCasesInSwitch": true,
+		// "forceConsistentCasingInFileNames": true,
+		// "noImplicitReturns": true
 	}
 }

@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Express } from 'express';
 import serviceRoutes from './routes/serviceRoutes';
 import userRoutes from './routes/usersRoutes';
 import authRoutes from './routes/authRoutes';
@@ -9,7 +9,7 @@ import dnsRoutes from './routes/dnsRoutes';
 import systemMetricsRoutes from './routes/systemMetricsRoutes';
 import logger from './lib/logger';
 
-const app = express();
+const app: Express = express();
 
 // Logging middleware
 app.use(morganMiddleware);
