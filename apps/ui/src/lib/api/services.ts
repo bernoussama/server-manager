@@ -42,4 +42,7 @@ export const servicesApi = {
   },
 };
 
+// Re-export types for convenience
+export type { AllowedService, ServiceStatus, ServiceResponse, ServiceResponseWrapper, ServicesStatusResponse } from '@server-manager/shared';
+
 export default servicesApi;

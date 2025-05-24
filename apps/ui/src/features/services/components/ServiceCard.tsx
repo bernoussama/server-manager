@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useState, useEffect } from 'react';
-import servicesApi, { AllowedService, ServiceStatus } from '@/lib/api/services';
+import servicesApi, { type AllowedService, type ServiceStatus } from '@/lib/api/services';
 import { toast } from '@/hooks/use-toast';
 
 export function ServiceCard({ name, status: initialStatus, memory, cpu }: {
