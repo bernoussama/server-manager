@@ -13,5 +13,17 @@ export {
   uiZoneSchema,
   transformUiRecordToApiRecord,
   parseStringToArray,
-  transformFormToApiData
+  transformFormToApiData,
+  // HTTP validators and transformers
+  isValidPort,
+  isValidPath,
+  isValidServerName,
+  isValidEmail,
+  virtualHostSchema,
+  httpConfigSchema,
+  transformUiVirtualHostToApi,
+  transformApiVirtualHostToUi,
+  parsePortString,
+  transformHttpFormToApi,
+  transformHttpApiToForm
 } from './validators';
