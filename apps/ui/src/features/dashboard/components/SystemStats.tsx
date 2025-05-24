@@ -11,7 +11,7 @@ interface SystemStatsProps {
   refreshInterval?: number;
 }
 
-export function SystemStats({ autoRefresh = true, refreshInterval = 5000 }: SystemStatsProps) {
+export function SystemStats({ autoRefresh = true, refreshInterval = 15000 }: SystemStatsProps) {
   const [metrics, setMetrics] = useState<SystemMetricsResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -50,7 +50,7 @@ export function SystemStats({ autoRefresh = true, refreshInterval = 5000 }: Syst
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [metrics]);
+  }, []);
 
   // Auto-refresh functionality
   useEffect(() => {
