@@ -10,6 +10,7 @@ module.exports = {
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   // Fix for the error with the generateBindZoneContent function
   moduleNameMapper: {
-    '^../../controllers/dnsController$': '<rootDir>/src/controllers/dnsController.ts'
+    '^../../controllers/dnsController$': '<rootDir>/src/controllers/dnsController.ts',
+    '^../httpController$': '<rootDir>/src/controllers/httpController.ts'
   }
 };
