@@ -140,72 +140,40 @@ ServerRoot "${globalConfig.serverRoot || DEFAULT_HTTPD_CONFIG.serverRoot}"
 # Required modules
 `;
 
-  // Always load essential modules first
-  const essentialModules = [
-    'mod_mpm_event.so',
-    'mod_dir.so', 
-    'mod_mime.so',
-    'mod_authz_core.so'
-  ];
-
-  // Add essential modules
-  essentialModules.forEach(module => {
-    const moduleName = module.replace('mod_', '').replace('.so', '');
-    conf += `LoadModule ${moduleName}_module modules/${module}\n`;
-  });
-
   // Add enabled modules from configuration
   if (globalConfig.modules && globalConfig.modules.length > 0) {
     globalConfig.modules
-      .filter((module: any) => module.enabled && !essentialModules.some(essential => essential.includes(module.name)))
+      .filter((module: any) => module.enabled)
       .forEach((module: any) => {
-        const filename = module.filename || `modules/mod_${module.name}.so`;
-        // Ensure proper escaping of module names and filenames
-        const safeName = module.name.replace(/[^a-zA-Z0-9_]/g, '');
-        const safeFilename = filename.replace(/[^a-zA-Z0-9_.\/]/g, '');
-        conf += `LoadModule ${safeName}_module ${safeFilename}\n`;
+        conf += `LoadModule ${module.name}_module ${module.filename || `modules/mod_${module.name}.so`}\n`;
       });
   } else {
-    // Fallback to additional default modules if none specified
-    const additionalModules = [
-      'mod_rewrite.so',
-      'mod_alias.so', 
-      'mod_authz_host.so',
-      'mod_log_config.so'
-    ];
-    
-    additionalModules.forEach(module => {
-      const moduleName = module.replace('mod_', '').replace('.so', '');
-      conf += `LoadModule ${moduleName}_module modules/${module}\n`;
-    });
+    // Fallback to default modules if none specified
+    conf += `LoadModule mpm_event_module modules/mod_mpm_event.so
+LoadModule dir_module modules/mod_dir.so
+LoadModule mime_module modules/mod_mime.so
+LoadModule rewrite_module modules/mod_rewrite.so
+LoadModule ssl_module modules/mod_ssl.so
+LoadModule alias_module modules/mod_alias.so
+LoadModule authz_core_module modules/mod_authz_core.so
+LoadModule authz_host_module modules/mod_authz_host.so
+LoadModule log_config_module modules/mod_log_config.so
+`;
   }
-
-  // Check if any SSL-enabled listeners exist before loading SSL module
-  const hasSslListeners = globalConfig.listen.some((listen: { ssl?: boolean }) => listen.ssl);
-  if (hasSslListeners) {
-    conf += `LoadModule ssl_module modules/mod_ssl.so\n`;
-  }
-
-  conf += '\n';
 
   // Listen directives
   globalConfig.listen.forEach((listen: { port: number; address?: string; ssl?: boolean }) => {
-    const address = listen.address || '*';
     if (listen.ssl) {
-      conf += `Listen ${address}:${listen.port} ssl\n`;
+      conf += `Listen ${listen.address || '*'}:${listen.port} ssl\n`;
     } else {
-      conf += `Listen ${address}:${listen.port}\n`;
+      conf += `Listen ${listen.address || '*'}:${listen.port}\n`;
     }
   });
 
-  // Ensure proper escaping of server values
-  const safeServerName = (globalConfig.serverName || DEFAULT_HTTPD_CONFIG.serverName).replace(/[<>&"']/g, '');
-  const safeServerAdmin = (globalConfig.serverAdmin || DEFAULT_HTTPD_CONFIG.serverAdmin).replace(/[<>&"']/g, '');
-
   conf += `
 # Server identification
-ServerName ${safeServerName}
-ServerAdmin ${safeServerAdmin}
+ServerName ${globalConfig.serverName || DEFAULT_HTTPD_CONFIG.serverName}
+ServerAdmin ${globalConfig.serverAdmin || DEFAULT_HTTPD_CONFIG.serverAdmin}
 
 # Security settings
 ServerTokens ${globalConfig.serverTokens || DEFAULT_HTTPD_CONFIG.serverTokens}
@@ -235,10 +203,8 @@ StartServers ${globalConfig.startServers}
 
   // Global logging
   if (globalConfig.errorLog) {
-    // Ensure proper escaping of log path
-    const safeErrorLog = globalConfig.errorLog.replace(/[<>&"'`]/g, '');
     conf += `\n# Global logging
-ErrorLog "${safeErrorLog}"
+ErrorLog ${globalConfig.errorLog}
 `;
     if (globalConfig.logLevel) {
       conf += `LogLevel ${globalConfig.logLevel}\n`;
@@ -250,16 +216,9 @@ ErrorLog "${safeErrorLog}"
     conf += '\n# Custom global directives\n';
     globalConfig.customDirectives.forEach((directive: HttpDirective) => {
       if (directive.comment) {
-        // Ensure comments don't contain problematic characters
-        const safeComment = directive.comment.replace(/[<>&"'`\n\r]/g, '');
-        conf += `# ${safeComment}\n`;
+        conf += `# ${directive.comment}\n`;
       }
-      // Sanitize directive name and value to prevent shell injection
-      const safeName = directive.name.replace(/[^a-zA-Z0-9_]/g, '');
-      const safeValue = directive.value.replace(/[<>&"'`]/g, '');
-      if (safeName && safeValue) {
-        conf += `${safeName} ${safeValue}\n`;
-      }
+      conf += `${directive.name} ${directive.value}\n`;
     });
   }
 
@@ -292,59 +251,38 @@ DocumentRoot "/var/www/html"
 const generateVirtualHostConf = (vhost: HttpVirtualHost): string => {
   const portSpec = vhost.ipAddress ? `${vhost.ipAddress}:${vhost.port}` : `*:${vhost.port}`;
   
-  // Sanitize server name to prevent injection
-  const safeServerName = vhost.serverName.replace(/[<>&"'`\s]/g, '');
-  
-  let conf = `# Virtual Host: ${safeServerName}
+  let conf = `# Virtual Host: ${vhost.serverName}
 # Generated by HTTP Management System
 
 <VirtualHost ${portSpec}>
-    ServerName ${safeServerName}
+    ServerName ${vhost.serverName}
 `;
 
   // Server aliases
   if (vhost.serverAlias && vhost.serverAlias.length > 0) {
-    const safeAliases = vhost.serverAlias
-      .filter(alias => alias && alias.trim())
-      .map(alias => alias.replace(/[<>&"'`\s]/g, ''))
-      .filter(alias => alias.length > 0);
-    if (safeAliases.length > 0) {
-      conf += `    ServerAlias ${safeAliases.join(' ')}\n`;
-    }
+    conf += `    ServerAlias ${vhost.serverAlias.join(' ')}\n`;
   }
 
-  // Sanitize document root path
-  const safeDocumentRoot = vhost.documentRoot.replace(/[<>&"'`]/g, '');
-  conf += `    DocumentRoot "${safeDocumentRoot}"\n`;
+  conf += `    DocumentRoot "${vhost.documentRoot}"\n`;
 
   // Directory index
   if (vhost.directoryIndex && vhost.directoryIndex.length > 0) {
-    const safeIndexes = vhost.directoryIndex
-      .filter(index => index && index.trim())
-      .map(index => index.replace(/[<>&"'`\s]/g, ''))
-      .filter(index => index.length > 0);
-    if (safeIndexes.length > 0) {
-      conf += `    DirectoryIndex ${safeIndexes.join(' ')}\n`;
-    }
+    conf += `    DirectoryIndex ${vhost.directoryIndex.join(' ')}\n`;
   }
 
   // Logging
   if (vhost.errorLog) {
-    const safeErrorLog = vhost.errorLog.replace(/[<>&"'`]/g, '');
-    conf += `    ErrorLog "${safeErrorLog}"\n`;
+    conf += `    ErrorLog "${vhost.errorLog}"\n`;
   }
   
   if (vhost.customLog && vhost.customLog.length > 0) {
     vhost.customLog.forEach((log: HttpLogConfig) => {
-      const safeLogPath = log.path.replace(/[<>&"'`]/g, '');
-      const safeFormat = (log.format || 'combined').replace(/[<>&"'`]/g, '');
-      conf += `    CustomLog "${safeLogPath}" ${safeFormat}\n`;
+      conf += `    CustomLog "${log.path}" ${log.format || 'combined'}\n`;
     });
   }
 
   if (vhost.logLevel) {
-    const safeLogLevel = vhost.logLevel.replace(/[<>&"'`]/g, '');
-    conf += `    LogLevel ${safeLogLevel}\n`;
+    conf += `    LogLevel ${vhost.logLevel}\n`;
   }
 
   // SSL Configuration
@@ -353,79 +291,47 @@ const generateVirtualHostConf = (vhost: HttpVirtualHost): string => {
     SSLEngine ${vhost.ssl.sslEngine ? 'on' : 'off'}
 `;
     if (vhost.ssl.certificateFile) {
-      const safeCertFile = vhost.ssl.certificateFile.replace(/[<>&"'`]/g, '');
-      conf += `    SSLCertificateFile "${safeCertFile}"\n`;
+      conf += `    SSLCertificateFile "${vhost.ssl.certificateFile}"\n`;
     }
     if (vhost.ssl.certificateKeyFile) {
-      const safeCertKeyFile = vhost.ssl.certificateKeyFile.replace(/[<>&"'`]/g, '');
-      conf += `    SSLCertificateKeyFile "${safeCertKeyFile}"\n`;
+      conf += `    SSLCertificateKeyFile "${vhost.ssl.certificateKeyFile}"\n`;
     }
     if (vhost.ssl.certificateChainFile) {
-      const safeCertChainFile = vhost.ssl.certificateChainFile.replace(/[<>&"'`]/g, '');
-      conf += `    SSLCertificateChainFile "${safeCertChainFile}"\n`;
+      conf += `    SSLCertificateChainFile "${vhost.ssl.certificateChainFile}"\n`;
     }
     if (vhost.ssl.sslProtocol && vhost.ssl.sslProtocol.length > 0) {
-      const safeProtocols = vhost.ssl.sslProtocol
-        .filter(protocol => protocol && protocol.trim())
-        .map(protocol => protocol.replace(/[<>&"'`]/g, ''))
-        .filter(protocol => protocol.length > 0);
-      if (safeProtocols.length > 0) {
-        conf += `    SSLProtocol ${safeProtocols.join(' ')}\n`;
-      }
+      conf += `    SSLProtocol ${vhost.ssl.sslProtocol.join(' ')}\n`;
     }
     if (vhost.ssl.sslCipherSuite) {
-      const safeCipherSuite = vhost.ssl.sslCipherSuite.replace(/[<>&"'`]/g, '');
-      conf += `    SSLCipherSuite "${safeCipherSuite}"\n`;
+      conf += `    SSLCipherSuite "${vhost.ssl.sslCipherSuite}"\n`;
     }
   }
 
   // Directory configurations
   if (vhost.directories && vhost.directories.length > 0) {
     vhost.directories.forEach((dir: HttpDirectoryConfig) => {
-      const safeDirPath = dir.path.replace(/[<>&"'`]/g, '');
-      conf += `\n    <Directory "${safeDirPath}">
+      conf += `\n    <Directory "${dir.path}">
 `;
       if (dir.allowOverride) {
-        const safeAllowOverride = dir.allowOverride.replace(/[<>&"'`]/g, '');
-        conf += `        AllowOverride ${safeAllowOverride}\n`;
+        conf += `        AllowOverride ${dir.allowOverride}\n`;
       }
       if (dir.options && dir.options.length > 0) {
-        const safeOptions = dir.options
-          .filter(option => option && option.trim())
-          .map(option => option.replace(/[<>&"'`]/g, ''))
-          .filter(option => option.length > 0);
-        if (safeOptions.length > 0) {
-          conf += `        Options ${safeOptions.join(' ')}\n`;
-        }
+        conf += `        Options ${dir.options.join(' ')}\n`;
       }
       if (dir.require && dir.require.length > 0) {
         dir.require.forEach((req: string) => {
-          const safeRequire = req.replace(/[<>&"'`]/g, '');
-          if (safeRequire.trim()) {
-            conf += `        Require ${safeRequire}\n`;
-          }
+          conf += `        Require ${req}\n`;
         });
       }
       if (dir.directoryIndex && dir.directoryIndex.length > 0) {
-        const safeDirIndexes = dir.directoryIndex
-          .filter(index => index && index.trim())
-          .map(index => index.replace(/[<>&"'`]/g, ''))
-          .filter(index => index.length > 0);
-        if (safeDirIndexes.length > 0) {
-          conf += `        DirectoryIndex ${safeDirIndexes.join(' ')}\n`;
-        }
+        conf += `        DirectoryIndex ${dir.directoryIndex.join(' ')}\n`;
       }
       if (dir.customDirectives && dir.customDirectives.length > 0) {
         dir.customDirectives.forEach((directive: HttpDirective) => {
           if (directive.comment) {
-            const safeComment = directive.comment.replace(/[<>&"'`\n\r]/g, '');
-            conf += `        # ${safeComment}\n`;
+            conf += `        # ${directive.comment}\n`;
           }
-          const safeName = directive.name.replace(/[^a-zA-Z0-9_]/g, '');
-          const safeValue = directive.value.replace(/[<>&"'`]/g, '');
-          if (safeName && safeValue) {
-            conf += `        ${safeName} ${safeValue}\n`;
-          }
+          conf += `        ${directive.name} ${directive.value}\n`;
         });
       }
       conf += `    </Directory>\n`;
@@ -439,11 +345,7 @@ const generateVirtualHostConf = (vhost: HttpVirtualHost): string => {
       const redirectType = redirect.type === 'permanent' ? '301' : 
                           redirect.type === 'temporary' ? '302' : 
                           redirect.type === 'seeother' ? '303' : '410';
-      const safeFrom = redirect.from.replace(/[<>&"'`]/g, '');
-      const safeTo = redirect.to.replace(/[<>&"'`]/g, '');
-      if (safeFrom && safeTo) {
-        conf += `    Redirect ${redirectType} ${safeFrom} ${safeTo}\n`;
-      }
+      conf += `    Redirect ${redirectType} ${redirect.from} ${redirect.to}\n`;
     });
   }
 
@@ -451,13 +353,8 @@ const generateVirtualHostConf = (vhost: HttpVirtualHost): string => {
   if (vhost.rewrites && vhost.rewrites.length > 0) {
     conf += '\n    # Rewrites\n    RewriteEngine On\n';
     vhost.rewrites.forEach((rewrite: { pattern: string; substitution: string; flags?: string[] }) => {
-      const safePattern = rewrite.pattern.replace(/[<>&"'`]/g, '');
-      const safeSubstitution = rewrite.substitution.replace(/[<>&"'`]/g, '');
-      if (safePattern && safeSubstitution) {
-        const flags = rewrite.flags && rewrite.flags.length > 0 ? 
-          ` [${rewrite.flags.map(flag => flag.replace(/[<>&"'`]/g, '')).filter(flag => flag).join(',')}]` : '';
-        conf += `    RewriteRule ${safePattern} ${safeSubstitution}${flags}\n`;
-      }
+      const flags = rewrite.flags && rewrite.flags.length > 0 ? ` [${rewrite.flags.join(',')}]` : '';
+      conf += `    RewriteRule ${rewrite.pattern} ${rewrite.substitution}${flags}\n`;
     });
   }
 
@@ -466,14 +363,9 @@ const generateVirtualHostConf = (vhost: HttpVirtualHost): string => {
     conf += '\n    # Custom directives\n';
     vhost.customDirectives.forEach((directive: HttpDirective) => {
       if (directive.comment) {
-        const safeComment = directive.comment.replace(/[<>&"'`\n\r]/g, '');
-        conf += `    # ${safeComment}\n`;
+        conf += `    # ${directive.comment}\n`;
       }
-      const safeName = directive.name.replace(/[^a-zA-Z0-9_]/g, '');
-      const safeValue = directive.value.replace(/[<>&"'`]/g, '');
-      if (safeName && safeValue) {
-        conf += `    ${safeName} ${safeValue}\n`;
-      }
+      conf += `    ${directive.name} ${directive.value}\n`;
     });
   }
 
