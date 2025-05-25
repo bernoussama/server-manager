@@ -139,6 +139,14 @@ ServerRoot "${globalConfig.serverRoot || DEFAULT_HTTPD_CONFIG.serverRoot}"
 
 # Required modules
 LoadModule mpm_event_module modules/mod_mpm_event.so
+LoadModule dir_module modules/mod_dir.so
+LoadModule mime_module modules/mod_mime.so
+LoadModule rewrite_module modules/mod_rewrite.so
+LoadModule ssl_module modules/mod_ssl.so
+LoadModule alias_module modules/mod_alias.so
+LoadModule authz_core_module modules/mod_authz_core.so
+LoadModule authz_host_module modules/mod_authz_host.so
+LoadModule log_config_module modules/mod_log_config.so
 `;
 
   // Listen directives
