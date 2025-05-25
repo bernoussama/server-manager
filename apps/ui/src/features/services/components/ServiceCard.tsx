@@ -5,11 +5,18 @@ import { useState, useEffect } from 'react';
 import servicesApi, { type AllowedService, type ServiceStatus } from '@/lib/api/services';
 import { toast } from '@/hooks/use-toast';
 
-export function ServiceCard({ name, status: initialStatus, memory, cpu }: {
+export function ServiceCard({ 
+  name, 
+  status: initialStatus, 
+  memory, 
+  cpu,
+  onServiceUpdate
+}: {
   name: string;
-  status: 'running' | 'stopped';
+  status: ServiceStatus;
   memory: string;
   cpu: string;
+  onServiceUpdate?: () => void;
 }) {
   const [status, setStatus] = useState<ServiceStatus>(initialStatus);
   const [isLoading, setIsLoading] = useState<{
@@ -23,6 +30,11 @@ export function ServiceCard({ name, status: initialStatus, memory, cpu }: {
     restart: false,
     refreshing: false,
   });
+
+  // Update local status when prop changes
+  useEffect(() => {
+    setStatus(initialStatus);
+  }, [initialStatus]);
 
   // Auto-refresh the status every 10 seconds
   useEffect(() => {
@@ -63,6 +75,8 @@ export function ServiceCard({ name, status: initialStatus, memory, cpu }: {
       await refreshStatus();
       setTimeout(async () => {
         await refreshStatus();
+        // Notify parent component that service status may have changed
+        onServiceUpdate?.();
       }, 1000);
     }, 2000);
   };
@@ -139,19 +153,64 @@ export function ServiceCard({ name, status: initialStatus, memory, cpu }: {
     }
   };
 
+  const getStatusBadge = () => {
+    switch (status) {
+      case 'running':
+        return (
+          <Badge
+            variant="default"
+            className="ml-2 px-3 py-1 text-xs font-bold rounded-full bg-green-500 text-white"
+          >
+            {status}
+            {isLoading.refreshing && '...'}
+          </Badge>
+        );
+      case 'stopped':
+        return (
+          <Badge
+            variant="destructive"
+            className="ml-2 px-3 py-1 text-xs font-bold rounded-full bg-red-500 text-white"
+          >
+            {status}
+            {isLoading.refreshing && '...'}
+          </Badge>
+        );
+      case 'failed':
+        return (
+          <Badge
+            variant="destructive"
+            className="ml-2 px-3 py-1 text-xs font-bold rounded-full bg-orange-500 text-white"
+          >
+            {status}
+            {isLoading.refreshing && '...'}
+          </Badge>
+        );
+      case 'unknown':
+      default:
+        return (
+          <Badge
+            variant="outline"
+            className="ml-2 px-3 py-1 text-xs font-bold rounded-full"
+          >
+            {status || 'unknown'}
+            {isLoading.refreshing && '...'}
+          </Badge>
+        );
+    }
+  };
+
+  const isServiceOperational = status === 'running';
+  const canStart = !isServiceOperational && status !== 'unknown';
+  const canStop = isServiceOperational;
+  const canRestart = status !== 'unknown';
+
   return (
     <Card className="p-4 rounded-xl shadow-md transition-transform hover:scale-[1.02] bg-card flex flex-col justify-between min-h-[200px]">
       <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-muted mb-2">
         <div className="flex items-center gap-2">
           <CardTitle className="text-lg font-semibold flex items-center gap-2">
             {name}
-            <Badge
-              variant={status === 'running' ? 'default' : 'destructive'}
-              className={`ml-2 px-3 py-1 text-xs font-bold rounded-full ${status === 'running' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}
-            >
-              {status}
-              {isLoading.refreshing && '...'}
-            </Badge>
+            {getStatusBadge()}
           </CardTitle>
         </div>
         <div className="flex space-x-1">
@@ -159,8 +218,8 @@ export function ServiceCard({ name, status: initialStatus, memory, cpu }: {
             variant="default"
             size="icon"
             onClick={handleStart}
-            disabled={isLoading.start || isLoading.stop || isLoading.restart || status === 'running'}
-            className="rounded-full bg-green-500 hover:bg-green-600 text-white"
+            disabled={isLoading.start || isLoading.stop || isLoading.restart || !canStart}
+            className="rounded-full bg-green-500 hover:bg-green-600 text-white disabled:opacity-50"
             title="Start"
           >
             {isLoading.start ? <span className="animate-spin">↻</span> : <span>▶</span>}
@@ -169,8 +228,8 @@ export function ServiceCard({ name, status: initialStatus, memory, cpu }: {
             variant="destructive"
             size="icon"
             onClick={handleStop}
-            disabled={isLoading.stop || isLoading.start || isLoading.restart || status === 'stopped'}
-            className="rounded-full"
+            disabled={isLoading.stop || isLoading.start || isLoading.restart || !canStop}
+            className="rounded-full disabled:opacity-50"
             title="Stop"
           >
             {isLoading.stop ? <span className="animate-spin">↻</span> : <span>■</span>}
@@ -179,8 +238,8 @@ export function ServiceCard({ name, status: initialStatus, memory, cpu }: {
             variant="outline"
             size="icon"
             onClick={handleRestart}
-            disabled={isLoading.restart || isLoading.start || isLoading.stop || status === 'stopped'}
-            className="rounded-full"
+            disabled={isLoading.restart || isLoading.start || isLoading.stop || !canRestart}
+            className="rounded-full disabled:opacity-50"
             title="Restart"
           >
             {isLoading.restart ? <span className="animate-spin">↻</span> : <span>⟳</span>}
@@ -190,7 +249,7 @@ export function ServiceCard({ name, status: initialStatus, memory, cpu }: {
             size="icon"
             onClick={refreshStatus}
             disabled={isLoading.refreshing || isLoading.start || isLoading.stop || isLoading.restart}
-            className="rounded-full"
+            className="rounded-full disabled:opacity-50"
             title="Refresh"
           >
             <span>↻</span>
