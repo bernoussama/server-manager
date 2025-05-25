@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { useState, useEffect } from 'react';
 import servicesApi, { type AllowedService, type ServiceStatus } from '@/lib/api/services';
 import { toast } from '@/hooks/use-toast';
+import { Activity, Play, Square, RotateCcw, RefreshCw, Server } from 'lucide-react';
 
 export function ServiceCard({ 
   name, 
@@ -154,119 +155,177 @@ export function ServiceCard({
   };
 
   const getStatusBadge = () => {
+    const isRefreshing = isLoading.refreshing;
+    
     switch (status) {
       case 'running':
         return (
-          <Badge
-            variant="default"
-            className="ml-2 px-3 py-1 text-xs font-bold rounded-full bg-green-500 text-white"
-          >
-            {status}
-            {isLoading.refreshing && '...'}
+          <Badge className="bg-green-500 text-white hover:bg-green-600">
+            <Activity className="h-3 w-3 mr-1" />
+            Running{isRefreshing && '...'}
           </Badge>
         );
       case 'stopped':
         return (
-          <Badge
-            variant="destructive"
-            className="ml-2 px-3 py-1 text-xs font-bold rounded-full bg-red-500 text-white"
-          >
-            {status}
-            {isLoading.refreshing && '...'}
+          <Badge className="bg-gray-500 text-white hover:bg-gray-600">
+            <Square className="h-3 w-3 mr-1" />
+            Stopped{isRefreshing && '...'}
           </Badge>
         );
       case 'failed':
         return (
-          <Badge
-            variant="destructive"
-            className="ml-2 px-3 py-1 text-xs font-bold rounded-full bg-orange-500 text-white"
-          >
-            {status}
-            {isLoading.refreshing && '...'}
+          <Badge className="bg-red-500 text-white hover:bg-red-600">
+            <Activity className="h-3 w-3 mr-1" />
+            Failed{isRefreshing && '...'}
           </Badge>
         );
       case 'unknown':
       default:
         return (
-          <Badge
-            variant="outline"
-            className="ml-2 px-3 py-1 text-xs font-bold rounded-full"
-          >
-            {status || 'unknown'}
-            {isLoading.refreshing && '...'}
+          <Badge variant="outline">
+            <Server className="h-3 w-3 mr-1" />
+            Unknown{isRefreshing && '...'}
           </Badge>
         );
     }
   };
 
+  const parseMemoryValue = (memStr: string) => {
+    const match = memStr.match(/(\d+\.?\d*)\s*(\w+)/);
+    if (match) {
+      const value = parseFloat(match[1]);
+      const unit = match[2];
+      return { value, unit, display: memStr };
+    }
+    return { value: 0, unit: 'MB', display: memStr };
+  };
+
+  const parseCpuValue = (cpuStr: string) => {
+    const match = cpuStr.match(/(\d+\.?\d*)%?/);
+    if (match) {
+      const value = parseFloat(match[1]);
+      return { value, display: `${value}%` };
+    }
+    return { value: 0, display: cpuStr };
+  };
+
+  const memoryInfo = parseMemoryValue(memory);
+  const cpuInfo = parseCpuValue(cpu);
+
   const isServiceOperational = status === 'running';
   const canStart = !isServiceOperational && status !== 'unknown';
   const canStop = isServiceOperational;
   const canRestart = status !== 'unknown';
+  const anyLoading = isLoading.start || isLoading.stop || isLoading.restart;
 
   return (
-    <Card className="p-4 rounded-xl shadow-md transition-transform hover:scale-[1.02] bg-card flex flex-col justify-between min-h-[200px]">
-      <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-muted mb-2">
+    <Card className="transition-all duration-200 hover:shadow-md">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">{name}</CardTitle>
         <div className="flex items-center gap-2">
-          <CardTitle className="text-lg font-semibold flex items-center gap-2">
-            {name}
-            {getStatusBadge()}
-          </CardTitle>
-        </div>
-        <div className="flex space-x-1">
-          <Button
-            variant="default"
-            size="icon"
-            onClick={handleStart}
-            disabled={isLoading.start || isLoading.stop || isLoading.restart || !canStart}
-            className="rounded-full bg-green-500 hover:bg-green-600 text-white disabled:opacity-50"
-            title="Start"
-          >
-            {isLoading.start ? <span className="animate-spin">↻</span> : <span>▶</span>}
-          </Button>
-          <Button
-            variant="destructive"
-            size="icon"
-            onClick={handleStop}
-            disabled={isLoading.stop || isLoading.start || isLoading.restart || !canStop}
-            className="rounded-full disabled:opacity-50"
-            title="Stop"
-          >
-            {isLoading.stop ? <span className="animate-spin">↻</span> : <span>■</span>}
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handleRestart}
-            disabled={isLoading.restart || isLoading.start || isLoading.stop || !canRestart}
-            className="rounded-full disabled:opacity-50"
-            title="Restart"
-          >
-            {isLoading.restart ? <span className="animate-spin">↻</span> : <span>⟳</span>}
-          </Button>
+          {getStatusBadge()}
           <Button
             variant="ghost"
-            size="icon"
+            size="sm"
             onClick={refreshStatus}
-            disabled={isLoading.refreshing || isLoading.start || isLoading.stop || isLoading.restart}
-            className="rounded-full disabled:opacity-50"
-            title="Refresh"
+            disabled={isLoading.refreshing || anyLoading}
+            className="h-8 w-8 p-0"
           >
-            <span>↻</span>
+            <RefreshCw className={`h-4 w-4 ${isLoading.refreshing ? 'animate-spin' : ''}`} />
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="flex flex-col gap-2 mt-2">
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <div className="flex flex-col items-start">
-            <span className="font-medium text-xs text-foreground">Memory</span>
-            <span className="font-mono text-base">{memory}</span>
+      
+      <CardContent className="space-y-4">
+        {/* Status Actions */}
+        <div className="flex gap-1">
+          <Button
+            variant={canStart ? "default" : "secondary"}
+            size="sm"
+            onClick={handleStart}
+            disabled={!canStart || anyLoading || isLoading.refreshing}
+            className="flex-1 h-8 bg-green-500 hover:bg-green-600 text-white disabled:bg-gray-200 disabled:text-gray-500"
+          >
+            {isLoading.start ? (
+              <RefreshCw className="h-3 w-3 animate-spin" />
+            ) : (
+              <Play className="h-3 w-3" />
+            )}
+            <span className="ml-1 text-xs">Start</span>
+          </Button>
+          
+          <Button
+            variant={canStop ? "destructive" : "secondary"}
+            size="sm"
+            onClick={handleStop}
+            disabled={!canStop || anyLoading || isLoading.refreshing}
+            className="flex-1 h-8"
+          >
+            {isLoading.stop ? (
+              <RefreshCw className="h-3 w-3 animate-spin" />
+            ) : (
+              <Square className="h-3 w-3" />
+            )}
+            <span className="ml-1 text-xs">Stop</span>
+          </Button>
+          
+          <Button
+            variant={canRestart ? "outline" : "secondary"}
+            size="sm"
+            onClick={handleRestart}
+            disabled={!canRestart || anyLoading || isLoading.refreshing}
+            className="flex-1 h-8"
+          >
+            {isLoading.restart ? (
+              <RefreshCw className="h-3 w-3 animate-spin" />
+            ) : (
+              <RotateCcw className="h-3 w-3" />
+            )}
+            <span className="ml-1 text-xs">Restart</span>
+          </Button>
+        </div>
+
+        {/* Resource Usage */}
+        <div className="space-y-3">
+          {/* Memory Usage */}
+          <div>
+            <div className="flex items-center justify-between text-sm mb-1">
+              <span className="font-medium">Memory Usage</span>
+              <span className="text-muted-foreground">{memoryInfo.display}</span>
+            </div>
+            <div className="w-full bg-secondary rounded-full h-2">
+              <div 
+                className={`h-2 rounded-full transition-all duration-500 ${
+                  memoryInfo.value > 80 ? 'bg-red-500' : 
+                  memoryInfo.value > 60 ? 'bg-yellow-500' : 'bg-blue-500'
+                }`}
+                style={{ width: `${Math.min(memoryInfo.value, 100)}%` }}
+              />
+            </div>
           </div>
-          <div className="flex flex-col items-end">
-            <span className="font-medium text-xs text-foreground">CPU</span>
-            <span className="font-mono text-base">{cpu}</span>
+
+          {/* CPU Usage */}
+          <div>
+            <div className="flex items-center justify-between text-sm mb-1">
+              <span className="font-medium">CPU Usage</span>
+              <span className="text-muted-foreground">{cpuInfo.display}</span>
+            </div>
+            <div className="w-full bg-secondary rounded-full h-2">
+              <div 
+                className={`h-2 rounded-full transition-all duration-500 ${
+                  cpuInfo.value > 80 ? 'bg-red-500' : 
+                  cpuInfo.value > 60 ? 'bg-yellow-500' : 'bg-green-500'
+                }`}
+                style={{ width: `${Math.min(cpuInfo.value, 100)}%` }}
+              />
+            </div>
           </div>
         </div>
+
+        {/* Last Update */}
+        <p className="text-xs text-muted-foreground">
+          Last update: {new Date().toLocaleTimeString()}
+        </p>
       </CardContent>
     </Card>
   );
