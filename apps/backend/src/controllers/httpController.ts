@@ -138,7 +138,18 @@ export const generateHttpdConf = (config: HttpConfiguration): string => {
 ServerRoot "${globalConfig.serverRoot || DEFAULT_HTTPD_CONFIG.serverRoot}"
 
 # Required modules
-LoadModule mpm_event_module modules/mod_mpm_event.so
+`;
+
+  // Add enabled modules from configuration
+  if (globalConfig.modules && globalConfig.modules.length > 0) {
+    globalConfig.modules
+      .filter((module: any) => module.enabled)
+      .forEach((module: any) => {
+        conf += `LoadModule ${module.name}_module ${module.filename || `modules/mod_${module.name}.so`}\n`;
+      });
+  } else {
+    // Fallback to default modules if none specified
+    conf += `LoadModule mpm_event_module modules/mod_mpm_event.so
 LoadModule dir_module modules/mod_dir.so
 LoadModule mime_module modules/mod_mime.so
 LoadModule rewrite_module modules/mod_rewrite.so
@@ -148,6 +159,7 @@ LoadModule authz_core_module modules/mod_authz_core.so
 LoadModule authz_host_module modules/mod_authz_host.so
 LoadModule log_config_module modules/mod_log_config.so
 `;
+  }
 
   // Listen directives
   globalConfig.listen.forEach((listen: { port: number; address?: string; ssl?: boolean }) => {
@@ -439,7 +451,72 @@ export const getCurrentHttpConfiguration = async (req: AuthRequest, res: Respons
         globalConfig: {
           ...DEFAULT_HTTPD_CONFIG,
           errorLog: '/var/log/httpd/error_log',
-          logLevel: 'warn'
+          logLevel: 'warn',
+          modules: [
+            {
+              name: 'mpm_event',
+              enabled: true,
+              required: true,
+              description: 'Event-driven processing module (recommended for most configurations)',
+              filename: 'modules/mod_mpm_event.so'
+            },
+            {
+              name: 'dir',
+              enabled: true,
+              required: true,
+              description: 'Directory index handling',
+              filename: 'modules/mod_dir.so'
+            },
+            {
+              name: 'mime',
+              enabled: true,
+              required: true,
+              description: 'MIME type associations',
+              filename: 'modules/mod_mime.so'
+            },
+            {
+              name: 'rewrite',
+              enabled: true,
+              required: false,
+              description: 'URL rewriting engine',
+              filename: 'modules/mod_rewrite.so'
+            },
+            {
+              name: 'ssl',
+              enabled: true,
+              required: false,
+              description: 'SSL/TLS encryption support',
+              filename: 'modules/mod_ssl.so'
+            },
+            {
+              name: 'alias',
+              enabled: true,
+              required: false,
+              description: 'URL aliasing and redirection',
+              filename: 'modules/mod_alias.so'
+            },
+            {
+              name: 'authz_core',
+              enabled: true,
+              required: true,
+              description: 'Core authorization functionality',
+              filename: 'modules/mod_authz_core.so'
+            },
+            {
+              name: 'authz_host',
+              enabled: true,
+              required: false,
+              description: 'Host-based authorization',
+              filename: 'modules/mod_authz_host.so'
+            },
+            {
+              name: 'log_config',
+              enabled: true,
+              required: false,
+              description: 'Logging configuration',
+              filename: 'modules/mod_log_config.so'
+            }
+          ]
         },
         virtualHosts: [
           {

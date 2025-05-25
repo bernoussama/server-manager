@@ -114,6 +114,7 @@ describe('HTTP API Client', () => {
       serverTokens: 'Prod',
       timeout: '60',
       keepAlive: true,
+      modules: [],
       virtualHosts: [{
         id: '550e8400-e29b-41d4-a716-446655440001',
         enabled: true,
@@ -207,6 +208,7 @@ describe('HTTP API Client', () => {
       serverTokens: 'Prod',
       timeout: '60',
       keepAlive: true,
+      modules: [],
       virtualHosts: [{
         id: '550e8400-e29b-41d4-a716-446655440001',
         enabled: true,
