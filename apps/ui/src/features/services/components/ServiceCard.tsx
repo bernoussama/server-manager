@@ -77,8 +77,8 @@ export function ServiceCard({
         await refreshStatus();
         // Notify parent component that service status may have changed
         onServiceUpdate?.();
-      }, 1000);
-    }, 2000);
+      }, 10000);
+    }, 10000);
   };
 
   const handleStart = async () => {
