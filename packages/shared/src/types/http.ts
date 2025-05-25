@@ -37,6 +37,15 @@ export interface HttpSSLConfig {
   sslCipherSuite?: string;
 }
 
+// Module configuration interface
+export interface HttpModuleConfig {
+  name: string;
+  enabled: boolean;
+  required?: boolean; // Some modules might be required and can't be disabled
+  description?: string;
+  filename?: string; // e.g., "modules/mod_ssl.so"
+}
+
 export interface HttpVirtualHost {
   id: string;
   enabled: boolean;
@@ -103,6 +112,7 @@ export interface HttpGlobalConfig {
   
   // Modules
   loadedModules?: string[];
+  modules?: HttpModuleConfig[];
   
   // Global Logging
   errorLog?: string;
@@ -135,6 +145,14 @@ export interface HttpConfigFormValues {
   serverTokens: string;
   timeout: string;
   keepAlive: boolean;
+  
+  // Modules configuration for UI
+  modules: Array<{
+    name: string;
+    enabled: boolean;
+    required?: boolean;
+    description?: string;
+  }>;
   
   // Virtual Hosts
   virtualHosts: Array<{

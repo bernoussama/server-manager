@@ -427,6 +427,62 @@ export function HTTPConfig() {
       serverTokens: 'Prod',
       timeout: '60',
       keepAlive: true,
+      modules: [
+        {
+          name: 'mpm_event',
+          enabled: true,
+          required: true,
+          description: 'Event-driven processing module (recommended for most configurations)'
+        },
+        {
+          name: 'dir',
+          enabled: true,
+          required: true,
+          description: 'Directory index handling'
+        },
+        {
+          name: 'mime',
+          enabled: true,
+          required: true,
+          description: 'MIME type associations'
+        },
+        {
+          name: 'rewrite',
+          enabled: true,
+          required: false,
+          description: 'URL rewriting engine'
+        },
+        {
+          name: 'ssl',
+          enabled: true,
+          required: false,
+          description: 'SSL/TLS encryption support'
+        },
+        {
+          name: 'alias',
+          enabled: true,
+          required: false,
+          description: 'URL aliasing and redirection'
+        },
+        {
+          name: 'authz_core',
+          enabled: true,
+          required: true,
+          description: 'Core authorization functionality'
+        },
+        {
+          name: 'authz_host',
+          enabled: true,
+          required: false,
+          description: 'Host-based authorization'
+        },
+        {
+          name: 'log_config',
+          enabled: true,
+          required: false,
+          description: 'Logging configuration'
+        }
+      ],
       virtualHosts: [
         {
           id: uuidv4(),
@@ -724,6 +780,56 @@ export function HTTPConfig() {
                       </FormItem>
                     )}
                   />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Apache Modules Configuration */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Apache Modules</CardTitle>
+                <CardDescription>
+                  Configure which Apache modules to load. Required modules cannot be disabled.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {form.watch('modules')?.map((module, index) => (
+                    <FormField
+                      key={module.name}
+                      control={form.control}
+                      name={`modules.${index}.enabled`}
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-base flex items-center gap-2">
+                              {module.name}
+                              {module.required && (
+                                <Badge variant="secondary" className="text-xs">Required</Badge>
+                              )}
+                            </FormLabel>
+                            <FormDescription className="text-sm">
+                              {module.description || `Apache module: mod_${module.name}`}
+                            </FormDescription>
+                          </div>
+                          <FormControl>
+                            <Switch 
+                              checked={field.value} 
+                              onCheckedChange={field.onChange}
+                              disabled={module.required}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  ))}
+                  
+                  {(!form.watch('modules') || form.watch('modules').length === 0) && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <div className="text-lg font-medium">No modules configured</div>
+                      <div className="text-sm mt-2">Modules will be automatically configured when you save the configuration.</div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

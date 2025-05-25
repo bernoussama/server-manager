@@ -1,5 +1,72 @@
-import type { HttpConfiguration, HttpVirtualHost, HttpConfigFormValues } from '../types/http';
-import type { VirtualHostFormValues } from './httpFormValidator';
+import type { HttpConfiguration, HttpVirtualHost, HttpConfigFormValues, HttpModuleConfig } from '../types/http';
+import type { VirtualHostFormValues, ModuleFormValues } from './httpFormValidator';
+
+// Default Apache modules with metadata
+export const DEFAULT_APACHE_MODULES: HttpModuleConfig[] = [
+  {
+    name: 'mpm_event',
+    enabled: true,
+    required: true,
+    description: 'Event-driven processing module (recommended for most configurations)',
+    filename: 'modules/mod_mpm_event.so'
+  },
+  {
+    name: 'dir',
+    enabled: true,
+    required: true,
+    description: 'Directory index handling',
+    filename: 'modules/mod_dir.so'
+  },
+  {
+    name: 'mime',
+    enabled: true,
+    required: true,
+    description: 'MIME type associations',
+    filename: 'modules/mod_mime.so'
+  },
+  {
+    name: 'rewrite',
+    enabled: true,
+    required: false,
+    description: 'URL rewriting engine',
+    filename: 'modules/mod_rewrite.so'
+  },
+  {
+    name: 'ssl',
+    enabled: true,
+    required: false,
+    description: 'SSL/TLS encryption support',
+    filename: 'modules/mod_ssl.so'
+  },
+  {
+    name: 'alias',
+    enabled: true,
+    required: false,
+    description: 'URL aliasing and redirection',
+    filename: 'modules/mod_alias.so'
+  },
+  {
+    name: 'authz_core',
+    enabled: true,
+    required: true,
+    description: 'Core authorization functionality',
+    filename: 'modules/mod_authz_core.so'
+  },
+  {
+    name: 'authz_host',
+    enabled: true,
+    required: false,
+    description: 'Host-based authorization',
+    filename: 'modules/mod_authz_host.so'
+  },
+  {
+    name: 'log_config',
+    enabled: true,
+    required: false,
+    description: 'Logging configuration',
+    filename: 'modules/mod_log_config.so'
+  }
+];
 
 // Transform UI Virtual Host form data to API format
 export const transformUiVirtualHostToApi = (uiVHost: VirtualHostFormValues): HttpVirtualHost => {
@@ -99,6 +166,27 @@ export const transformApiVirtualHostToUi = (apiVHost: HttpVirtualHost): VirtualH
   return uiVHost;
 };
 
+// Transform UI modules to API format
+export const transformUiModulesToApi = (uiModules: ModuleFormValues[]): HttpModuleConfig[] => {
+  return uiModules.map(module => ({
+    name: module.name,
+    enabled: module.enabled,
+    required: module.required,
+    description: module.description,
+    filename: DEFAULT_APACHE_MODULES.find(m => m.name === module.name)?.filename || `modules/mod_${module.name}.so`
+  }));
+};
+
+// Transform API modules to UI format
+export const transformApiModulesToUi = (apiModules: HttpModuleConfig[]): ModuleFormValues[] => {
+  return apiModules.map(module => ({
+    name: module.name,
+    enabled: module.enabled,
+    required: module.required,
+    description: module.description
+  }));
+};
+
 // Parse port string to array
 export const parsePortString = (ports: string): Array<{ port: number; address?: string; ssl?: boolean }> => {
   return ports.split(',')
@@ -123,7 +211,8 @@ export const transformHttpFormToApi = (formData: HttpConfigFormValues): HttpConf
       listen: parsePortString(formData.listenPorts),
       serverTokens: formData.serverTokens as any,
       timeout: parseInt(formData.timeout),
-      keepAlive: formData.keepAlive
+      keepAlive: formData.keepAlive,
+      modules: transformUiModulesToApi(formData.modules)
     },
     virtualHosts: formData.virtualHosts.map(transformUiVirtualHostToApi)
   };
@@ -135,6 +224,11 @@ export const transformHttpApiToForm = (apiData: HttpConfiguration): HttpConfigFo
     return listen.map(l => l.port.toString()).join(', ');
   };
 
+  // Use modules from API or fallback to defaults
+  const modules = apiData.globalConfig.modules?.length 
+    ? transformApiModulesToUi(apiData.globalConfig.modules)
+    : transformApiModulesToUi(DEFAULT_APACHE_MODULES);
+
   return {
     serverStatus: apiData.serverStatus,
     serverName: apiData.globalConfig.serverName || '',
@@ -143,6 +237,7 @@ export const transformHttpApiToForm = (apiData: HttpConfiguration): HttpConfigFo
     serverTokens: (apiData.globalConfig.serverTokens || 'Prod') as any,
     timeout: (apiData.globalConfig.timeout || 300).toString(),
     keepAlive: apiData.globalConfig.keepAlive !== false,
+    modules,
     virtualHosts: apiData.virtualHosts.map(transformApiVirtualHostToUi)
   };
 }; 

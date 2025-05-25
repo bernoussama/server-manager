@@ -21,6 +21,14 @@ export const isValidEmail = (email: string): boolean => {
   return emailRegex.test(email);
 };
 
+// Schema for module configuration
+export const moduleSchema = z.object({
+  name: z.string().min(1, "Module name is required"),
+  enabled: z.boolean().default(false),
+  required: z.boolean().optional(),
+  description: z.string().optional(),
+});
+
 // Schema for Virtual Host configuration in the UI form
 export const virtualHostSchema = z.object({
   id: z.string().uuid(),
@@ -98,6 +106,9 @@ export const httpConfigSchema = z.object({
   timeout: z.string().regex(/^\d+$/, { message: 'Timeout must be a number' }).default('300'),
   keepAlive: z.boolean().default(true),
   
+  // Modules configuration
+  modules: z.array(moduleSchema).default([]),
+  
   // Virtual Hosts
   virtualHosts: z.array(virtualHostSchema).min(1, "At least one virtual host is required"),
 }).superRefine((data, ctx) => {
@@ -126,8 +137,32 @@ export const httpConfigSchema = z.object({
     }
     portsByName.set(key, vh.serverName);
   });
+  
+  // Module validation: Check if SSL module is enabled when SSL is configured
+  const sslModuleEnabled = data.modules.some(m => m.name === 'ssl' && m.enabled);
+  const hasSslVirtualHost = data.virtualHosts.some(vh => vh.sslEnabled);
+  
+  if (hasSslVirtualHost && !sslModuleEnabled) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['modules'],
+      message: 'SSL module must be enabled when SSL virtual hosts are configured'
+    });
+  }
+  
+  // Check required modules can't be disabled
+  data.modules.forEach((module, index) => {
+    if (module.required && !module.enabled) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['modules', index, 'enabled'],
+        message: `${module.name} is a required module and cannot be disabled`
+      });
+    }
+  });
 });
 
 // Type exports
 export type HttpConfigFormValues = z.infer<typeof httpConfigSchema>;
-export type VirtualHostFormValues = z.infer<typeof virtualHostSchema>; 
+export type VirtualHostFormValues = z.infer<typeof virtualHostSchema>;
+export type ModuleFormValues = z.infer<typeof moduleSchema>; 
