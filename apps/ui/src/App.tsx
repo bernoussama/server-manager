@@ -16,6 +16,7 @@ import LoginPage from './features/auth/LoginPage';
 import SignupPage from './features/auth/SignupPage';
 import AdminSetup from './features/auth/AdminSetup';
 import ProtectedRoute from './features/auth/ProtectedRoute';
+import AppInitializer from './components/AppInitializer';
 
 // Simple placeholder components
 const HomePage = () => (
@@ -52,59 +53,61 @@ function AppContent() {
   };
 
   return (
-    <div className="flex min-h-screen bg-background">
-      {isAuthenticated && <Sidebar items={sidebarItems} />}
-      <div className={`flex-1 ${isAuthenticated ? 'md:ml-64' : ''}`}>
-        <header className="bg-card p-4 shadow-sm">
-          <nav className="container mx-auto flex justify-between items-center">
-            <div className="flex items-center space-x-4">
-              <Link to={isAuthenticated ? "/" : "/public"} className="text-xl font-bold">App</Link>
-              <Link to="/public" className="text-sm hover:underline">Public Page</Link>
-            </div>
-            <div className="flex items-center space-x-2">
-              {isAuthenticated ? (
-                <Button onClick={logout} variant="outline">Logout</Button>
-              ) : (
-                <>
-                  <Button asChild variant="ghost">
-                    <Link to="/login">Login</Link>
-                  </Button>
-                  <Button asChild>
-                    <Link to="/signup">Signup</Link>
-                  </Button>
-                </>
-              )}
-            </div>
-          </nav>
-        </header>
+    <AppInitializer>
+      <div className="flex min-h-screen bg-background">
+        {isAuthenticated && <Sidebar items={sidebarItems} />}
+        <div className={`flex-1 ${isAuthenticated ? 'md:ml-64' : ''}`}>
+          <header className="bg-card p-4 shadow-sm">
+            <nav className="container mx-auto flex justify-between items-center">
+              <div className="flex items-center space-x-4">
+                <Link to={isAuthenticated ? "/" : "/public"} className="text-xl font-bold">App</Link>
+                <Link to="/public" className="text-sm hover:underline">Public Page</Link>
+              </div>
+              <div className="flex items-center space-x-2">
+                {isAuthenticated ? (
+                  <Button onClick={logout} variant="outline">Logout</Button>
+                ) : (
+                  <>
+                    <Button asChild variant="ghost">
+                      <Link to="/login">Login</Link>
+                    </Button>
+                    <Button asChild>
+                      <Link to="/signup">Signup</Link>
+                    </Button>
+                  </>
+                )}
+              </div>
+            </nav>
+          </header>
 
-        <main className="p-8">
-          {isAuthenticated && (
-             <div className="flex justify-between items-center mb-8">
-                <h1 className="text-3xl font-bold md:block hidden">{getCurrentTitle()}</h1>
-             </div>
-          )}
-          <Routes>
-            <Route path="/admin/setup" element={<AdminSetup />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignupPage />} />
-            <Route path="/public" element={<PublicPage />} />
+          <main className="p-8">
+            {isAuthenticated && (
+               <div className="flex justify-between items-center mb-8">
+                  <h1 className="text-3xl font-bold md:block hidden">{getCurrentTitle()}</h1>
+               </div>
+            )}
+            <Routes>
+              <Route path="/admin/setup" element={<AdminSetup />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/signup" element={<SignupPage />} />
+              <Route path="/public" element={<PublicPage />} />
 
-            {/* Protected Routes */}
-            <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
-            <Route path="/stats" element={<ProtectedRoute><SystemStats /></ProtectedRoute>} />
-            <Route path="/services" element={<ProtectedRoute><ServicesView /></ProtectedRoute>} />
-            <Route path="/dns" element={<ProtectedRoute><DNSConfigView /></ProtectedRoute>} />
-            <Route path="/dhcp" element={<ProtectedRoute><DHCPConfigView /></ProtectedRoute>} />
-            <Route path="/http" element={<ProtectedRoute><HTTPConfigView /></ProtectedRoute>} />
-            <Route path="/settings" element={<ProtectedRoute><SettingsView /></ProtectedRoute>} />
+              {/* Protected Routes */}
+              <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+              <Route path="/stats" element={<ProtectedRoute><SystemStats /></ProtectedRoute>} />
+              <Route path="/services" element={<ProtectedRoute><ServicesView /></ProtectedRoute>} />
+              <Route path="/dns" element={<ProtectedRoute><DNSConfigView /></ProtectedRoute>} />
+              <Route path="/dhcp" element={<ProtectedRoute><DHCPConfigView /></ProtectedRoute>} />
+              <Route path="/http" element={<ProtectedRoute><HTTPConfigView /></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute><SettingsView /></ProtectedRoute>} />
 
-            {/* Catch-all */}
-            <Route path="*" element={isAuthenticated ? <Navigate to="/" replace /> : <Navigate to="/login" replace />} />
-          </Routes>
-        </main>
+              {/* Catch-all */}
+              <Route path="*" element={isAuthenticated ? <Navigate to="/" replace /> : <Navigate to="/login" replace />} />
+            </Routes>
+          </main>
+        </div>
       </div>
-    </div>
+    </AppInitializer>
   );
 }
 
