@@ -11,6 +11,20 @@ interface ApiResponse<T> {
   error?: string;
 }
 
+// Helper function to get auth token
+const getAuthToken = (): string | null => {
+  return localStorage.getItem('authToken');
+};
+
+// Helper function to get auth headers
+const getAuthHeaders = (): Record<string, string> => {
+  const token = getAuthToken();
+  return {
+    'Content-Type': 'application/json',
+    ...(token && { 'Authorization': `Bearer ${token}` }),
+  };
+};
+
 // Generic error handler
 const handleError = (error: unknown): never => {
   const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
@@ -40,7 +54,7 @@ class ApiClient {
     try {
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         headers: {
-          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
           ...options?.headers,
         },
         ...options,

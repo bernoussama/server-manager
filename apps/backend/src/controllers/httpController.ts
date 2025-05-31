@@ -1,5 +1,5 @@
 import type { Response } from 'express';
-import type { AuthRequest } from '../middlewares/authMiddleware.js';
+import type { AuthRequest } from '../middlewares/authMiddleware';
 import { httpConfigSchema, transformHttpFormToApi, transformHttpApiToForm, type HttpConfigFormValues } from '@server-manager/shared/validators';
 import type { HttpConfiguration, HttpVirtualHost, HttpGlobalConfig, HttpServiceResponse, HttpDirective, HttpLogConfig, HttpDirectoryConfig } from '@server-manager/shared';
 import { ZodError } from 'zod';
