@@ -27,7 +27,7 @@ export interface HttpServiceControlResponse {
 
 // Helper function to get auth token
 const getAuthToken = (): string | null => {
-  return localStorage.getItem('token');
+  return localStorage.getItem('authToken');
 };
 
 // Helper function to get auth headers
