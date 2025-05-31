@@ -14,6 +14,7 @@ import { DashboardView } from '@/pages/DashboardView';
 import { useAuth } from './features/auth/AuthContext';
 import LoginPage from './features/auth/LoginPage';
 import SignupPage from './features/auth/SignupPage';
+import AdminSetup from './features/auth/AdminSetup';
 import ProtectedRoute from './features/auth/ProtectedRoute';
 
 // Simple placeholder components
@@ -84,6 +85,7 @@ function AppContent() {
              </div>
           )}
           <Routes>
+            <Route path="/admin/setup" element={<AdminSetup />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/public" element={<PublicPage />} />

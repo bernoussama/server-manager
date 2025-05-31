@@ -4,6 +4,7 @@
 export interface User {
   id: number;
   email: string;
+  isAdmin: boolean;
   createdAt?: string | Date;
   updatedAt?: string | Date;
   name?: string;
@@ -14,6 +15,7 @@ export interface User {
 export interface NewUserWithPassword {
   email: string;
   password: string;
+  isAdmin?: boolean;
   name?: string;
   age?: number;
 }
@@ -22,6 +24,7 @@ export interface NewUserWithPassword {
 export interface NewUserCredentials {
   email: string;
   passwordHash: string;
+  isAdmin?: boolean;
   name?: string;
   age?: number;
 }
@@ -30,6 +33,7 @@ export interface NewUserCredentials {
 export interface UserResponse {
   id: number;
   email: string;
+  isAdmin: boolean;
   name?: string;
   age?: number;
   createdAt?: string;
@@ -42,6 +46,7 @@ export interface CreateUserPayload {
   age: number;
   email: string;
   password?: string;
+  isAdmin?: boolean;
 }
 
 // User update payload
@@ -49,6 +54,7 @@ export interface UpdateUserPayload {
   name?: string;
   age?: number;
   email?: string;
+  isAdmin?: boolean;
 }
 
 // Login request payload
@@ -68,4 +74,5 @@ export interface LoginResponse {
 export interface AuthUser {
   id: number;
   email: string;
+  isAdmin: boolean;
 } 

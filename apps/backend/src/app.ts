@@ -2,6 +2,7 @@ import express, { type Express } from 'express';
 import serviceRoutes from './routes/serviceRoutes';
 import userRoutes from './routes/usersRoutes';
 import authRoutes from './routes/authRoutes';
+import adminRoutes from './routes/adminRoutes';
 import { errorHandler } from './middlewares/errorHandler';
 import { corsMiddleware } from './middlewares/cors';
 import morganMiddleware from './middlewares/morgan';
@@ -27,6 +28,7 @@ app.get('/api/info', (req, res) => {
 });
 
 // Routes
+app.use('/api/admin', adminRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/users', userRoutes);
