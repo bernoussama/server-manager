@@ -66,7 +66,7 @@ describe('LoginPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /login/i }));
 
     await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith('/api/auth/login', expect.any(Object));
+      expect(fetch).toHaveBeenCalledWith('http://localhost:3000/api/auth/login', expect.any(Object));
       expect(mockLogin).toHaveBeenCalledWith(mockToken, mockUser);
       expect(mockNavigate).toHaveBeenCalledWith('/');
     });
@@ -86,7 +86,7 @@ describe('LoginPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /login/i }));
 
     await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith('/api/auth/login', expect.any(Object));
+      expect(fetch).toHaveBeenCalledWith('http://localhost:3000/api/auth/login', expect.any(Object));
       expect(mockLogin).not.toHaveBeenCalled();
       expect(mockNavigate).not.toHaveBeenCalled();
       expect(screen.getByText(errorMessage)).toBeInTheDocument();

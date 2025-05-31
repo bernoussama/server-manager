@@ -54,7 +54,7 @@ describe('SignupPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /signup/i }));
 
     await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith('/api/auth/signup', expect.any(Object));
+      expect(fetch).toHaveBeenCalledWith('http://localhost:3000/api/auth/signup', expect.any(Object));
       expect(screen.getByText('Signup successful! Please login.')).toBeInTheDocument();
       expect(emailInput).toHaveValue('');
       expect(passwordInput).toHaveValue('');
@@ -75,7 +75,7 @@ describe('SignupPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /signup/i }));
 
     await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith('/api/auth/signup', expect.any(Object));
+      expect(fetch).toHaveBeenCalledWith('http://localhost:3000/api/auth/signup', expect.any(Object));
       expect(screen.getByText(errorMessage)).toBeInTheDocument();
     });
   });
