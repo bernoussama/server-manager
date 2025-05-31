@@ -10,3 +10,4 @@ dist
 .turbo
 apps/backend/test/dns
 apps/backend/test
+apps/backend/db.sqlite
