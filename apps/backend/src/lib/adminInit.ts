@@ -3,6 +3,7 @@ import { users } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import bcrypt from 'bcrypt';
 import logger from './logger';
+import { isDatabaseInitialized, initializeDatabase } from './dbInit';
 
 const SALT_ROUNDS = 10;
 
@@ -11,11 +12,17 @@ const SALT_ROUNDS = 10;
  */
 export async function hasAdminUser(): Promise<boolean> {
   try {
+    // First check if database is initialized
+    const dbInitialized = await isDatabaseInitialized();
+    if (!dbInitialized) {
+      return false;
+    }
+
     const adminUsers = await db.select().from(users).where(eq(users.isAdmin, true)).limit(1);
     return adminUsers.length > 0;
   } catch (error) {
     logger.error('Error checking for admin users:', error);
-    throw new Error('Failed to check admin users');
+    return false; // Return false instead of throwing to allow setup
   }
 }
 
@@ -24,6 +31,12 @@ export async function hasAdminUser(): Promise<boolean> {
  */
 export async function createAdminUser(email: string, password: string): Promise<void> {
   try {
+    // Ensure database is initialized first
+    const dbInitialized = await isDatabaseInitialized();
+    if (!dbInitialized) {
+      await initializeDatabase();
+    }
+
     // Check if user with this email already exists
     const existingUser = await db.select().from(users).where(eq(users.email, email)).limit(1);
     if (existingUser.length > 0) {
@@ -51,6 +64,13 @@ export async function createAdminUser(email: string, password: string): Promise<
  */
 export async function initializeAdmin(): Promise<void> {
   try {
+    // First ensure database is initialized
+    const dbInitialized = await isDatabaseInitialized();
+    if (!dbInitialized) {
+      logger.info('Database not initialized. Initializing database...');
+      await initializeDatabase();
+    }
+
     const adminExists = await hasAdminUser();
     
     if (!adminExists) {
@@ -61,6 +81,7 @@ export async function initializeAdmin(): Promise<void> {
     }
   } catch (error) {
     logger.error('Failed to initialize admin user:', error);
-    throw error;
+    // Don't throw error to allow server to start for setup
+    logger.info('Server will start in setup mode. Please visit /admin/setup to initialize.');
   }
 } 

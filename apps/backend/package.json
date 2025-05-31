@@ -13,7 +13,11 @@
     "build": "tsc && tsup",
     "lint": "eslint . --ext .ts",
     "format": "prettier --write 'src/**/*.ts'",
-    "test": "jest"
+    "test": "jest",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
   },
   "keywords": [
     "typescript",
