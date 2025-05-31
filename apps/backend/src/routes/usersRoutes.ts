@@ -1,22 +1,23 @@
 import express from "express";
 import  usersController  from "../controllers/usersController";
+import { authMiddleware } from "../middlewares/authMiddleware";
 
 const router: express.Router = express.Router();
 
 // Get all users
-router.get("/", usersController.getAllUsers);
+router.get("/", authMiddleware, usersController.getAllUsers);
 
 // Get user by ID
-router.get("/:id", usersController.getUserById);
+router.get("/:id", authMiddleware, usersController.getUserById);
 
 // Create new user
-router.post("/", usersController.createUser);
+router.post("/", authMiddleware, usersController.createUser);
 
 // Update user
-router.patch("/:id", usersController.updateUser);
+router.patch("/:id", authMiddleware, usersController.updateUser);
 
 // Delete user
-router.delete("/:id", usersController.deleteUser);
+router.delete("/:id", authMiddleware, usersController.deleteUser);
 
 export default router;
 
