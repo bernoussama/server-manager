@@ -1,7 +1,7 @@
-import { Request, Response, NextFunction } from 'express';
+import { type Request, type Response, type NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-interface AuthRequest extends Request {
+export interface AuthRequest extends Request {
   user?: {
     userId: string;
     email: string;
@@ -44,3 +44,6 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
     return res.status(500).json({ message: 'Internal Server Error: Could not verify token' });
   }
 };
+
+// Export protect as an alias for consistency with existing imports
+export const protect = authMiddleware;

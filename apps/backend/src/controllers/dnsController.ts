@@ -1,5 +1,5 @@
 import type { Response } from 'express';
-import type { AuthRequest } from '../middlewares/authMiddleware.js';
+import type { AuthRequest } from '../middlewares/authMiddleware';
 import { dnsConfigurationSchema, type DnsConfiguration, type Zone, type DnsRecord } from '@server-manager/shared/validators';
 import { ZodError } from 'zod';
 import { writeFile, readFile, mkdir } from 'fs/promises';
