@@ -310,7 +310,7 @@ const HttpServiceStatus: React.FC<{ onStatusChange?: () => void }> = ({ onStatus
       const response = await getHttpServiceStatusAPI();
       setStatus(response.data.status);
     } catch (error: any) {
-      console.error('Failed to fetch HTTP service status:', error);
+      toast({ variant: "destructive", title: "Service Status Error", description: "Failed to fetch HTTP service status. Please try refreshing." });
       setStatus('unknown');
     } finally {
       setIsLoading(false);
@@ -538,7 +538,6 @@ export function HTTPConfig() {
           description: "HTTP configuration loaded successfully from server." 
         });
       } catch (error: any) {
-        console.error('Failed to load HTTP configuration:', error);
         setLoadError(error?.data?.message || error?.message || 'Failed to load configuration');
         
         toast({

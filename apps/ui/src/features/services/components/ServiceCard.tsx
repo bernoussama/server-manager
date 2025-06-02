@@ -65,7 +65,7 @@ export function ServiceCard({
         setStatus(response.data.status);
       }
     } catch (error) {
-      console.error('Failed to refresh service status:', error);
+      toast({ variant: "destructive", title: "Refresh Error", description: "Failed to refresh service status. The displayed status might be outdated." });
     } finally {
       setIsLoading(prev => ({ ...prev, refreshing: false }));
     }

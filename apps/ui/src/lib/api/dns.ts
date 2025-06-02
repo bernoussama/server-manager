@@ -26,13 +26,11 @@ export const updateDnsConfigurationAPI = async (formData: any): Promise<DnsUpdat
     if (!response.ok) {
       // If the server returns a non-OK status, throw an error with the response data
       // This allows us to catch and display specific error messages from the backend
-      console.error('API Error:', responseData);
       throw { status: response.status, data: responseData };
     }
 
     return responseData;
   } catch (error: any) {
-    console.error('Failed to update DNS configuration:', error);
     // Rethrow a structured error. If it's an error from our fetch block, it will have status and data.
     // Otherwise, it's a network error or something else.
     if (error.status && error.data) {
@@ -44,7 +42,6 @@ export const updateDnsConfigurationAPI = async (formData: any): Promise<DnsUpdat
 
 // Extracted common error‐handling helper
 const handleApiError = (error: any, operation: string): never => {
-  console.error(`Failed to ${operation}:`, error);
   if (error.status && error.data) {
     throw error;
   }
@@ -63,7 +60,6 @@ export const getDnsConfigurationAPI = async (): Promise<DnsConfigResponse> => {
     const responseData: DnsConfigResponse = await response.json();
 
     if (!response.ok) {
-      console.error('API Error:', responseData);
       throw { status: response.status, data: responseData };
     }
 

@@ -50,7 +50,7 @@ export function ServicesView() {
       if (servicesResponse.status === 'fulfilled' && servicesResponse.value.success) {
         servicesData = servicesResponse.value.data;
       } else {
-        console.error('Failed to fetch services:', servicesResponse.status === 'rejected' ? servicesResponse.reason : servicesResponse.value);
+        // console.error removed here, existing error handling below is preferred
         
         // Fallback: try to fetch individual service statuses
         const fallbackServices = ['named', 'dhcpd', 'httpd'] as const;
@@ -77,7 +77,11 @@ export function ServicesView() {
       if (metricsResponse.status === 'fulfilled') {
         metricsData = metricsResponse.value;
       } else {
-        console.error('Failed to fetch system metrics:', metricsResponse.reason);
+        toast({
+          variant: "default",
+          title: "Metrics Unavailable",
+          description: "Could not fetch system metrics. Resource usage information for services may be incomplete.",
+        });
       }
 
       // Find service-specific metrics from active services

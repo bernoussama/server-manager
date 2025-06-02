@@ -1,6 +1,7 @@
 import { Layers, Activity, Settings, Terminal, Globe, Network, Server, Home, BarChart } from 'lucide-react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { ThemeProvider } from './components/theme-provider';
+import { Toaster } from '@/components/ui/toaster';
 import { Sidebar } from './components/ui/sidebar';
 import { SystemStats } from '@/features/dashboard/components/SystemStats';
 import { ServicesView } from '@/pages/ServicesView';
@@ -59,6 +60,7 @@ export default function App() {
     <ThemeProvider defaultTheme="system" storageKey="app-theme">
       <Router>
         <AppContent />
+        <Toaster />
       </Router>
     </ThemeProvider>
   );

@@ -651,7 +651,6 @@ export function DNSConfig() {
           description: "DNS configuration loaded successfully from server." 
         });
       } catch (error: any) {
-        console.error('Failed to load DNS configuration:', error);
         setLoadError(error?.data?.message || error?.message || 'Failed to load configuration');
         
         toast({

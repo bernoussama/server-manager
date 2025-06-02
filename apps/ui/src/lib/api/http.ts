@@ -41,7 +41,6 @@ const getAuthHeaders = (): Record<string, string> => {
 
 // Extracted common error handling helper
 const handleApiError = (error: any, operation: string): never => {
-  console.error(`Failed to ${operation}:`, error);
   if (error.status && error.data) {
     throw error;
   }
@@ -64,7 +63,6 @@ export const getHttpConfigurationAPI = async (): Promise<HttpConfigResponse> => 
     const responseData: HttpConfigResponse = await response.json();
 
     if (!response.ok) {
-      console.error('API Error:', responseData);
       throw { status: response.status, data: responseData };
     }
 
@@ -88,7 +86,6 @@ export const updateHttpConfigurationAPI = async (formData: HttpConfigFormValues)
     const responseData: HttpUpdateResponse = await response.json();
 
     if (!response.ok) {
-      console.error('API Error:', responseData);
       throw { status: response.status, data: responseData };
     }
 
@@ -112,7 +109,6 @@ export const validateHttpConfigurationAPI = async (formData: HttpConfigFormValue
     const responseData: HttpValidationResponse = await response.json();
 
     if (!response.ok) {
-      console.error('API Error:', responseData);
       throw { status: response.status, data: responseData };
     }
 
@@ -135,7 +131,6 @@ export const getHttpServiceStatusAPI = async (): Promise<HttpServiceControlRespo
     const responseData: HttpServiceControlResponse = await response.json();
 
     if (!response.ok) {
-      console.error('API Error:', responseData);
       throw { status: response.status, data: responseData };
     }
 
@@ -158,7 +153,6 @@ export const controlHttpServiceAPI = async (action: 'start' | 'stop' | 'restart'
     const responseData: HttpServiceControlResponse = await response.json();
 
     if (!response.ok) {
-      console.error('API Error:', responseData);
       throw { status: response.status, data: responseData };
     }
 
