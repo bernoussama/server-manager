@@ -23,8 +23,8 @@ describe('Users API Client', () => {
     it('should fetch all users successfully', async () => {
       // Arrange
       const mockUsers: User[] = [
-        { id: 1, name: 'John Doe', age: 30, email: 'john@example.com' },
-        { id: 2, name: 'Jane Smith', age: 28, email: 'jane@example.com' }
+        { id: 1, name: 'John Doe', age: 30, email: 'john@example.com', isAdmin: false },
+        { id: 2, name: 'Jane Smith', age: 28, email: 'jane@example.com', isAdmin: true }
       ];
       
       server.use(
@@ -50,7 +50,8 @@ describe('Users API Client', () => {
         id: userId,
         name: 'John Doe',
         age: 30,
-        email: 'john@example.com'
+        email: 'john@example.com',
+        isAdmin: false
       };
       
       server.use(
@@ -79,7 +80,8 @@ describe('Users API Client', () => {
       
       const mockCreatedUser: User = {
         id: 1,
-        ...createUserPayload
+        ...createUserPayload,
+        isAdmin: false
       };
       
       server.use(
@@ -112,7 +114,8 @@ describe('Users API Client', () => {
         id: userId,
         name: 'John Updated',
         age: 31,
-        email: 'john@example.com'
+        email: 'john@example.com',
+        isAdmin: false
       };
       
       server.use(

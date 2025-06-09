@@ -1,9 +1,13 @@
 import app from './app';
 import config from './config/config';
 import logger from './lib/logger';
+import { initializeAdmin } from './lib/adminInit';
 
 const startServer = async () => {
   try {
+    // Initialize admin user if none exists
+    await initializeAdmin();
+    
     app.listen(config.port, () => {
       logger.info(`Server is running on port ${config.port} in ${config.nodeEnv} mode`);
     });

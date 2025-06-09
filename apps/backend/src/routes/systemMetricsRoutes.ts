@@ -1,10 +1,10 @@
 import express from 'express';
 import systemMetricsController from '../controllers/systemMetricsController';
-import { protect } from '../middlewares/authMiddleware'; // Assuming you want to protect this route
+import { protect } from '../middlewares/authMiddleware';
 
 const router: express.Router = express.Router();
 
-// GET /api/system-metrics - Retrieves all system metrics
-router.get('/', systemMetricsController.getSystemMetrics);
+// GET /api/system-metrics - Retrieves all system metrics (protected)
+router.get('/', protect, systemMetricsController.getSystemMetrics);
 
 export default router; 

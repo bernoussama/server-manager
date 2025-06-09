@@ -1,17 +1,18 @@
 import express, { Router } from 'express';
-import { protect } from '../middlewares/authMiddleware.js';
+import { protect } from '../middlewares/authMiddleware';
 import {
   getCurrentHttpConfiguration,
   updateHttpConfiguration,
   validateHttpConfiguration,
   getHttpServiceStatus,
   controlHttpService
-} from '../controllers/httpController.js';
+} from '../controllers/httpController';
 
 const router: Router = express.Router();
 
-// Apply authentication middleware to all routes
-// router.use(protect);
+// Apply authentication middleware to all routes that modify state
+router.use('/config', protect);
+router.use('/service/:action', protect);
 
 // HTTP Configuration routes
 router.get('/config', getCurrentHttpConfiguration);
