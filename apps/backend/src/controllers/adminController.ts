@@ -61,8 +61,9 @@ export async function setupAdmin(req: Request, res: Response, next: NextFunction
     logger.error('Error setting up admin:', error);
     
     if (error instanceof Error) {
-      if (error.message.includes('already exists')) {
-        return res.status(409).json({ message: error.message });
+      // Consider creating custom error types in adminInit.ts
+      if (error.message === 'User with this email already exists') {
+        return res.status(409).json({ message: 'Admin user already exists' });
       }
     }
     
