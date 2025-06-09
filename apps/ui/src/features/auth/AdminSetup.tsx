@@ -50,7 +50,7 @@ const AdminSetup: React.FC = () => {
     event.preventDefault();
     setError(null);
 
-// Add this helper (e.g. right after your imports or above the component)
+// --- Above the component (e.g. right after your imports) ---
 const validatePassword = (password: string): string | null => {
   if (password.length < 8) {
     return 'Password must be at least 8 characters long';
@@ -68,6 +68,26 @@ const validatePassword = (password: string): string | null => {
     return 'Password must contain at least one special character';
   }
   return null;
+};
+
+const AdminSetup: React.FC = () => {
+  // ... component code
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError(null);
+
+    // Validation
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      setError(passwordError);
+      return;
+    }
+
+    // ... rest of your submission logic ...
+  };
+
+  // ... rest of component render ...
 };
 
 // In your handleSubmit (replacing the old length-only check)
