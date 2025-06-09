@@ -91,23 +91,17 @@ describe('authMiddleware', () => {
     expect(nextFunction).not.toHaveBeenCalled();
   });
 
-  test('should return 500 if JWT_SECRET is not configured (though middleware currently warns)', () => {
+  test('should return 500 if JWT_SECRET is not configured', () => {
     // Temporarily undefine JWT_SECRET for this test
     const originalSecret = process.env.JWT_SECRET;
-    delete process.env.JWT_SECRET;
+    process.env.JWT_SECRET = undefined;
 
     mockRequest.headers = { authorization: 'Bearer anytoken' };
-    // We need to re-evaluate the authMiddleware module for the changed process.env
-    // This is tricky with Jest's module caching. A cleaner way would be to inject JWT_SECRET.
-    // For this test, we'll assume the initial check in the middleware leads to this path.
-    // Or, we can re-require the module if Jest allows dynamic imports or reset modules.
-
-    // Simulating the internal check within the middleware function itself for this test
-    // This specific test case might be better as an integration test or by refactoring
-    // the middleware to allow easier injection of JWT_SECRET for testing.
-    // However, based on current structure:
-    const tempAuthMiddleware = require('../authMiddleware').authMiddleware; // Re-import to try to get fresh env read (might not work as expected due to caching)
-    tempAuthMiddleware(mockRequest as AuthRequest, mockResponse as Response, nextFunction);
+    
+    // Clear module cache and re-import to get fresh environment
+    jest.resetModules();
+    const { authMiddleware: freshAuthMiddleware } = require('../authMiddleware');
+    freshAuthMiddleware(mockRequest as AuthRequest, mockResponse as Response, nextFunction);
 
     expect(mockResponse.status).toHaveBeenCalledWith(500);
     expect(mockResponse.json).toHaveBeenCalledWith({ message: 'Internal Server Error: JWT_SECRET not configured' });
