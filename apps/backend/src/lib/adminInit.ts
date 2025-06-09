@@ -38,10 +38,23 @@ export async function createAdminUser(email: string, password: string): Promise<
     }
 
     // Check if user with this email already exists
-    const existingUser = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    const existingUser = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email.toLowerCase()))
+      .limit(1);
+
     if (existingUser.length > 0) {
       throw new Error('User with this email already exists');
     }
+
+    const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+
+    await db.insert(users).values({
+      email: email.toLowerCase(),
+      passwordHash,
+      isAdmin: true,
+    });
 
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
     
