@@ -70,25 +70,25 @@ const validatePassword = (password: string): string | null => {
   return null;
 };
 
-const AdminSetup: React.FC = () => {
-  // ... component code
+// const AdminSetup: React.FC = () => {
+//   // ... component code
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError(null);
+//   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+//     event.preventDefault();
+//     setError(null);
 
-    // Validation
-    const passwordError = validatePassword(password);
-    if (passwordError) {
-      setError(passwordError);
-      return;
-    }
+//     // Validation
+//     const passwordError = validatePassword(password);
+//     if (passwordError) {
+//       setError(passwordError);
+//       return;
+//     }
 
-    // ... rest of your submission logic ...
-  };
+//     // ... rest of your submission logic ...
+//   };
 
-  // ... rest of component render ...
-};
+//   // ... rest of component render ...
+// };
 
 // In your handleSubmit (replacing the old length-only check)
     // Validation
