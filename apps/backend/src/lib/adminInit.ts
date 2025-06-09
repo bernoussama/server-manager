@@ -56,13 +56,6 @@ export async function createAdminUser(email: string, password: string): Promise<
       isAdmin: true,
     });
 
-    const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
-    
-    await db.insert(users).values({
-      email,
-      passwordHash,
-      isAdmin: true,
-    });
 
     logger.info(`Admin user created successfully with email: ${email}`);
   } catch (error) {

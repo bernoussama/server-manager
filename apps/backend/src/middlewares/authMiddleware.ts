@@ -2,7 +2,6 @@ import { type Request, type Response, type NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
 export interface AuthRequest extends Request {
-export interface AuthRequest extends Request {
   user?: {
     userId: string;
     email: string;
@@ -30,10 +29,11 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; email: string };
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; email: string; isAdmin?: boolean };
     req.user = {
       userId: decoded.userId,
       email: decoded.email,
+      isAdmin: decoded.isAdmin || false,
     };
     next();
   } catch (error) {
