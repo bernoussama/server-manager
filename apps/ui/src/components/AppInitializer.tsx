@@ -31,20 +31,23 @@ const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
             navigate('/admin/setup', { replace: true });
           }
         } else {
-          // If we can't reach the server, assume setup is required
-          console.warn('Could not check admin setup status, assuming setup required');
-          setSetupRequired(true);
-          if (location.pathname !== '/admin/setup') {
-            navigate('/admin/setup', { replace: true });
+          // Handle different HTTP error codes appropriately
+          if (response.status === 404) {
+            // Admin endpoint not found, likely setup required
+            setSetupRequired(true);
+            if (location.pathname !== '/admin/setup') {
+              navigate('/admin/setup', { replace: true });
+            }
+          } else {
+            // Other errors - show error state instead of assuming setup required
+            console.error('Failed to check admin setup status:', response.status);
+            // Could show an error UI or retry mechanism
           }
         }
       } catch (error) {
         console.error('Error checking admin setup:', error);
-        // If there's an error, assume setup is required
-        setSetupRequired(true);
-        if (location.pathname !== '/admin/setup') {
-          navigate('/admin/setup', { replace: true });
-        }
+        // Network errors - could implement retry logic
+        // For now, show error state rather than assuming setup required
       } finally {
         setIsInitialized(true);
       }
