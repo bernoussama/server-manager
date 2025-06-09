@@ -50,6 +50,27 @@ const AdminSetup: React.FC = () => {
     event.preventDefault();
     setError(null);
 
+// Add this helper (e.g. right after your imports or above the component)
+const validatePassword = (password: string): string | null => {
+  if (password.length < 8) {
+    return 'Password must be at least 8 characters long';
+  }
+  if (!/(?=.*[a-z])/.test(password)) {
+    return 'Password must contain at least one lowercase letter';
+  }
+  if (!/(?=.*[A-Z])/.test(password)) {
+    return 'Password must contain at least one uppercase letter';
+  }
+  if (!/(?=.*\d)/.test(password)) {
+    return 'Password must contain at least one number';
+  }
+  if (!/(?=.*[@$!%*?&])/.test(password)) {
+    return 'Password must contain at least one special character';
+  }
+  return null;
+};
+
+// In your handleSubmit (replacing the old length-only check)
     // Validation
     if (!email || !password) {
       setError('Email and password are required');
@@ -61,8 +82,9 @@ const AdminSetup: React.FC = () => {
       return;
     }
 
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters long');
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
 
