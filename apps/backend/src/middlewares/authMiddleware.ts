@@ -2,9 +2,11 @@ import { type Request, type Response, type NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
 export interface AuthRequest extends Request {
+export interface AuthRequest extends Request {
   user?: {
     userId: string;
     email: string;
+    isAdmin: boolean;
   };
 }
 
