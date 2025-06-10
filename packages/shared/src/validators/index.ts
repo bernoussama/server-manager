@@ -7,6 +7,8 @@ import * as userValidators from './userValidator';
 import * as dnsTransformers from './dnsTransformers';
 import * as httpFormValidators from './httpFormValidator';
 import * as httpTransformers from './httpTransformers';
+import * as dhcpFormValidators from './dhcpFormValidator';
+import * as dhcpTransformers from './dhcpTransformers';
 
 // Re-export everything from dnsConfigValidator
 export * from './dnsConfigValidator';
@@ -48,6 +50,35 @@ export {
   transformHttpFormToApi,
   transformHttpApiToForm
 } from './httpTransformers';
+
+// Re-export DHCP validators and transformers
+export {
+  isValidIpAddress as dhcpIsValidIpAddress,
+  isValidMacAddress,
+  isValidNetmask,
+  isValidHostname,
+  isValidDomainName,
+  isValidLeaseTime,
+  isIpInNetwork,
+  isValidIpRange,
+  dhcpOptionSchema,
+  hostReservationSchema,
+  subnetSchema,
+  dhcpConfigSchema
+} from './dhcpFormValidator';
+export type { DhcpConfigFormValues } from './dhcpFormValidator';
+
+export {
+  transformDhcpFormToApi,
+  transformDhcpApiToForm,
+  parseStringToArray as dhcpParseStringToArray,
+  arrayToCommaString,
+  validateFormData as validateDhcpFormData,
+  generateDefaultDhcpConfig,
+  calculateBroadcastAddress,
+  calculateNetworkAddress,
+  suggestIpRange
+} from './dhcpTransformers';
 
 // Re-export everything from userValidator
 export * from './userValidator'; 
