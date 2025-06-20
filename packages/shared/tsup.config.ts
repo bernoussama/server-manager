@@ -9,7 +9,8 @@ export const tsup = defineConfig({
 	minify: false,
 	entry: {
 		index: "src/index.ts",
-		"validators/index": "src/validators/index.ts"
+		"validators/index": "src/validators/index.ts",
+		"types/index": "src/types/index.ts"
 	},
 	sourcemap: true,
 	target: "es2020",

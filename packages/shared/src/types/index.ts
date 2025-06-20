@@ -7,4 +7,5 @@ export * from './http';
 export * from './items';
 export * from './services';
 export * from './systemMetrics';
-export * from './users'; 
+export * from './users';
+export * from './tickets.js'; 

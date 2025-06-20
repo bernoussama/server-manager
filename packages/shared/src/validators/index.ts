@@ -81,4 +81,5 @@ export {
 } from './dhcpTransformers';
 
 // Re-export everything from userValidator
-export * from './userValidator'; 
+export * from './userValidator';
+export * from './ticketValidator.js'; 

@@ -1,4 +1,4 @@
-import { Layers, Settings, Globe, Network, Server, Home, BarChart } from 'lucide-react';
+import { Layers, Settings, Globe, Network, Server, Home, BarChart, Ticket } from 'lucide-react';
 import { BrowserRouter as Router, Routes, Route, useLocation, Link, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './components/theme-provider';
 import { Sidebar } from './components/ui/sidebar';
@@ -10,6 +10,9 @@ import { DHCPConfigView } from '@/pages/DHCPConfigView';
 import { HTTPConfigView } from '@/pages/HTTPConfigView';
 import { SettingsView } from '@/pages/SettingsView';
 import { DashboardView } from '@/pages/DashboardView';
+import TicketsView from './pages/TicketsView';
+import CreateTicketView from './pages/CreateTicketView';
+import TicketDetailsPageView from './pages/TicketDetailsPageView';
 
 import { useAuth } from './features/auth/AuthContext';
 import LoginPage from './features/auth/LoginPage';
@@ -35,6 +38,7 @@ function AppContent() {
 
   const sidebarItems = [
     { title: "Dashboard", href: "/", icon: <Home className="h-4 w-4" /> },
+    { title: "Tickets", href: "/tickets", icon: <Ticket className="h-4 w-4" /> },
     { title: "System Stats", href: "/stats", icon: <BarChart className="h-4 w-4" /> },
     { title: "Services", href: "/services", icon: <Layers className="h-4 w-4" /> },
     { title: "DNS Config", href: "/dns", icon: <Globe className="h-4 w-4" /> },
@@ -100,6 +104,9 @@ function AppContent() {
               <Route path="/dhcp" element={<ProtectedRoute><DHCPConfigView /></ProtectedRoute>} />
               <Route path="/http" element={<ProtectedRoute><HTTPConfigView /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><SettingsView /></ProtectedRoute>} />
+              <Route path="/tickets" element={<ProtectedRoute><TicketsView /></ProtectedRoute>} />
+              <Route path="/tickets/new" element={<ProtectedRoute><CreateTicketView /></ProtectedRoute>} />
+              <Route path="/tickets/:id" element={<ProtectedRoute><TicketDetailsPageView /></ProtectedRoute>} />
 
               {/* Catch-all */}
               <Route path="*" element={isAuthenticated ? <Navigate to="/" replace /> : <Navigate to="/login" replace />} />
