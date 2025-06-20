@@ -11,4 +11,3 @@ apps/backend/test/dns
 apps/backend/test
 apps/backend/db.sqlite
 apps/backend/local.db
-apps/backend/local.db
