@@ -10,6 +10,7 @@ import dnsRoutes from './routes/dnsRoutes';
 import httpRoutes from './routes/httpRoutes';
 import dhcpRoutes from './routes/dhcpRoutes';
 import systemMetricsRoutes from './routes/systemMetricsRoutes';
+import ticketRoutes from './routes/ticketRoutes.js';
 import logger from './lib/logger';
 
 const app: Express = express();
@@ -37,6 +38,7 @@ app.use('/api/dns', dnsRoutes);
 app.use('/api/http', httpRoutes);
 app.use('/api/dhcp', dhcpRoutes);
 app.use('/api/system-metrics', systemMetricsRoutes);
+app.use('/api/tickets', ticketRoutes);
 
 // Error handling
 app.use(errorHandler);

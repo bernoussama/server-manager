@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 
 export interface AuthRequest extends Request {
   user?: {
-    userId: string;
+    id: number;
     email: string;
     isAdmin: boolean;
   };
@@ -29,9 +29,9 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; email: string; isAdmin?: boolean };
+    const decoded = jwt.verify(token, JWT_SECRET) as { id: number; email: string; isAdmin?: boolean };
     req.user = {
-      userId: decoded.userId,
+      id: decoded.id,
       email: decoded.email,
       isAdmin: decoded.isAdmin || false,
     };
