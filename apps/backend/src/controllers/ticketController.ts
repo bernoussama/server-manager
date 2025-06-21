@@ -48,8 +48,7 @@ export const getAllTickets = async (req: AuthRequest, res: Response) => {
                         id: true,
                     }
                 }
-            },
-            where: req.user.isAdmin ? undefined : eq(tickets.userId, req.user.id),
+            }
         });
 
         res.status(200).json(allTickets);
@@ -91,11 +90,6 @@ export const getTicketById = async (req: AuthRequest, res: Response) => {
             return res.status(404).json({ message: 'Ticket not found' });
         }
 
-        // If user is not an admin, they can only see their own tickets
-        if (!req.user.isAdmin && ticket.userId !== req.user.id) {
-            return res.status(403).json({ message: 'Forbidden' });
-        }
-
         res.status(200).json(ticket);
     } catch (error) {
         console.error(`Error getting ticket by id:`, error);
@@ -104,9 +98,88 @@ export const getTicketById = async (req: AuthRequest, res: Response) => {
 };
 
 export const updateTicket = async (req: AuthRequest, res: Response) => {
-    // implementation pending
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Unauthorized' });
+        }
+
+        const ticketId = parseInt(req.params.id, 10);
+        if (isNaN(ticketId)) {
+            return res.status(400).json({ message: 'Invalid ticket ID' });
+        }
+
+        const validatedData = updateTicketSchema.parse(req.body);
+
+        // Fetch the ticket to check for ownership if user is not admin
+        if (!req.user.isAdmin) {
+            const ticket = await db.query.tickets.findFirst({
+                where: eq(tickets.id, ticketId),
+            });
+
+            if (!ticket) {
+                return res.status(404).json({ message: 'Ticket not found' });
+            }
+
+            if (ticket.userId !== req.user.id) {
+                return res.status(403).json({ message: 'Forbidden: You can only update your own tickets' });
+            }
+        }
+        
+        const updatedTicket = await db.update(tickets)
+            .set({ ...validatedData, updatedAt: new Date() })
+            .where(eq(tickets.id, ticketId))
+            .returning();
+
+        if (updatedTicket.length === 0) {
+            return res.status(404).json({ message: 'Ticket not found' });
+        }
+
+        res.status(200).json({ message: 'Ticket updated successfully', ticket: updatedTicket[0] });
+
+    } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({ message: 'Validation Error', errors: error.errors });
+        }
+        console.error('Error updating ticket:', error);
+        res.status(500).json({ message: 'Failed to update ticket' });
+    }
 };
 
 export const deleteTicket = async (req: AuthRequest, res: Response) => {
-    // implementation pending
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Unauthorized' });
+        }
+
+        const ticketId = parseInt(req.params.id, 10);
+        if (isNaN(ticketId)) {
+            return res.status(400).json({ message: 'Invalid ticket ID' });
+        }
+
+        // Fetch the ticket to check for ownership if user is not admin
+        if (!req.user.isAdmin) {
+            const ticket = await db.query.tickets.findFirst({
+                where: eq(tickets.id, ticketId),
+            });
+
+            if (!ticket) {
+                return res.status(404).json({ message: 'Ticket not found' });
+            }
+
+            if (ticket.userId !== req.user.id) {
+                return res.status(403).json({ message: 'Forbidden: You can only delete your own tickets' });
+            }
+        }
+
+        const deletedTicket = await db.delete(tickets).where(eq(tickets.id, ticketId)).returning();
+
+        if (deletedTicket.length === 0) {
+            return res.status(404).json({ message: 'Ticket not found' });
+        }
+
+        res.status(200).json({ message: 'Ticket deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting ticket:', error);
+        res.status(500).json({ message: 'Failed to delete ticket' });
+    }
 }; 

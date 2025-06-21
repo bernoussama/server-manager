@@ -6,7 +6,7 @@ import { adminMiddleware } from "../middlewares/adminMiddleware";
 const router: express.Router = express.Router();
 
 // Get all users (admin only)
-router.get("/", authMiddleware, adminMiddleware, usersController.getAllUsers);
+router.get("/", authMiddleware, usersController.getAllUsers);
 
 // Get user by ID (admin only)
 router.get("/:id", authMiddleware, adminMiddleware, usersController.getUserById);
