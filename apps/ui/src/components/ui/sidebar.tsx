@@ -56,9 +56,11 @@ export function Sidebar({ className, items, ...props }: SidebarProps) {
         <div className="space-y-4 py-4">
           <div className="px-4 py-2">
             <div className="flex items-center justify-between mb-2 px-2">
-              <h2 className="text-lg font-semibold tracking-tight">
-                System Dashboard
-              </h2>
+              <Link to="/" className="hover:underline focus:outline-none">
+                <h2 className="text-lg font-semibold tracking-tight">
+                  Server Manager
+                </h2>
+              </Link>
               <ThemeToggle />
             </div>
           </div>

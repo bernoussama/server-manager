@@ -22,13 +22,6 @@ import ProtectedRoute from './features/auth/ProtectedRoute';
 import AppInitializer from './components/AppInitializer';
 
 // Simple placeholder components
-const HomePage = () => (
-  <div className="p-4">
-    <h2 className="text-2xl font-semibold">Home Page (Protected Dashboard)</h2>
-    <p>This is the main dashboard area, only visible to authenticated users.</p>
-    <DashboardView />
-  </div>
-);
 const PublicPage = () => <div className="p-4"><h2 className="text-2xl font-semibold">Public Page</h2><p>This page is accessible to everyone.</p></div>;
 
 
@@ -64,8 +57,9 @@ function AppContent() {
           <header className="bg-card p-4 shadow-sm">
             <nav className="container mx-auto flex justify-between items-center">
               <div className="flex items-center space-x-4">
-                <Link to={isAuthenticated ? "/" : "/public"} className="text-xl font-bold">App</Link>
-                <Link to="/public" className="text-sm hover:underline">Public Page</Link>
+                <Link to="/" className="text-2xl font-bold tracking-tight text-primary">
+                  Server Manager
+                </Link>
               </div>
               <div className="flex items-center space-x-2">
                 {isAuthenticated ? (
@@ -97,7 +91,7 @@ function AppContent() {
               <Route path="/public" element={<PublicPage />} />
 
               {/* Protected Routes */}
-              <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+              <Route path="/" element={<ProtectedRoute><DashboardView /></ProtectedRoute>} />
               <Route path="/stats" element={<ProtectedRoute><SystemStats /></ProtectedRoute>} />
               <Route path="/services" element={<ProtectedRoute><ServicesView /></ProtectedRoute>} />
               <Route path="/dns" element={<ProtectedRoute><DNSConfigView /></ProtectedRoute>} />
