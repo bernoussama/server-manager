@@ -1,5 +1,6 @@
 // Export all types
 export * from './api';
+export * from './dhcp';
 export * from './dns';
 export * from './errors';
 export * from './http';
