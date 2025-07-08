@@ -2,6 +2,20 @@ import type { DnsUpdateResponse, DnsConfiguration } from '@server-manager/shared
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
 
+// Helper function to get auth token
+const getAuthToken = (): string | null => {
+  return localStorage.getItem('authToken');
+};
+
+// Helper function to get auth headers
+const getAuthHeaders = (): Record<string, string> => {
+  const token = getAuthToken();
+  return {
+    'Content-Type': 'application/json',
+    ...(token && { 'Authorization': `Bearer ${token}` }),
+  };
+};
+
 // Interface for the API response when fetching current configuration
 export interface DnsConfigResponse {
   message: string;
@@ -13,11 +27,7 @@ export const updateDnsConfigurationAPI = async (formData: any): Promise<DnsUpdat
     // Do not transform the form data here, send it as is to the backend
     const response = await fetch(`${API_BASE_URL}/dns/config`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // Add Authorization header if your API requires authentication
-        // 'Authorization': `Bearer ${your_auth_token}`,
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(formData),
     });
 
@@ -58,6 +68,7 @@ export const getDnsConfigurationAPI = async (): Promise<DnsConfigResponse> => {
   try {
     const response = await fetch(`${API_BASE_URL}/dns/config`, {
       method: 'GET',
+      headers: getAuthHeaders(),
     });
 
     const responseData: DnsConfigResponse = await response.json();
