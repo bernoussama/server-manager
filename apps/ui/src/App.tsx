@@ -24,8 +24,6 @@ import AppInitializer from './components/AppInitializer';
 // Simple placeholder components
 const HomePage = () => (
   <div className="p-4">
-    <h2 className="text-2xl font-semibold">Home Page (Protected Dashboard)</h2>
-    <p>This is the main dashboard area, only visible to authenticated users.</p>
     <DashboardView />
   </div>
 );
