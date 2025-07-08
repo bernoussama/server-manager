@@ -5,6 +5,7 @@ import type { CorsOptions } from 'cors';
 const corsOptions: CorsOptions = {
   origin: [
     'http://localhost:5173', // Vite default dev server
+    'http://localhost:4173', // Vite preview server
     'http://localhost:3000',
     // Add other allowed origins as needed
   ],
