@@ -140,6 +140,9 @@ ServerRoot "${globalConfig.serverRoot || DEFAULT_HTTPD_CONFIG.serverRoot}"
 # Required modules
 `;
 
+  // Check if SSL is needed for any listen directive
+  const needsSSL = globalConfig.listen.some((listen: { port: number; address?: string; ssl?: boolean }) => listen.ssl);
+  
   // Add enabled modules from configuration
   if (globalConfig.modules && globalConfig.modules.length > 0) {
     globalConfig.modules
@@ -147,6 +150,13 @@ ServerRoot "${globalConfig.serverRoot || DEFAULT_HTTPD_CONFIG.serverRoot}"
       .forEach((module: any) => {
         conf += `LoadModule ${module.name}_module ${module.filename || `modules/mod_${module.name}.so`}\n`;
       });
+      
+    // Auto-enable SSL module if needed but not explicitly enabled
+    const sslModule = globalConfig.modules.find((module: any) => module.name === 'ssl');
+    if (needsSSL && (!sslModule || !sslModule.enabled)) {
+      conf += `LoadModule ssl_module modules/mod_ssl.so\n`;
+      logger.info('Auto-enabled SSL module because SSL listen directive found');
+    }
   } else {
     // Fallback to default modules if none specified
     conf += `LoadModule mpm_event_module modules/mod_mpm_event.so
@@ -161,12 +171,19 @@ LoadModule log_config_module modules/mod_log_config.so
 `;
   }
 
-  // Listen directives
+  // Listen directives - include SSL listeners if SSL module is enabled or auto-enabled
+  const sslModule = globalConfig.modules?.find((module: any) => module.name === 'ssl');
+  const sslAvailable = !globalConfig.modules || // no modules config means defaults used (SSL included)
+                      (sslModule && sslModule.enabled) || // SSL explicitly enabled
+                      (needsSSL && sslModule && !sslModule.enabled); // SSL auto-enabled above
+  
   globalConfig.listen.forEach((listen: { port: number; address?: string; ssl?: boolean }) => {
-    if (listen.ssl) {
+    if (listen.ssl && sslAvailable) {
       conf += `Listen ${listen.address || '*'}:${listen.port} ssl\n`;
-    } else {
+    } else if (!listen.ssl) {
       conf += `Listen ${listen.address || '*'}:${listen.port}\n`;
+    } else if (listen.ssl && !sslAvailable) {
+      logger.warn(`Skipping SSL listen directive for port ${listen.port} because SSL module is disabled`);
     }
   });
 
