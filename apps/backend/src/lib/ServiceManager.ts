@@ -89,6 +89,69 @@ export class ServiceManager {
   }
 
   /**
+   * Check if a system service exists
+   * @param service The service name
+   * @returns true if service exists, false if not
+   */
+  public async exists(service: string): Promise<boolean> {
+    if (!this.validateServiceName(service)) {
+      const error = `Invalid service name: ${service}`;
+      logger.error(error);
+      throw new Error(error);
+    }
+
+    try {
+      // Use 'is-enabled' to check if service exists (will fail if service doesn't exist)
+      await this.executeCommand(`systemctl is-enabled ${service}`);
+      return true;
+    } catch (error) {
+      // Check if error is specifically about service not existing
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      if (errorMsg.includes('could not be found') || errorMsg.includes('not found')) {
+        logger.debug(`Service ${service} does not exist`);
+        return false;
+      }
+      // Service exists but might be disabled/masked, which is fine
+      return true;
+    }
+  }
+
+  /**
+   * Get the detailed service state
+   * @param service The service name
+   * @returns Service state: 'active', 'inactive', 'failed', 'not-found', etc.
+   */
+  public async getServiceState(service: string): Promise<string> {
+    if (!this.validateServiceName(service)) {
+      const error = `Invalid service name: ${service}`;
+      logger.error(error);
+      throw new Error(error);
+    }
+
+    try {
+      // Use exec directly without throwing on non-zero exit codes
+      const { stdout } = await execAsync(`systemctl is-active ${service}`, { 
+        encoding: 'utf8'
+      }).catch((error) => {
+        // systemctl is-active returns non-zero for inactive/failed services
+        // but still outputs the state to stdout
+        return { stdout: error.stdout || '', stderr: error.stderr || '' };
+      });
+      
+      const state = stdout.trim();
+      logger.debug(`Service ${service} state: ${state}`);
+      
+      return state || 'unknown';
+    } catch (error: any) {
+      logger.error(`Error getting service state for ${service}:`, error);
+      if (error.message && error.message.includes('could not be found')) {
+        return 'not-found';
+      }
+      return 'unknown';
+    }
+  }
+
+  /**
    * Check if a system service is running
    * @param service The service name
    * @returns true if running, false if not
@@ -102,43 +165,13 @@ export class ServiceManager {
 
     logger.debug(`Checking status of validated service: ${service}`);
     
-    let attempt = 0;
-    const MAX_ATTEMPTS = 3;
-    
-    while (attempt < MAX_ATTEMPTS) {
-      try {
-        // Use 'is-active' which returns 'active' if the service is running
-        // This is more reliable than 'status' which may return complex output
-        const output = await this.executeCommand(`systemctl is-active ${service}`);
-        const trimmedOutput = output.trim();
-        
-        logger.debug(`Service ${service} status (attempt ${attempt + 1}): ${trimmedOutput}`);
-        
-        // 'active' is returned if the service is running
-        if (trimmedOutput === 'active') {
-          return true;
-        }
-        
-        // Otherwise the service is not running (could be 'inactive', 'failed', etc.)
-        return false;
-        
-      } catch (error: any) {
-        // On first failure, retry
-        if (attempt < MAX_ATTEMPTS - 1) {
-          attempt++;
-          // Wait briefly before retrying
-          await new Promise(resolve => setTimeout(resolve, 200));
-          continue;
-        }
-        
-        // If we've reached max attempts, log the error and assume service is not running
-        logger.error(`Error checking service status: ${error}`);
-        return false;
-      }
+    try {
+      const state = await this.getServiceState(service);
+      return state === 'active';
+    } catch (error: any) {
+      logger.error(`Error checking service status: ${error}`);
+      return false;
     }
-    
-    // This should never be reached due to the return statements above
-    return false;
   }
 
   /**

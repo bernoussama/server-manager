@@ -441,8 +441,14 @@ export const getCurrentHttpConfiguration = async (req: AuthRequest, res: Respons
     let serviceRunning = false;
     if (isProd) {
       try {
-        serviceRunning = await serviceManager.status('httpd');
-        logger.info(`Apache service is ${serviceRunning ? 'running' : 'not running'}`);
+        // First check if the service exists
+        const serviceExists = await serviceManager.exists('httpd');
+        if (serviceExists) {
+          serviceRunning = await serviceManager.status('httpd');
+          logger.info(`Apache service is ${serviceRunning ? 'running' : 'not running'}`);
+        } else {
+          logger.warn('Apache httpd service is not installed. Install with: sudo dnf install httpd');
+        }
       } catch (error) {
         logger.info('Error checking Apache service status, assuming not running');
       }
@@ -764,9 +770,30 @@ export const getHttpServiceStatus = async (req: AuthRequest, res: Response) => {
     
     if (isProd) {
       try {
-        const isRunning = await serviceManager.status('httpd');
-        status = isRunning ? 'running' : 'stopped';
-        message = `Apache service is ${status}`;
+        // Get the detailed service state
+        const serviceState = await serviceManager.getServiceState('httpd');
+        
+        switch (serviceState) {
+          case 'active':
+            status = 'running';
+            message = 'Apache service is running';
+            break;
+          case 'inactive':
+            status = 'stopped';
+            message = 'Apache service is stopped';
+            break;
+          case 'failed':
+            status = 'failed';
+            message = 'Apache service has failed. Check configuration and restart service.';
+            break;
+          case 'not-found':
+            status = 'failed';
+            message = 'Apache httpd service is not installed. Install with: sudo dnf install httpd';
+            break;
+          default:
+            status = 'unknown';
+            message = `Apache service state: ${serviceState}`;
+        }
       } catch (error) {
         status = 'failed';
         message = `Failed to check service status: ${(error as Error).message}`;
@@ -818,20 +845,39 @@ export const controlHttpService = async (req: AuthRequest, res: Response) => {
         switch (action) {
           case 'start':
             result = await serviceManager.start('httpd');
-            status = 'running';
+            // Check actual status after start attempt
+            const startState = await serviceManager.getServiceState('httpd');
+            status = startState === 'active' ? 'running' : 'failed';
             break;
           case 'stop':
             result = await serviceManager.stop('httpd');
-            status = 'stopped';
+            // Check actual status after stop attempt
+            const stopState = await serviceManager.getServiceState('httpd');
+            status = stopState === 'inactive' ? 'stopped' : 'failed';
             break;
           case 'restart':
           case 'reload':
             result = await serviceManager.restart('httpd');
-            status = 'running';
+            // Check actual status after restart attempt
+            const restartState = await serviceManager.getServiceState('httpd');
+            status = restartState === 'active' ? 'running' : 'failed';
             break;
           case 'status':
-            const isRunning = await serviceManager.status('httpd');
-            status = isRunning ? 'running' : 'stopped';
+            const serviceState = await serviceManager.getServiceState('httpd');
+            switch (serviceState) {
+              case 'active':
+                status = 'running';
+                break;
+              case 'inactive':
+                status = 'stopped';
+                break;
+              case 'failed':
+              case 'not-found':
+                status = 'failed';
+                break;
+              default:
+                status = 'unknown';
+            }
             result = await serviceManager.getDetailedStatus('httpd');
             break;
         }
