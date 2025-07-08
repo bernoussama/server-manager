@@ -62,8 +62,7 @@ function AppContent() {
           <header className="bg-card p-4 shadow-sm">
             <nav className="container mx-auto flex justify-between items-center">
               <div className="flex items-center space-x-4">
-                <Link to={isAuthenticated ? "/" : "/public"} className="text-xl font-bold">App</Link>
-                <Link to="/public" className="text-sm hover:underline">Public Page</Link>
+                <Link to={isAuthenticated ? "/" : "/public"} className="text-xl font-bold">Server Manager</Link>
               </div>
               <div className="flex items-center space-x-2">
                 {isAuthenticated ? (
