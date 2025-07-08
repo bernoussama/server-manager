@@ -154,6 +154,7 @@ ServerRoot "${globalConfig.serverRoot || DEFAULT_HTTPD_CONFIG.serverRoot}"
     // Auto-enable SSL module if needed but not explicitly enabled
     const sslModule = globalConfig.modules.find((module: any) => module.name === 'ssl');
     if (needsSSL && (!sslModule || !sslModule.enabled)) {
+      conf += `# SSL module auto-enabled (ensure mod_ssl is installed: dnf install httpd-mod_ssl)\n`;
       conf += `LoadModule ssl_module modules/mod_ssl.so\n`;
       logger.info('Auto-enabled SSL module because SSL listen directive found');
     }
@@ -163,6 +164,7 @@ ServerRoot "${globalConfig.serverRoot || DEFAULT_HTTPD_CONFIG.serverRoot}"
 LoadModule dir_module modules/mod_dir.so
 LoadModule mime_module modules/mod_mime.so
 LoadModule rewrite_module modules/mod_rewrite.so
+# SSL module (ensure mod_ssl is installed: dnf install httpd-mod_ssl)
 LoadModule ssl_module modules/mod_ssl.so
 LoadModule alias_module modules/mod_alias.so
 LoadModule authz_core_module modules/mod_authz_core.so
