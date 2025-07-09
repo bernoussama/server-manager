@@ -56,6 +56,7 @@ export interface DhcpConfiguration extends DhcpServerConfig {
   subnets: DhcpSubnet[];
   hostReservations: DhcpHostReservation[];
   globalOptions?: DhcpOption[];
+  listenInterface?: string; // Network interface to listen on
 }
 
 // Form/UI Types
@@ -67,6 +68,7 @@ export interface DhcpConfigFormValues {
   maxLeaseTime: string;
   authoritative: boolean;
   ddnsUpdateStyle: string;
+  listenInterface: string; // Network interface to listen on
   
   subnets: Array<{
     id: string;
@@ -123,4 +125,21 @@ export interface DhcpConfigResponse {
   data: DhcpConfiguration;
 }
 
-export type DhcpServiceAction = 'start' | 'stop' | 'restart' | 'reload' | 'status'; 
+export type DhcpServiceAction = 'start' | 'stop' | 'restart' | 'reload' | 'status';
+
+// Network Interface Types
+export interface NetworkInterface {
+  name: string;
+  ipAddress?: string;
+  netmask?: string;
+  broadcast?: string;
+  macAddress?: string;
+  state: 'UP' | 'DOWN' | 'UNKNOWN';
+  type: 'physical' | 'virtual' | 'loopback';
+}
+
+export interface NetworkInterfaceResponse {
+  success: boolean;
+  message: string;
+  data: NetworkInterface[];
+} 

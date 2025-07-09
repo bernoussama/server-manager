@@ -1,7 +1,7 @@
 import type { Response } from 'express';
 import type { AuthRequest } from '../middlewares/authMiddleware';
 import { dhcpConfigSchema, transformDhcpFormToApi, type DhcpConfigFormValues } from '@server-manager/shared/validators';
-import type { DhcpConfiguration, DhcpServiceResponse } from '@server-manager/shared';
+import type { DhcpConfiguration, DhcpServiceResponse, NetworkInterface, NetworkInterfaceResponse } from '@server-manager/shared';
 import { ZodError } from 'zod';
 import { writeFile, readFile, mkdir } from 'fs/promises';
 import { exec } from 'child_process';
@@ -249,8 +249,30 @@ const validateDhcpConfigSyntax = async (): Promise<void> => {
 };
 
 // Reload DHCP service
-const reloadDhcpService = async (): Promise<void> => {
+const reloadDhcpService = async (listenInterface?: string): Promise<void> => {
   try {
+    // If interface is specified, we need to configure the service to listen on it
+    if (listenInterface && isProd) {
+      // Create systemd override to specify interface
+      const overrideDir = '/etc/systemd/system/dhcpd.service.d';
+      const overrideFile = `${overrideDir}/interface.conf`;
+      
+      try {
+        await ensureDirectoryExists(overrideDir);
+        const overrideContent = `[Service]
+ExecStart=
+ExecStart=/usr/sbin/dhcpd -f -d --no-pid -cf ${DHCPD_CONF_PATH} ${listenInterface}
+`;
+        await writeFile(overrideFile, overrideContent, 'utf8');
+        logger.info(`Created systemd override for interface ${listenInterface}`);
+        
+        // Reload systemd to pick up the changes
+        await execAsync('systemctl daemon-reload');
+      } catch (error) {
+        logger.warn('Failed to create systemd override, service may not bind to specific interface:', error);
+      }
+    }
+    
     await serviceManager.restart('dhcpd');
     logger.info('DHCP service reloaded successfully');
   } catch (error) {
@@ -293,7 +315,7 @@ export const updateDhcpConfiguration = async (req: AuthRequest, res: Response) =
     // Reload service if enabled
     if (validatedConfig.dhcpServerStatus) {
       try {
-        await reloadDhcpService();
+        await reloadDhcpService(validatedConfig.listenInterface);
       } catch (error) {
         logger.warn('Service reload failed, but configuration was saved');
         return res.status(207).json({
@@ -369,6 +391,7 @@ export const getCurrentDhcpConfiguration = async (req: AuthRequest, res: Respons
         maxLeaseTime: 604800,
         authoritative: true,
         ddnsUpdateStyle: 'none',
+        listenInterface: '', // Will be set by user
         subnets: [{
           id: crypto.randomUUID(),
           network: '192.168.1.0',
@@ -397,6 +420,99 @@ export const getCurrentDhcpConfiguration = async (req: AuthRequest, res: Respons
       message: error instanceof Error ? error.message : 'Failed to get DHCP configuration'
     });
   }
+};
+
+// Get network interfaces
+export const getNetworkInterfaces = async (req: AuthRequest, res: Response) => {
+  try {
+    logger.info('Fetching network interfaces');
+    
+    if (config.useMockServices) {
+      // Return mock interfaces for development
+      const mockInterfaces: NetworkInterface[] = [
+        {
+          name: 'eth0',
+          ipAddress: '192.168.1.10',
+          netmask: '255.255.255.0',
+          broadcast: '192.168.1.255',
+          macAddress: '00:11:22:33:44:55',
+          state: 'UP',
+          type: 'physical'
+        },
+        {
+          name: 'enp0s3',
+          ipAddress: '10.0.2.15',
+          netmask: '255.255.255.0',
+          broadcast: '10.0.2.255',
+          macAddress: '08:00:27:12:34:56',
+          state: 'UP',
+          type: 'physical'
+        },
+        {
+          name: 'lo',
+          ipAddress: '127.0.0.1',
+          netmask: '255.0.0.0',
+          state: 'UP',
+          type: 'loopback'
+        }
+      ];
+      
+      return res.status(200).json({
+        success: true,
+        message: 'Network interfaces retrieved successfully (mock)',
+        data: mockInterfaces
+      } as NetworkInterfaceResponse);
+    }
+
+    // Get network interfaces using ip command
+    const { stdout } = await execAsync('ip -j addr show');
+    const interfaces = JSON.parse(stdout);
+    
+    const networkInterfaces: NetworkInterface[] = interfaces
+      .filter((iface: any) => iface.ifname !== 'lo' || iface.ifname === 'lo') // Include all for now
+      .map((iface: any) => {
+        const addr = iface.addr_info?.find((addr: any) => addr.family === 'inet');
+        
+        return {
+          name: iface.ifname,
+          ipAddress: addr?.local,
+          netmask: addr ? convertPrefixToNetmask(addr.prefixlen) : undefined,
+          broadcast: addr?.broadcast,
+          macAddress: iface.address,
+          state: iface.operstate === 'UP' ? 'UP' : iface.operstate === 'DOWN' ? 'DOWN' : 'UNKNOWN',
+          type: iface.ifname === 'lo' ? 'loopback' : 
+                iface.ifname.startsWith('vir') || iface.ifname.startsWith('veth') || 
+                iface.ifname.startsWith('docker') || iface.ifname.startsWith('br-') ? 'virtual' : 'physical'
+        } as NetworkInterface;
+      })
+      .filter((iface: NetworkInterface) => iface.state === 'UP'); // Only return UP interfaces
+
+    logger.info(`Found ${networkInterfaces.length} network interfaces`);
+    res.status(200).json({
+      success: true,
+      message: 'Network interfaces retrieved successfully',
+      data: networkInterfaces
+    } as NetworkInterfaceResponse);
+
+  } catch (error) {
+    logger.error('Error getting network interfaces:', error);
+    res.status(500).json({
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to get network interfaces',
+      data: []
+    } as NetworkInterfaceResponse);
+  }
+};
+
+// Helper function to convert prefix length to netmask
+const convertPrefixToNetmask = (prefixlen: number): string => {
+  const mask = (0xffffffff << (32 - prefixlen)) >>> 0;
+  return [
+    (mask >>> 24) & 0xff,
+    (mask >>> 16) & 0xff,
+    (mask >>> 8) & 0xff,
+    mask & 0xff
+  ].join('.');
 };
 
 // Validate DHCP configuration without saving

@@ -567,6 +567,13 @@ export const getCurrentHttpConfiguration = async (req: AuthRequest, res: Respons
               required: false,
               description: 'Logging configuration',
               filename: 'modules/mod_log_config.so'
+            },
+            {
+              name: 'unixd',
+              enabled: true,
+              required: false,
+              description: 'Unix domain socket handling module',
+              filename: 'modules/mod_unixd.so'
             }
           ]
         },

@@ -12,13 +12,16 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { toast } from '@/hooks/use-toast';
 import { PlusCircle, Trash2, Network, Server, Users, Settings } from 'lucide-react';
 import { dhcpConfigSchema, transformDhcpApiToForm, type DhcpConfigFormValues } from '@server-manager/shared/validators';
-import { getDhcpConfigurationAPI, updateDhcpConfigurationAPI, getDhcpServiceStatusAPI, controlDhcpServiceAPI } from "@/lib/api/dhcp";
+import { getDhcpConfigurationAPI, updateDhcpConfigurationAPI, getDhcpServiceStatusAPI, controlDhcpServiceAPI, getNetworkInterfacesAPI } from "@/lib/api/dhcp";
+import type { NetworkInterface } from '@server-manager/shared';
 import { v4 as uuidv4 } from 'uuid';
 
 export function DHCPConfig() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [isSaving, setIsSaving] = React.useState(false);
   const [serviceStatus, setServiceStatus] = React.useState<'running' | 'stopped' | 'unknown'>('unknown');
+  const [networkInterfaces, setNetworkInterfaces] = React.useState<NetworkInterface[]>([]);
+  const [isLoadingInterfaces, setIsLoadingInterfaces] = React.useState(true);
 
   const form = useForm<DhcpConfigFormValues>({
     resolver: zodResolver(dhcpConfigSchema),
@@ -30,6 +33,7 @@ export function DHCPConfig() {
       maxLeaseTime: '604800',
       authoritative: true,
       ddnsUpdateStyle: 'none' as const,
+      listenInterface: '',
       subnets: [],
       hostReservations: [],
       globalOptions: []
@@ -55,14 +59,19 @@ export function DHCPConfig() {
   React.useEffect(() => {
     const loadConfiguration = async () => {
       try {
-        const [configResponse, statusResponse] = await Promise.all([
+        const [configResponse, statusResponse, interfacesResponse] = await Promise.all([
           getDhcpConfigurationAPI(),
-          getDhcpServiceStatusAPI().catch(() => ({ data: { status: 'unknown' } }))
+          getDhcpServiceStatusAPI().catch(() => ({ data: { status: 'unknown' } })),
+          getNetworkInterfacesAPI().catch(() => ({ data: [], success: false, message: 'Failed to load interfaces' }))
         ]);
         
         const formData = transformDhcpApiToForm(configResponse.data);
         form.reset(formData as any); // Type coercion for form reset
         setServiceStatus(statusResponse.data.status as any);
+        
+        if (interfacesResponse.success) {
+          setNetworkInterfaces(interfacesResponse.data);
+        }
       } catch (error) {
         console.error('Failed to load DHCP configuration:', error);
         toast({
@@ -72,6 +81,7 @@ export function DHCPConfig() {
         });
       } finally {
         setIsLoading(false);
+        setIsLoadingInterfaces(false);
       }
     };
 
@@ -313,21 +323,28 @@ export function DHCPConfig() {
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="authoritative"
+                    name="listenInterface"
                     render={({ field }) => (
-                      <FormItem className="flex items-center justify-between">
-                        <div>
-                          <FormLabel>Authoritative Server</FormLabel>
-                          <FormDescription>
-                            Act as the authoritative DHCP server for this network
-                          </FormDescription>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
+                      <FormItem>
+                        <FormLabel>Network Interface</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingInterfaces}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder={isLoadingInterfaces ? "Loading interfaces..." : "Select interface"} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {networkInterfaces.map((iface) => (
+                              <SelectItem key={iface.name} value={iface.name}>
+                                {iface.name} {iface.ipAddress && `(${iface.ipAddress})`}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          Network interface the DHCP server will listen on
+                        </FormDescription>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -355,6 +372,27 @@ export function DHCPConfig() {
                     )}
                   />
                 </div>
+
+                <FormField
+                  control={form.control}
+                  name="authoritative"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between">
+                      <div>
+                        <FormLabel>Authoritative Server</FormLabel>
+                        <FormDescription>
+                          Act as the authoritative DHCP server for this network
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
               </CardContent>
             </Card>
           </TabsContent>

@@ -5,7 +5,8 @@ import {
   updateDhcpConfiguration,
   validateDhcpConfiguration,
   getDhcpServiceStatus,
-  controlDhcpService
+  controlDhcpService,
+  getNetworkInterfaces
 } from '../controllers/dhcpController';
 
 const router: Router = express.Router();
@@ -24,5 +25,8 @@ router.get('/status', getDhcpServiceStatus);
 
 // Control DHCP service (start/stop/restart/reload) (protected)
 router.post('/service/:action', protect, controlDhcpService);
+
+// Get network interfaces
+router.get('/interfaces', getNetworkInterfaces);
 
 export default router; 

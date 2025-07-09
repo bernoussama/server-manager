@@ -23,6 +23,7 @@ export const transformDhcpFormToApi = (formData: DhcpConfigFormValues): DhcpConf
     maxLeaseTime: parseInt(formData.maxLeaseTime, 10),
     authoritative: formData.authoritative,
     ddnsUpdateStyle: formData.ddnsUpdateStyle as 'interim' | 'standard' | 'none',
+    listenInterface: formData.listenInterface,
     
     subnets: formData.subnets.map(subnet => ({
       id: subnet.id,
@@ -66,6 +67,7 @@ export const transformDhcpApiToForm = (apiData: DhcpConfiguration): DhcpConfigFo
     maxLeaseTime: (apiData.maxLeaseTime || 604800).toString(),
     authoritative: apiData.authoritative !== false, // Default to true if undefined
     ddnsUpdateStyle: apiData.ddnsUpdateStyle || 'none',
+    listenInterface: apiData.listenInterface || '',
     
     subnets: apiData.subnets.map(subnet => ({
       id: subnet.id,
@@ -151,6 +153,7 @@ export const generateDefaultDhcpConfig = (): DhcpConfiguration => {
     maxLeaseTime: 604800, // 7 days
     authoritative: true,
     ddnsUpdateStyle: 'none',
+    listenInterface: '',
     subnets: [],
     hostReservations: [],
     globalOptions: []

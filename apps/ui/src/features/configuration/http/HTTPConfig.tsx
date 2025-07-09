@@ -478,6 +478,12 @@ export function HTTPConfig() {
           enabled: true,
           required: false,
           description: 'Logging configuration'
+        },
+        {
+          name: 'unixd',
+          enabled: true,
+          required: false,
+          description: 'Unix domain socket handling module'
         }
       ],
       virtualHosts: [

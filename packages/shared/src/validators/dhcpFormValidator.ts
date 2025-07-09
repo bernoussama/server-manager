@@ -204,6 +204,7 @@ export const dhcpConfigSchema = z.object({
   }),
   authoritative: z.boolean().default(true),
   ddnsUpdateStyle: z.enum(['interim', 'standard', 'none']).default('none'),
+  listenInterface: z.string().min(1, "Network interface is required"),
   
   subnets: z.array(subnetSchema).min(1, "At least one subnet is required"),
   hostReservations: z.array(hostReservationSchema).default([]),

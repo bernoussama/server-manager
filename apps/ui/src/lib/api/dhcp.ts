@@ -1,4 +1,4 @@
-import type { DhcpConfiguration, DhcpConfigFormValues, DhcpUpdateResponse, DhcpServiceResponse } from '@server-manager/shared';
+import type { DhcpConfiguration, DhcpConfigFormValues, DhcpUpdateResponse, DhcpServiceResponse, NetworkInterfaceResponse } from '@server-manager/shared';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
 
@@ -133,5 +133,26 @@ export const controlDhcpServiceAPI = async (action: string): Promise<{ data: Dhc
     return response.json();
   } catch (error: any) {
     throw handleApiError(error, `${action} DHCP service`);
+  }
+};
+
+// Get network interfaces
+export const getNetworkInterfacesAPI = async (): Promise<NetworkInterfaceResponse> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/dhcp/interfaces`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+
+    const responseData: NetworkInterfaceResponse = await response.json();
+
+    if (!response.ok) {
+      console.error('API Error:', responseData);
+      throw { status: response.status, data: responseData };
+    }
+
+    return responseData;
+  } catch (error: any) {
+    throw handleApiError(error, 'get network interfaces');
   }
 }; 
