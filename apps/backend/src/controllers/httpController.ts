@@ -180,6 +180,9 @@ LoadModule rewrite_module modules/mod_rewrite.so
 
 # SSL support (ensure mod_ssl package is installed)
 LoadModule ssl_module modules/mod_ssl.so
+
+# Unix domain socket handling (required for User/Group directives)
+LoadModule unixd_module modules/mod_unixd.so
 `;
   }
 
@@ -207,10 +210,8 @@ ServerAdmin ${globalConfig.serverAdmin || DEFAULT_HTTPD_CONFIG.serverAdmin}
 # Security settings
 ServerTokens ${globalConfig.serverTokens || DEFAULT_HTTPD_CONFIG.serverTokens}
 ServerSignature ${globalConfig.serverSignature || DEFAULT_HTTPD_CONFIG.serverSignature}
-
-# Performance settings
-Timeout ${globalConfig.timeout || DEFAULT_HTTPD_CONFIG.timeout}
-KeepAlive ${globalConfig.keepAlive ? 'On' : 'Off'}
+User ${globalConfig.user || 'apache'}
+Group ${globalConfig.group || 'apache'}
 `;
 
   if (globalConfig.keepAlive) {
@@ -502,6 +503,8 @@ export const getCurrentHttpConfiguration = async (req: AuthRequest, res: Respons
         serverStatus: serviceRunning,
         globalConfig: {
           ...DEFAULT_HTTPD_CONFIG,
+          user: 'apache',
+          group: 'apache',
           errorLog: '/var/log/httpd/error_log',
           logLevel: 'warn',
           modules: [
@@ -571,8 +574,8 @@ export const getCurrentHttpConfiguration = async (req: AuthRequest, res: Respons
             {
               name: 'unixd',
               enabled: true,
-              required: false,
-              description: 'Unix domain socket handling module',
+              required: true,
+              description: 'Unix domain socket handling module (required for User/Group directives)',
               filename: 'modules/mod_unixd.so'
             }
           ]

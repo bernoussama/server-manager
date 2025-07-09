@@ -65,38 +65,20 @@ const VirtualHostConfig: React.FC<VirtualHostConfigProps> = ({
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="serverAdmin"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Server Admin</FormLabel>
-                          <FormControl>
-                            <Input placeholder="root@srv.world" {...field} />
-                          </FormControl>
-                          <FormDescription>
-                            Administrator email address
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={control}
-                    name={`virtualHosts.${virtualHostIndex}.serverName`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Server Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="www.srv.world" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />          <FormField
+          <FormField
+            control={control}
+            name={`virtualHosts.${virtualHostIndex}.serverName`}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Server Name</FormLabel>
+                <FormControl>
+                  <Input placeholder="www.srv.world" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
             control={control}
             name={`virtualHosts.${virtualHostIndex}.port`}
             render={({ field }) => (
@@ -424,6 +406,8 @@ export function HTTPConfig() {
       serverTokens: 'Prod',
       timeout: '60',
       keepAlive: true,
+      user: 'apache',
+      group: 'apache',
       modules: [
         {
           name: 'mpm_event',
@@ -482,8 +466,8 @@ export function HTTPConfig() {
         {
           name: 'unixd',
           enabled: true,
-          required: false,
-          description: 'Unix domain socket handling module'
+          required: true,
+          description: 'Unix domain socket handling module (required for User/Group directives)'
         }
       ],
       virtualHosts: [
@@ -813,8 +797,42 @@ export function HTTPConfig() {
                             <FormDescription className="text-sm">
                               {module.description || `Apache module: mod_${module.name}`}
                             </FormDescription>
-                          </div>
-                          <FormControl>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="user"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Apache User</FormLabel>
+                        <FormControl>
+                          <Input placeholder="apache" {...field} />
+                        </FormControl>
+                        <FormDescription>
+                          User account for Apache processes
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="group"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Apache Group</FormLabel>
+                        <FormControl>
+                          <Input placeholder="apache" {...field} />
+                        </FormControl>
+                        <FormDescription>
+                          Group for Apache processes
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>                          <FormControl>
                             <Switch 
                               checked={field.value} 
                               onCheckedChange={field.onChange}

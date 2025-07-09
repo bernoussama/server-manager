@@ -105,6 +105,8 @@ export const httpConfigSchema = z.object({
   serverTokens: z.enum(['Off', 'Prod', 'Major', 'Minor', 'Min', 'OS', 'Full']).default('Prod'),
   timeout: z.string().regex(/^\d+$/, { message: 'Timeout must be a number' }).default('300'),
   keepAlive: z.boolean().default(true),
+  user: z.string().min(1, "User is required").default('apache'),
+  group: z.string().min(1, "Group is required").default('apache'),
   
   // Modules configuration
   modules: z.array(moduleSchema).default([]),

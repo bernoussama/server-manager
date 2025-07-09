@@ -109,6 +109,8 @@ export interface HttpGlobalConfig {
   // Security
   serverTokens?: 'Off' | 'Prod' | 'Major' | 'Minor' | 'Min' | 'OS' | 'Full';
   serverSignature?: 'Off' | 'On' | 'Email';
+  user?: string;
+  group?: string;
   
   // Modules
   loadedModules?: string[];
@@ -145,6 +147,8 @@ export interface HttpConfigFormValues {
   serverTokens: string;
   timeout: string;
   keepAlive: boolean;
+  user: string;
+  group: string;
   
   // Modules configuration for UI
   modules: Array<{

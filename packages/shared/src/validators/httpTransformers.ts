@@ -212,6 +212,8 @@ export const transformHttpFormToApi = (formData: HttpConfigFormValues): HttpConf
       serverTokens: formData.serverTokens as any,
       timeout: parseInt(formData.timeout),
       keepAlive: formData.keepAlive,
+      user: formData.user,
+      group: formData.group,
       modules: transformUiModulesToApi(formData.modules)
     },
     virtualHosts: formData.virtualHosts.map(transformUiVirtualHostToApi)
@@ -237,6 +239,8 @@ export const transformHttpApiToForm = (apiData: HttpConfiguration): HttpConfigFo
     serverTokens: (apiData.globalConfig.serverTokens || 'Prod') as any,
     timeout: (apiData.globalConfig.timeout || 300).toString(),
     keepAlive: apiData.globalConfig.keepAlive !== false,
+    user: apiData.globalConfig.user || 'apache',
+    group: apiData.globalConfig.group || 'apache',
     modules,
     virtualHosts: apiData.virtualHosts.map(transformApiVirtualHostToUi)
   };
