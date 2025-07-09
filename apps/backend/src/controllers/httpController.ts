@@ -29,8 +29,8 @@ const HTTPD_BACKUP_DIR = isProd ? '/etc/httpd/conf/backups' : './test/http/backu
 // Default configuration values
 const DEFAULT_HTTPD_CONFIG = {
   serverRoot: '/etc/httpd',
-  serverName: 'localhost',
-  serverAdmin: 'admin@localhost',
+  serverName: 'www.srv.world:80',
+  serverAdmin: 'root@srv.world',
   listen: [{ port: 80 }, { port: 443, ssl: true }],
   timeout: 60,
   keepAlive: true,
@@ -265,9 +265,10 @@ DocumentRoot "/var/www/html"
 </Directory>
 
 <Directory "/var/www/html">
-    Options Indexes FollowSymLinks
-    AllowOverride None
+    Options FollowSymLinks
+    AllowOverride All
     Require all granted
+    DirectoryIndex index.html index.php index.cgi
 </Directory>
 `;
 
@@ -573,15 +574,15 @@ export const getCurrentHttpConfiguration = async (req: AuthRequest, res: Respons
           {
             id: crypto.randomUUID(),
             enabled: true,
-            serverName: 'localhost',
+            serverName: 'www.srv.world',
             documentRoot: '/var/www/html',
             port: 80,
-            directoryIndex: ['index.html', 'index.php'],
-            errorLog: '/var/log/httpd/localhost_error.log',
+            directoryIndex: ['index.html', 'index.php', 'index.cgi'],
+            errorLog: '/var/log/httpd/www.srv.world_error.log',
             customLog: [
               {
                 type: 'access',
-                path: '/var/log/httpd/localhost_access.log',
+                path: '/var/log/httpd/www.srv.world_access.log',
                 format: 'combined'
               }
             ]

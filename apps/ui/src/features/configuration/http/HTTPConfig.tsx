@@ -65,40 +65,38 @@ const VirtualHostConfig: React.FC<VirtualHostConfigProps> = ({
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={control}
-            name={`virtualHosts.${virtualHostIndex}.enabled`}
-            render={({ field }) => (
-              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                <div className="space-y-0.5">
-                  <FormLabel className="text-sm font-medium">Enabled</FormLabel>
-                  <FormDescription className="text-xs">
-                    Enable this virtual host
-                  </FormDescription>
-                </div>
-                <FormControl>
-                  <Switch checked={field.value} onCheckedChange={field.onChange} />
-                </FormControl>
-              </FormItem>
-            )}
-          />
+                    <FormField
+                      control={form.control}
+                      name="serverAdmin"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Server Admin</FormLabel>
+                          <FormControl>
+                            <Input placeholder="root@srv.world" {...field} />
+                          </FormControl>
+                          <FormDescription>
+                            Administrator email address
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={control}
-            name={`virtualHosts.${virtualHostIndex}.serverName`}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Server Name</FormLabel>
-                <FormControl>
-                  <Input placeholder="example.com" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
+                  <FormField
+                    control={control}
+                    name={`virtualHosts.${virtualHostIndex}.serverName`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Server Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="www.srv.world" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />          <FormField
             control={control}
             name={`virtualHosts.${virtualHostIndex}.port`}
             render={({ field }) => (
@@ -145,23 +143,22 @@ const VirtualHostConfig: React.FC<VirtualHostConfigProps> = ({
         />
 
         <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={control}
-            name={`virtualHosts.${virtualHostIndex}.directoryIndex`}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Directory Index</FormLabel>
-                <FormControl>
-                  <Input placeholder="index.html index.php" {...field} />
-                </FormControl>
-                <FormDescription>
-                  Space-separated list of index files
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
+                  <FormField
+                    control={control}
+                    name={`virtualHosts.${virtualHostIndex}.directoryIndex`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Directory Index</FormLabel>
+                        <FormControl>
+                          <Input placeholder="index.html index.php index.cgi" {...field} />
+                        </FormControl>
+                        <FormDescription>
+                          Space-separated list of index files
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />          <FormField
             control={control}
             name={`virtualHosts.${virtualHostIndex}.accessLogFormat`}
             render={({ field }) => (
@@ -421,8 +418,8 @@ export function HTTPConfig() {
     resolver: zodResolver(httpConfigSchema),
     defaultValues: {
       serverStatus: false,
-      serverName: 'localhost',
-      serverAdmin: 'admin@localhost',
+      serverName: 'www.srv.world:80',
+      serverAdmin: 'root@srv.world',
       listenPorts: '80,443',
       serverTokens: 'Prod',
       timeout: '60',
@@ -487,12 +484,12 @@ export function HTTPConfig() {
         {
           id: uuidv4(),
           enabled: true,
-          serverName: 'localhost',
+          serverName: 'www.srv.world',
           documentRoot: '/var/www/html',
           port: '80',
-          directoryIndex: 'index.html index.php',
-          errorLog: '/var/log/httpd/localhost_error.log',
-          accessLog: '/var/log/httpd/localhost_access.log',
+          directoryIndex: 'index.html index.php index.cgi',
+          errorLog: '/var/log/httpd/www.srv.world_error.log',
+          accessLog: '/var/log/httpd/www.srv.world_access.log',
           accessLogFormat: 'combined',
           sslEnabled: false,
           serverAlias: '',
@@ -585,7 +582,7 @@ export function HTTPConfig() {
       serverName: '',
       documentRoot: '/var/www/html',
       port: '80',
-      directoryIndex: 'index.html',
+      directoryIndex: 'index.html index.php index.cgi',
       errorLog: '',
       accessLog: '',
       accessLogFormat: 'combined',
@@ -664,23 +661,22 @@ export function HTTPConfig() {
                 />
 
                 <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="serverName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Server Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="localhost" {...field} />
-                        </FormControl>
-                        <FormDescription>
-                          Primary server name (FQDN)
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
+                    <FormField
+                      control={form.control}
+                      name="serverName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Server Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="www.srv.world:80" {...field} />
+                          </FormControl>
+                          <FormDescription>
+                            Primary server name (FQDN)
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />                  <FormField
                     control={form.control}
                     name="serverAdmin"
                     render={({ field }) => (
