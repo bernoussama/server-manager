@@ -2,7 +2,7 @@ import React from 'react';
 import { useForm, useFieldArray, type Control, type UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { v4 as uuidv4 } from 'uuid';
-import { httpConfigSchema, transformHttpApiToForm, type HttpConfigFormValues, type VirtualHostFormValues } from '@server-manager/shared/validators';
+import { httpConfigSchema, transformHttpApiToForm, type HttpConfigFormValues } from '@server-manager/shared/validators';
 import type { HttpConfiguration } from '@server-manager/shared';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -400,94 +400,16 @@ export function HTTPConfig() {
     resolver: zodResolver(httpConfigSchema),
     defaultValues: {
       serverStatus: false,
-      serverName: 'www.srv.world:80',
-      serverAdmin: 'root@srv.world',
-      listenPorts: '80,443',
-      serverTokens: 'Prod',
-      timeout: '60',
-      keepAlive: true,
+      serverAdmin: 'root@localhost',
+      serverName: undefined, // Optional field
+      listenPorts: '80',
       user: 'apache',
       group: 'apache',
-      modules: [
-        {
-          name: 'mpm_event',
-          enabled: true,
-          required: true,
-          description: 'Event-driven processing module (recommended for most configurations)'
-        },
-        {
-          name: 'dir',
-          enabled: true,
-          required: true,
-          description: 'Directory index handling'
-        },
-        {
-          name: 'mime',
-          enabled: true,
-          required: true,
-          description: 'MIME type associations'
-        },
-        {
-          name: 'rewrite',
-          enabled: true,
-          required: false,
-          description: 'URL rewriting engine'
-        },
-        {
-          name: 'ssl',
-          enabled: true,
-          required: false,
-          description: 'SSL/TLS encryption support'
-        },
-        {
-          name: 'alias',
-          enabled: true,
-          required: false,
-          description: 'URL aliasing and redirection'
-        },
-        {
-          name: 'authz_core',
-          enabled: true,
-          required: true,
-          description: 'Core authorization functionality'
-        },
-        {
-          name: 'authz_host',
-          enabled: true,
-          required: false,
-          description: 'Host-based authorization'
-        },
-        {
-          name: 'log_config',
-          enabled: true,
-          required: false,
-          description: 'Logging configuration'
-        },
-        {
-          name: 'unixd',
-          enabled: true,
-          required: true,
-          description: 'Unix domain socket handling module (required for User/Group directives)'
-        }
-      ],
-      virtualHosts: [
-        {
-          id: uuidv4(),
-          enabled: true,
-          serverName: 'www.srv.world',
-          documentRoot: '/var/www/html',
-          port: '80',
-          directoryIndex: 'index.html index.php index.cgi',
-          errorLog: '/var/log/httpd/www.srv.world_error.log',
-          accessLog: '/var/log/httpd/www.srv.world_access.log',
-          accessLogFormat: 'combined',
-          sslEnabled: false,
-          serverAlias: '',
-          sslCertificateFile: '',
-          sslCertificateKeyFile: '',
-          customDirectives: ''
-        }
-      ]
+      errorLog: 'logs/error_log',
+      logLevel: 'warn',
+      addDefaultCharset: 'UTF-8',
+      enableSendfile: true,
+      virtualHosts: []
     },
     mode: 'onChange',
   });
@@ -500,11 +422,7 @@ export function HTTPConfig() {
   // Transform API response to form values
   const transformApiToFormValues = React.useCallback((apiData: HttpConfiguration): HttpConfigFormValues => {
     const transformed = transformHttpApiToForm(apiData);
-    // Ensure serverTokens is properly typed
-    return {
-      ...transformed,
-      serverTokens: (transformed.serverTokens as any) || 'Prod'
-    };
+    return transformed;
   }, []);
 
   // Fetch current configuration on component mount
@@ -651,32 +569,33 @@ export function HTTPConfig() {
                 />
 
                 <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="serverName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Server Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="www.srv.world:80" {...field} />
-                          </FormControl>
-                          <FormDescription>
-                            Primary server name (FQDN)
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />                  <FormField
+                  <FormField
                     control={form.control}
                     name="serverAdmin"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Server Admin</FormLabel>
                         <FormControl>
-                          <Input placeholder="admin@localhost" {...field} />
+                          <Input placeholder="root@localhost" {...field} />
                         </FormControl>
                         <FormDescription>
                           Administrator email address
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="serverName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Server Name (Optional)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="www.example.com:80" {...field} />
+                        </FormControl>
+                        <FormDescription>
+                          Server name and port (auto-determined if empty)
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -692,7 +611,7 @@ export function HTTPConfig() {
                       <FormItem>
                         <FormLabel>Listen Ports</FormLabel>
                         <FormControl>
-                          <Input placeholder="80,443" {...field} />
+                          <Input placeholder="80" {...field} />
                         </FormControl>
                         <FormDescription>
                           Comma-separated list of ports
@@ -703,100 +622,34 @@ export function HTTPConfig() {
                   />
                   <FormField
                     control={form.control}
-                    name="timeout"
+                    name="logLevel"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Timeout (seconds)</FormLabel>
-                        <FormControl>
-                          <Input placeholder="60" {...field} />
-                        </FormControl>
-                        <FormDescription>
-                          Request timeout in seconds
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="serverTokens"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Server Tokens</FormLabel>
+                        <FormLabel>Log Level</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select server tokens" />
+                              <SelectValue placeholder="Select log level" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="Off">Off</SelectItem>
-                            <SelectItem value="Prod">Prod</SelectItem>
-                            <SelectItem value="Major">Major</SelectItem>
-                            <SelectItem value="Minor">Minor</SelectItem>
-                            <SelectItem value="Min">Min</SelectItem>
-                            <SelectItem value="OS">OS</SelectItem>
-                            <SelectItem value="Full">Full</SelectItem>
+                            <SelectItem value="debug">Debug</SelectItem>
+                            <SelectItem value="info">Info</SelectItem>
+                            <SelectItem value="notice">Notice</SelectItem>
+                            <SelectItem value="warn">Warn</SelectItem>
+                            <SelectItem value="error">Error</SelectItem>
+                            <SelectItem value="crit">Critical</SelectItem>
+                            <SelectItem value="alert">Alert</SelectItem>
+                            <SelectItem value="emerg">Emergency</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormDescription>
-                          Controls server version information disclosure
+                          Control the level of error logging
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={form.control}
-                    name="keepAlive"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-base">Keep Alive</FormLabel>
-                          <FormDescription>
-                            Enable persistent connections
-                          </FormDescription>
-                        </div>
-                        <FormControl>
-                          <Switch checked={field.value} onCheckedChange={field.onChange} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Apache Modules Configuration */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Apache Modules</CardTitle>
-                <CardDescription>
-                  Configure which Apache modules to load. Required modules cannot be disabled.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {form.watch('modules')?.map((module, index) => (
-                    <FormField
-                      key={module.name}
-                      control={form.control}
-                      name={`modules.${index}.enabled`}
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                          <div className="space-y-0.5">
-                            <FormLabel className="text-base flex items-center gap-2">
-                              {module.name}
-                              {module.required && (
-                                <Badge variant="secondary" className="text-xs">Required</Badge>
-                              )}
-                            </FormLabel>
-                            <FormDescription className="text-sm">
-                              {module.description || `Apache module: mod_${module.name}`}
-                            </FormDescription>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -832,29 +685,63 @@ export function HTTPConfig() {
                       </FormItem>
                     )}
                   />
-                </div>                          <FormControl>
-                            <Switch 
-                              checked={field.value} 
-                              onCheckedChange={field.onChange}
-                              disabled={module.required}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  ))}
-                  
-                  {(!form.watch('modules') || form.watch('modules').length === 0) && (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <div className="text-lg font-medium">No modules configured</div>
-                      <div className="text-sm mt-2">Modules will be automatically configured when you save the configuration.</div>
-                    </div>
-                  )}
                 </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="errorLog"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Error Log Path</FormLabel>
+                        <FormControl>
+                          <Input placeholder="logs/error_log" {...field} />
+                        </FormControl>
+                        <FormDescription>
+                          Path to the error log file
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="addDefaultCharset"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Default Charset</FormLabel>
+                        <FormControl>
+                          <Input placeholder="UTF-8" {...field} />
+                        </FormControl>
+                        <FormDescription>
+                          Default character set for content
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="enableSendfile"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">Enable Sendfile</FormLabel>
+                        <FormDescription>
+                          Use sendfile syscall for better performance
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
               </CardContent>
             </Card>
           </TabsContent>
-
           <TabsContent value="virtual-hosts" className="space-y-6">
             <div className="flex items-center justify-between">
               <div>

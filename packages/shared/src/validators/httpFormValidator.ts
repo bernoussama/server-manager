@@ -89,79 +89,26 @@ export const virtualHostSchema = z.object({
 export const httpConfigSchema = z.object({
   serverStatus: z.boolean(),
   
-  // Global Settings
-  serverName: z.string().min(1, "Server name is required").refine(isValidServerName, {
-    message: "Invalid server name format"
-  }),
+  // Global Settings (following standard Apache httpd.conf structure)
   serverAdmin: z.string().min(1, "Server admin email is required").refine(isValidEmail, {
     message: "Invalid email format"
   }),
+  serverName: z.string().optional(), // Optional, can be auto-determined
   listenPorts: z.string().min(1, "At least one port must be specified").refine((ports) => {
     const portList = ports.split(',').map(p => p.trim());
     return portList.every(isValidPort);
   }, {
     message: "All ports must be valid numbers between 1 and 65535"
   }),
-  serverTokens: z.enum(['Off', 'Prod', 'Major', 'Minor', 'Min', 'OS', 'Full']).default('Prod'),
-  timeout: z.string().regex(/^\d+$/, { message: 'Timeout must be a number' }).default('300'),
-  keepAlive: z.boolean().default(true),
   user: z.string().min(1, "User is required").default('apache'),
   group: z.string().min(1, "Group is required").default('apache'),
-  
-  // Modules configuration
-  modules: z.array(moduleSchema).default([]),
+  errorLog: z.string().default('logs/error_log'),
+  logLevel: z.enum(['debug', 'info', 'notice', 'warn', 'error', 'crit', 'alert', 'emerg']).default('warn'),
+  addDefaultCharset: z.string().default('UTF-8'),
+  enableSendfile: z.boolean().default(true),
   
   // Virtual Hosts
-  virtualHosts: z.array(virtualHostSchema).min(1, "At least one virtual host is required"),
-}).superRefine((data, ctx) => {
-  // Check for duplicate server names
-  const serverNames = data.virtualHosts.map(vh => vh.serverName.toLowerCase());
-  const duplicates = serverNames.filter((name, index) => serverNames.indexOf(name) !== index);
-  
-  if (duplicates.length > 0) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ['virtualHosts'],
-      message: `Duplicate server names found: ${duplicates.join(', ')}`
-    });
-  }
-  
-  // Check for port conflicts
-  const portsByName = new Map<string, string>();
-  data.virtualHosts.forEach((vh, index) => {
-    const key = `${vh.serverName}:${vh.port}`;
-    if (portsByName.has(key)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['virtualHosts', index, 'port'],
-        message: `Port ${vh.port} already used by server ${vh.serverName}`
-      });
-    }
-    portsByName.set(key, vh.serverName);
-  });
-  
-  // Module validation: Check if SSL module is enabled when SSL is configured
-  const sslModuleEnabled = data.modules.some(m => m.name === 'ssl' && m.enabled);
-  const hasSslVirtualHost = data.virtualHosts.some(vh => vh.sslEnabled);
-  
-  if (hasSslVirtualHost && !sslModuleEnabled) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ['modules'],
-      message: 'SSL module must be enabled when SSL virtual hosts are configured'
-    });
-  }
-  
-  // Check required modules can't be disabled
-  data.modules.forEach((module, index) => {
-    if (module.required && !module.enabled) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['modules', index, 'enabled'],
-        message: `${module.name} is a required module and cannot be disabled`
-      });
-    }
-  });
+  virtualHosts: z.array(virtualHostSchema).default([]),
 });
 
 // Type exports

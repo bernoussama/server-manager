@@ -126,6 +126,10 @@ export interface HttpGlobalConfig {
   keepAliveTimeout?: number;
   maxKeepAliveRequests?: number;
   
+  // Apache-specific directives
+  addDefaultCharset?: string;
+  enableSendfile?: boolean;
+  
   // Custom Global Directives
   customDirectives?: HttpDirective[];
 }
@@ -140,23 +144,16 @@ export interface HttpConfiguration {
 export interface HttpConfigFormValues {
   serverStatus: boolean;
   
-  // Global Settings (simplified for UI)
-  serverName: string;
+  // Global Settings (simplified for UI, following standard Apache httpd.conf)
   serverAdmin: string;
+  serverName?: string; // Optional, can be auto-determined
   listenPorts: string; // comma-separated: "80,443"
-  serverTokens: string;
-  timeout: string;
-  keepAlive: boolean;
   user: string;
   group: string;
-  
-  // Modules configuration for UI
-  modules: Array<{
-    name: string;
-    enabled: boolean;
-    required?: boolean;
-    description?: string;
-  }>;
+  errorLog: string;
+  logLevel: 'debug' | 'info' | 'notice' | 'warn' | 'error' | 'crit' | 'alert' | 'emerg';
+  addDefaultCharset: string;
+  enableSendfile: boolean;
   
   // Virtual Hosts
   virtualHosts: Array<{

@@ -206,15 +206,15 @@ export const transformHttpFormToApi = (formData: HttpConfigFormValues): HttpConf
   return {
     serverStatus: formData.serverStatus,
     globalConfig: {
-      serverName: formData.serverName,
       serverAdmin: formData.serverAdmin,
+      serverName: formData.serverName,
       listen: parsePortString(formData.listenPorts),
-      serverTokens: formData.serverTokens as any,
-      timeout: parseInt(formData.timeout),
-      keepAlive: formData.keepAlive,
       user: formData.user,
       group: formData.group,
-      modules: transformUiModulesToApi(formData.modules)
+      errorLog: formData.errorLog,
+      logLevel: formData.logLevel,
+      addDefaultCharset: formData.addDefaultCharset,
+      enableSendfile: formData.enableSendfile
     },
     virtualHosts: formData.virtualHosts.map(transformUiVirtualHostToApi)
   };
@@ -226,22 +226,17 @@ export const transformHttpApiToForm = (apiData: HttpConfiguration): HttpConfigFo
     return listen.map(l => l.port.toString()).join(', ');
   };
 
-  // Use modules from API or fallback to defaults
-  const modules = apiData.globalConfig.modules?.length 
-    ? transformApiModulesToUi(apiData.globalConfig.modules)
-    : transformApiModulesToUi(DEFAULT_APACHE_MODULES);
-
   return {
     serverStatus: apiData.serverStatus,
-    serverName: apiData.globalConfig.serverName || '',
-    serverAdmin: apiData.globalConfig.serverAdmin || '',
+    serverAdmin: apiData.globalConfig.serverAdmin || 'root@localhost',
+    serverName: apiData.globalConfig.serverName,
     listenPorts: serializePorts(apiData.globalConfig.listen),
-    serverTokens: (apiData.globalConfig.serverTokens || 'Prod') as any,
-    timeout: (apiData.globalConfig.timeout || 300).toString(),
-    keepAlive: apiData.globalConfig.keepAlive !== false,
     user: apiData.globalConfig.user || 'apache',
     group: apiData.globalConfig.group || 'apache',
-    modules,
+    errorLog: apiData.globalConfig.errorLog || 'logs/error_log',
+    logLevel: (apiData.globalConfig.logLevel as 'debug' | 'info' | 'notice' | 'warn' | 'error' | 'crit' | 'alert' | 'emerg') || 'warn',
+    addDefaultCharset: apiData.globalConfig.addDefaultCharset || 'UTF-8',
+    enableSendfile: apiData.globalConfig.enableSendfile !== false,
     virtualHosts: apiData.virtualHosts.map(transformApiVirtualHostToUi)
   };
 }; 

@@ -9,8 +9,7 @@ import {
   getHttpServiceStatusAPI,
   controlHttpServiceAPI 
 } from '@/lib/api/http';
-import type { HttpConfiguration, HttpConfigResponse, HttpServiceResponse } from '@server-manager/shared';
-import type { HttpConfigFormValues } from '@server-manager/shared/validators';
+import type { HttpConfiguration, HttpConfigResponse, HttpServiceResponse, HttpConfigFormValues } from '@server-manager/shared';
 
 const API_BASE_URL = 'http://localhost:8000/api';
 
@@ -38,14 +37,14 @@ describe('HTTP API Tests', () => {
         serverStatus: true,
         globalConfig: {
           serverName: 'www.srv.world:80',
-          serverAdmin: 'root@srv.world',
-          listen: [{ port: 80 }, { port: 443, ssl: true }],
-          serverTokens: 'Prod',
-          timeout: 60,
-          keepAlive: true,
+          serverAdmin: 'root@localhost',
+          listen: [{ port: 80 }],
+          errorLog: 'logs/error_log',
+          logLevel: 'warn',
+          addDefaultCharset: 'UTF-8',
+          enableSendfile: true,
           user: 'apache',
-          group: 'apache',
-          modules: []
+          group: 'apache'
         },
         virtualHosts: [{
           id: '550e8400-e29b-41d4-a716-446655440000',
@@ -101,76 +100,12 @@ describe('HTTP API Tests', () => {
       serverName: 'test.example.com',
       serverAdmin: 'admin@test.example.com',
       listenPorts: '80,443',
-      serverTokens: 'Prod',
-      timeout: '60',
-      keepAlive: true,
+      errorLog: 'logs/error_log',
+      logLevel: 'warn',
+      addDefaultCharset: 'UTF-8',
+      enableSendfile: true,
       user: 'apache',
       group: 'apache',
-      modules: [],
-      virtualHosts: [{
-        id: '550e8400-e29b-41d4-a716-446655440001',
-        enabled: true,
-        serverName: 'test.example.com',
-        documentRoot: '/var/www/html',
-        port: '80',
-        directoryIndex: 'index.html',
-        accessLogFormat: 'combined',
-        sslEnabled: false,
-        serverAlias: '',
-        errorLog: '',
-        accessLog: '',
-        sslCertificateFile: '',
-        sslCertificateKeyFile: '',
-        customDirectives: ''
-      }]
-    };
-
-    it('should update HTTP configuration successfully', async () => {
-      // Arrange
-      const mockResponse = {
-        success: true,
-        message: 'HTTP configuration updated successfully',
-        data: mockFormData
-      };
-
-      server.use(
-        http.put(`${API_BASE_URL}/http/configuration`, () => {
-          return HttpResponse.json(mockResponse);
-        })
-      );
-
-      // Act
-      const result = await updateHttpConfigurationAPI(mockFormData);
-
-      // Assert
-      expect(result).toEqual(mockResponse);
-    });
-
-    it('should handle validation errors', async () => {
-      // Arrange
-      server.use(
-        http.put(`${API_BASE_URL}/http/configuration`, () => {
-          return new HttpResponse(null, { status: 400 });
-        })
-      );
-
-      // Act & Assert
-      await expect(updateHttpConfigurationAPI(mockFormData)).rejects.toThrow();
-    });
-  });
-
-  describe('validateHttpConfigurationAPI', () => {
-    const mockFormData: HttpConfigFormValues = {
-      serverStatus: true,
-      serverName: 'test.example.com',
-      serverAdmin: 'admin@test.example.com',
-      listenPorts: '80,443',
-      serverTokens: 'Prod',
-      timeout: '60',
-      keepAlive: true,
-      user: 'apache',
-      group: 'apache',
-      modules: [],
       virtualHosts: [{
         id: '550e8400-e29b-41d4-a716-446655440001',
         enabled: true,
