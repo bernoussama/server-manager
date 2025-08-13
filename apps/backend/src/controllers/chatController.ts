@@ -9,6 +9,10 @@ class ChatController {
     const { messages } = req.body;
 
     try {
+      if (!process.env.OPENAI_API_KEY) {
+        return res.status(503).json({ message: 'Chat is unavailable: missing OPENAI_API_KEY' });
+      }
+
       const result = await streamText({
         model: openai('gpt-4o'),
         messages,
