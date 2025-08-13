@@ -1,12 +1,6 @@
 import express, { Router } from 'express';
 import { protect } from '../middlewares/authMiddleware';
-import {
-  getCurrentHttpConfiguration,
-  updateHttpConfiguration,
-  validateHttpConfiguration,
-  getHttpServiceStatus,
-  controlHttpService
-} from '../controllers/httpController';
+import httpController from '../controllers/httpController';
 
 const router: Router = express.Router();
 
@@ -15,12 +9,12 @@ router.use('/config', protect);
 router.use('/service/:action', protect);
 
 // HTTP Configuration routes
-router.get('/config', getCurrentHttpConfiguration);
-router.put('/config', updateHttpConfiguration);
-router.post('/validate', validateHttpConfiguration);
+router.get('/config', httpController.getCurrentHttpConfiguration);
+router.put('/config', httpController.updateHttpConfiguration);
+router.post('/validate', httpController.validateHttpConfiguration);
 
 // HTTP Service management routes
-router.get('/status', getHttpServiceStatus);
-router.post('/service/:action', controlHttpService);
+router.get('/status', httpController.getHttpServiceStatus);
+router.post('/service/:action', httpController.controlHttpService);
 
 export default router; 
