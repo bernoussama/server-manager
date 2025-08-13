@@ -17,6 +17,9 @@ import SignupPage from './features/auth/SignupPage';
 import AdminSetup from './features/auth/AdminSetup';
 import ProtectedRoute from './features/auth/ProtectedRoute';
 import AppInitializer from './components/AppInitializer';
+import { Chat } from './components/chat/Chat';
+import { ChatButton } from './components/chat/ChatButton';
+import React from 'react';
 
 // Simple placeholder components
 const HomePage = () => (
@@ -32,6 +35,11 @@ const PublicPage = () => <div className="p-4"><h2 className="text-2xl font-semib
 function AppContent() {
   const location = useLocation();
   const { isAuthenticated, logout } = useAuth();
+  const [isChatOpen, setChatOpen] = React.useState(false);
+
+  const toggleChat = () => {
+    setChatOpen(!isChatOpen);
+  };
 
   const sidebarItems = [
     { title: "Dashboard", href: "/", icon: <Home className="h-4 w-4" /> },
@@ -106,6 +114,12 @@ function AppContent() {
             </Routes>
           </main>
         </div>
+        {isAuthenticated && (
+          <>
+            <ChatButton onClick={toggleChat} />
+            <Chat isOpen={isChatOpen} onClose={toggleChat} />
+          </>
+        )}
       </div>
     </AppInitializer>
   );
