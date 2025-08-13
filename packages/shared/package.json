@@ -23,7 +23,7 @@
     "keywords": [],
     "author": "",
     "license": "ISC",
-    "packageManager": "pnpm@10.10.0",
+    "packageManager": "bun@1.1.30",
     "devDependencies": {
       "@types/node": "^22.15.18",
       "typescript": "^5.8.3"

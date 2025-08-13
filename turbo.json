@@ -2,8 +2,8 @@
     "$schema": "https://turborepo.com/schema.json",
         "globalDependencies": [
           "package.json",
-          "pnpm-lock.yaml",
-          "pnpm-workspace.yaml",
+    "bun.lockb",
+    "bunfig.toml",
           "tsconfig.json",
           "turbo.json"
       ],

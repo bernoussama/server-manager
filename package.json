@@ -10,19 +10,19 @@
   ],
   "scripts": {
     "build": "turbo run build",
-    "start": "pnpm start:backend",
-    "start:backend": "pnpm --filter backend start",
-    "start:ui": "pnpm --filter ui preview",
-    "preview": "pnpm --filter ui preview",
-    "dev:shared": "pnpm --filter @server-manager/shared dev",
-    "dev:backend": "pnpm --filter backend dev",
-    "dev:ui": "pnpm --filter ui dev",
+    "start": "bun run start:backend",
+    "start:backend": "turbo run start --filter=backend",
+    "start:ui": "turbo run preview --filter=ui",
+    "preview": "turbo run preview --filter=ui",
+    "dev:shared": "turbo run dev --filter=@server-manager/shared",
+    "dev:backend": "turbo run dev --filter=backend",
+    "dev:ui": "turbo run dev --filter=ui",
     "dev": "turbo run dev",
-    "clean": "pnpm -r exec -- rm -rf dist node_modules"
+    "clean": "find . -name node_modules -o -name dist -o -name pnpm-lock.yaml -o -name bun.lockb -print0 | xargs -0 rm -rf"
   },
   "author": "bernoussama",
   "license": "GPL-3.0-only",
-  "packageManager": "pnpm@10.11.0",
+  "packageManager": "bun@1.1.30",
   "devDependencies": {
     "@types/node": "^22.15.21",
     "concurrently": "^9.1.2",

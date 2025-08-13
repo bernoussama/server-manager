@@ -1,0 +1,9 @@
+#[install]
+#linker = "isolated"
+
+[run]
+silent = false
+
+[test]
+preload = []
+
