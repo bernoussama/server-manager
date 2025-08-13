@@ -9,6 +9,7 @@ import morganMiddleware from './middlewares/morgan';
 import dnsRoutes from './routes/dnsRoutes';
 import httpRoutes from './routes/httpRoutes';
 import systemMetricsRoutes from './routes/systemMetricsRoutes';
+import chatRoutes from './routes/chatRoutes';
 import logger from './lib/logger';
 
 const app: Express = express();
@@ -35,6 +36,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/dns', dnsRoutes);
 app.use('/api/http', httpRoutes);
 app.use('/api/system-metrics', systemMetricsRoutes);
+app.use('/api/chat', chatRoutes);
 
 // Error handling
 app.use(errorHandler);

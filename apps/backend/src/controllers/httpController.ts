@@ -1,6 +1,6 @@
 import type { Response } from 'express';
 import type { AuthRequest } from '../middlewares/authMiddleware';
-import { httpConfigSchema, transformHttpFormToApi, transformHttpApiToForm, type HttpConfigFormValues } from '@server-manager/shared/validators';
+import { httpConfigSchema, transformHttpFormToApi, type HttpConfigFormValues } from '@server-manager/shared/validators';
 import type { HttpConfiguration, HttpVirtualHost, HttpGlobalConfig, HttpServiceResponse, HttpDirective, HttpLogConfig, HttpDirectoryConfig } from '@server-manager/shared';
 import { ZodError } from 'zod';
 import { writeFile, readFile, mkdir } from 'fs/promises';
@@ -16,17 +16,12 @@ import { ServiceManager } from '../lib/ServiceManager.js';
 const execAsync = promisify(exec);
 const serviceManager = new ServiceManager();
 
-// --- BEGIN Configuration ---
-// Determine paths based on environment
 const isProd = process.env.NODE_ENV === 'production';
-
-// Directories where configuration files will be stored
 const HTTPD_CONF_DIR = isProd ? '/etc/httpd/conf' : './test/http/config';
 const HTTPD_VHOST_DIR = isProd ? '/etc/httpd/conf.d' : './test/http/vhost';
 const HTTPD_CONF_PATH = isProd ? '/etc/httpd/conf/httpd.conf' : './test/http/config/httpd.conf';
 const HTTPD_BACKUP_DIR = isProd ? '/etc/httpd/conf/backups' : './test/http/backups';
 
-// Default configuration values
 const DEFAULT_HTTPD_CONFIG = {
   serverRoot: '/etc/httpd',
   serverName: 'localhost',
@@ -39,809 +34,449 @@ const DEFAULT_HTTPD_CONFIG = {
   serverTokens: 'Prod' as const,
   serverSignature: 'Off' as const
 };
-// --- END Configuration ---
 
-/**
- * Ensure directory exists, create if not
- */
-const ensureDirectoryExists = async (dir: string): Promise<void> => {
-  if (!existsSync(dir)) {
-    try {
-      logger.info(`Creating directory: ${dir}`);
-      await mkdir(dir, { recursive: true });
-      logger.info(`Directory created: ${dir}`);
-    } catch (error) {
-      logger.error(`Error creating directory ${dir}:`, error);
-      throw new Error(`Failed to create directory ${dir}: ${(error as Error).message}`);
-    }
-  }
-};
-
-/**
- * Check if we have write permission for a file
- */
-const checkWritePermission = async (filePath: string): Promise<boolean> => {
-  try {
-    // Try to create the directory if it doesn't exist
-    const dir = path.dirname(filePath);
-    await ensureDirectoryExists(dir);
-    
-    // Try to write a test file
-    const testFile = path.join(dir, '.test-write-permission');
-    await writeFile(testFile, 'test');
-    await fs.promises.unlink(testFile);
-    return true;
-  } catch (error) {
-    logger.error(`No write permission for ${filePath}:`, error);
-    return false;
-  }
-};
-
-/**
- * Write file with backup functionality
- */
-const writeFileWithBackup = async (
-  filePath: string, 
-  content: string, 
-  options?: {
-    writeJsonVersion?: boolean;
-    jsonContent?: string;
-    jsonGenerator?: () => string;
-  }
-): Promise<void> => {
-  try {
-    const dir = path.dirname(filePath);
-    await ensureDirectoryExists(dir);
-    await ensureDirectoryExists(HTTPD_BACKUP_DIR);
-
-    // Create backup if file exists
-    if (existsSync(filePath)) {
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const backupPath = path.join(HTTPD_BACKUP_DIR, `${path.basename(filePath)}.${timestamp}.backup`);
-      
+class HttpController {
+  private async ensureDirectoryExists(dir: string): Promise<void> {
+    if (!existsSync(dir)) {
       try {
-        const existingContent = await readFile(filePath, 'utf8');
-        await writeFile(backupPath, existingContent);
-        logger.info(`Backup created: ${backupPath}`);
+        logger.info(`Creating directory: ${dir}`);
+        await mkdir(dir, { recursive: true });
+        logger.info(`Directory created: ${dir}`);
       } catch (error) {
-        logger.error(`Failed to create backup for ${filePath}:`, error);
-        throw new Error(`Failed to create backup: ${(error as Error).message}`);
+        logger.error(`Error creating directory ${dir}:`, error);
+        throw new Error(`Failed to create directory ${dir}: ${(error as Error).message}`);
       }
     }
-
-    // Write new content
-    await writeFile(filePath, content);
-    logger.info(`Successfully wrote ${filePath}`);
-
-    // Write JSON version if requested
-    if (options?.writeJsonVersion) {
-      const jsonPath = `${filePath}.json`;
-      const jsonContent = options.jsonContent || (options.jsonGenerator ? options.jsonGenerator() : '{}');
-      await writeFile(jsonPath, jsonContent);
-      logger.info(`Successfully wrote JSON metadata: ${jsonPath}`);
-    }
-  } catch (error) {
-    logger.error(`Error writing file ${filePath}:`, error);
-    throw new Error(`Failed to write file: ${(error as Error).message}`);
   }
-};
 
-/**
- * Generate httpd.conf content
- */
-export const generateHttpdConf = (config: HttpConfiguration): string => {
-  const { globalConfig } = config;
-  
-  let conf = `# Generated by Server Manager
-# DO NOT EDIT MANUALLY - Changes will be overwritten
+  private async checkWritePermission(filePath: string): Promise<boolean> {
+    try {
+      const dir = path.dirname(filePath);
+      await this.ensureDirectoryExists(dir);
+      const testFile = path.join(dir, '.test-write-permission');
+      await writeFile(testFile, 'test');
+      await fs.promises.unlink(testFile);
+      return true;
+    } catch (error) {
+      logger.error(`No write permission for ${filePath}:`, error);
+      return false;
+    }
+  }
 
-ServerRoot "${globalConfig.serverRoot || DEFAULT_HTTPD_CONFIG.serverRoot}"
+  private async writeFileWithBackup(
+    filePath: string,
+    content: string,
+    options?: {
+      writeJsonVersion?: boolean;
+      jsonContent?: string;
+      jsonGenerator?: () => string;
+    }
+  ): Promise<void> {
+    try {
+      const dir = path.dirname(filePath);
+      await this.ensureDirectoryExists(dir);
+      await this.ensureDirectoryExists(HTTPD_BACKUP_DIR);
 
-# Required modules
-`;
+      if (existsSync(filePath)) {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const backupPath = path.join(HTTPD_BACKUP_DIR, `${path.basename(filePath)}.${timestamp}.backup`);
+        try {
+          const existingContent = await readFile(filePath, 'utf8');
+          await writeFile(backupPath, existingContent);
+          logger.info(`Backup created: ${backupPath}`);
+        } catch (error) {
+          logger.error(`Failed to create backup for ${filePath}:`, error);
+          throw new Error(`Failed to create backup: ${(error as Error).message}`);
+        }
+      }
 
-  // Add enabled modules from configuration
-  if (globalConfig.modules && globalConfig.modules.length > 0) {
-    globalConfig.modules
-      .filter((module: any) => module.enabled)
-      .forEach((module: any) => {
+      await writeFile(filePath, content);
+      logger.info(`Successfully wrote ${filePath}`);
+
+      if (options?.writeJsonVersion) {
+        const jsonPath = `${filePath}.json`;
+        const jsonContent = options.jsonContent || (options.jsonGenerator ? options.jsonGenerator() : '{}');
+        await writeFile(jsonPath, jsonContent);
+        logger.info(`Successfully wrote JSON metadata: ${jsonPath}`);
+      }
+    } catch (error) {
+      logger.error(`Error writing file ${filePath}:`, error);
+      throw new Error(`Failed to write file: ${(error as Error).message}`);
+    }
+  }
+
+  private generateHttpdConf(config: HttpConfiguration): string {
+    const { globalConfig } = config;
+    let conf = `# Generated by Server Manager\n# DO NOT EDIT MANUALLY - Changes will be overwritten\n\nServerRoot "${globalConfig.serverRoot || DEFAULT_HTTPD_CONFIG.serverRoot}"\n\n# Required modules\n`;
+    if (globalConfig.modules && globalConfig.modules.length > 0) {
+      globalConfig.modules.filter((module: any) => module.enabled).forEach((module: any) => {
         conf += `LoadModule ${module.name}_module ${module.filename || `modules/mod_${module.name}.so`}\n`;
       });
-  } else {
-    // Fallback to default modules if none specified
-    conf += `LoadModule mpm_event_module modules/mod_mpm_event.so
-LoadModule dir_module modules/mod_dir.so
-LoadModule mime_module modules/mod_mime.so
-LoadModule rewrite_module modules/mod_rewrite.so
-LoadModule ssl_module modules/mod_ssl.so
-LoadModule alias_module modules/mod_alias.so
-LoadModule authz_core_module modules/mod_authz_core.so
-LoadModule authz_host_module modules/mod_authz_host.so
-LoadModule log_config_module modules/mod_log_config.so
-`;
-  }
-
-  // Listen directives
-  globalConfig.listen.forEach((listen: { port: number; address?: string; ssl?: boolean }) => {
-    if (listen.ssl) {
-      conf += `Listen ${listen.address || '*'}:${listen.port} ssl\n`;
     } else {
-      conf += `Listen ${listen.address || '*'}:${listen.port}\n`;
+      conf += `LoadModule mpm_event_module modules/mod_mpm_event.so\nLoadModule dir_module modules/mod_dir.so\nLoadModule mime_module modules/mod_mime.so\nLoadModule rewrite_module modules/mod_rewrite.so\nLoadModule ssl_module modules/mod_ssl.so\nLoadModule alias_module modules/mod_alias.so\nLoadModule authz_core_module modules/mod_authz_core.so\nLoadModule authz_host_module modules/mod_authz_host.so\nLoadModule log_config_module modules/mod_log_config.so\n`;
     }
-  });
-
-  conf += `
-# Server identification
-ServerName ${globalConfig.serverName || DEFAULT_HTTPD_CONFIG.serverName}
-ServerAdmin ${globalConfig.serverAdmin || DEFAULT_HTTPD_CONFIG.serverAdmin}
-
-# Security settings
-ServerTokens ${globalConfig.serverTokens || DEFAULT_HTTPD_CONFIG.serverTokens}
-ServerSignature ${globalConfig.serverSignature || DEFAULT_HTTPD_CONFIG.serverSignature}
-
-# Performance settings
-Timeout ${globalConfig.timeout || DEFAULT_HTTPD_CONFIG.timeout}
-KeepAlive ${globalConfig.keepAlive ? 'On' : 'Off'}
-`;
-
-  if (globalConfig.keepAlive) {
-    conf += `KeepAliveTimeout ${globalConfig.keepAliveTimeout || DEFAULT_HTTPD_CONFIG.keepAliveTimeout}
-MaxKeepAliveRequests ${globalConfig.maxKeepAliveRequests || DEFAULT_HTTPD_CONFIG.maxKeepAliveRequests}
-`;
-  }
-
-  // Process management settings
-  if (globalConfig.startServers) {
-    conf += `\n# Process management
-StartServers ${globalConfig.startServers}
-`;
-    if (globalConfig.minSpareServers) conf += `MinSpareServers ${globalConfig.minSpareServers}\n`;
-    if (globalConfig.maxSpareServers) conf += `MaxSpareServers ${globalConfig.maxSpareServers}\n`;
-    if (globalConfig.maxRequestWorkers) conf += `MaxRequestWorkers ${globalConfig.maxRequestWorkers}\n`;
-    if (globalConfig.serverLimit) conf += `ServerLimit ${globalConfig.serverLimit}\n`;
-  }
-
-  // Global logging
-  if (globalConfig.errorLog) {
-    conf += `\n# Global logging
-ErrorLog ${globalConfig.errorLog}
-`;
-    if (globalConfig.logLevel) {
-      conf += `LogLevel ${globalConfig.logLevel}\n`;
-    }
-  }
-
-  // Custom global directives
-  if (globalConfig.customDirectives && globalConfig.customDirectives.length > 0) {
-    conf += '\n# Custom global directives\n';
-    globalConfig.customDirectives.forEach((directive: HttpDirective) => {
-      if (directive.comment) {
-        conf += `# ${directive.comment}\n`;
+    globalConfig.listen.forEach((listen: { port: number; address?: string; ssl?: boolean }) => {
+      if (listen.ssl) {
+        conf += `Listen ${listen.address || '*'}:${listen.port} ssl\n`;
+      } else {
+        conf += `Listen ${listen.address || '*'}:${listen.port}\n`;
       }
-      conf += `${directive.name} ${directive.value}\n`;
     });
-  }
-
-  // Include virtual host configurations
-  conf += `\n# Virtual Host configurations
-Include conf.d/*.conf
-
-# Default document root
-DocumentRoot "/var/www/html"
-
-# Default directory permissions
-<Directory "/var/www">
-    AllowOverride None
-    Require all denied
-</Directory>
-
-<Directory "/var/www/html">
-    Options Indexes FollowSymLinks
-    AllowOverride None
-    Require all granted
-</Directory>
-`;
-
-  return conf;
-};
-
-/**
- * Generate virtual host configuration file
- */
-const generateVirtualHostConf = (vhost: HttpVirtualHost): string => {
-  const portSpec = vhost.ipAddress ? `${vhost.ipAddress}:${vhost.port}` : `*:${vhost.port}`;
-  
-  let conf = `# Virtual Host: ${vhost.serverName}
-# Generated by HTTP Management System
-
-<VirtualHost ${portSpec}>
-    ServerName ${vhost.serverName}
-`;
-
-  // Server aliases
-  if (vhost.serverAlias && vhost.serverAlias.length > 0) {
-    conf += `    ServerAlias ${vhost.serverAlias.join(' ')}\n`;
-  }
-
-  conf += `    DocumentRoot "${vhost.documentRoot}"\n`;
-
-  // Directory index
-  if (vhost.directoryIndex && vhost.directoryIndex.length > 0) {
-    conf += `    DirectoryIndex ${vhost.directoryIndex.join(' ')}\n`;
-  }
-
-  // Logging
-  if (vhost.errorLog) {
-    conf += `    ErrorLog "${vhost.errorLog}"\n`;
-  }
-  
-  if (vhost.customLog && vhost.customLog.length > 0) {
-    vhost.customLog.forEach((log: HttpLogConfig) => {
-      conf += `    CustomLog "${log.path}" ${log.format || 'combined'}\n`;
-    });
-  }
-
-  if (vhost.logLevel) {
-    conf += `    LogLevel ${vhost.logLevel}\n`;
-  }
-
-  // SSL Configuration
-  if (vhost.ssl?.enabled) {
-    conf += `\n    # SSL Configuration
-    SSLEngine ${vhost.ssl.sslEngine ? 'on' : 'off'}
-`;
-    if (vhost.ssl.certificateFile) {
-      conf += `    SSLCertificateFile "${vhost.ssl.certificateFile}"\n`;
+    conf += `\n# Server identification\nServerName ${globalConfig.serverName || DEFAULT_HTTPD_CONFIG.serverName}\nServerAdmin ${globalConfig.serverAdmin || DEFAULT_HTTPD_CONFIG.serverAdmin}\n\n# Security settings\nServerTokens ${globalConfig.serverTokens || DEFAULT_HTTPD_CONFIG.serverTokens}\nServerSignature ${globalConfig.serverSignature || DEFAULT_HTTPD_CONFIG.serverSignature}\n\n# Performance settings\nTimeout ${globalConfig.timeout || DEFAULT_HTTPD_CONFIG.timeout}\nKeepAlive ${globalConfig.keepAlive ? 'On' : 'Off'}\n`;
+    if (globalConfig.keepAlive) {
+      conf += `KeepAliveTimeout ${globalConfig.keepAliveTimeout || DEFAULT_HTTPD_CONFIG.keepAliveTimeout}\nMaxKeepAliveRequests ${globalConfig.maxKeepAliveRequests || DEFAULT_HTTPD_CONFIG.maxKeepAliveRequests}\n`;
     }
-    if (vhost.ssl.certificateKeyFile) {
-      conf += `    SSLCertificateKeyFile "${vhost.ssl.certificateKeyFile}"\n`;
+    if (globalConfig.startServers) {
+      conf += `\n# Process management\nStartServers ${globalConfig.startServers}\n`;
+      if (globalConfig.minSpareServers) conf += `MinSpareServers ${globalConfig.minSpareServers}\n`;
+      if (globalConfig.maxSpareServers) conf += `MaxSpareServers ${globalConfig.maxSpareServers}\n`;
+      if (globalConfig.maxRequestWorkers) conf += `MaxRequestWorkers ${globalConfig.maxRequestWorkers}\n`;
+      if (globalConfig.serverLimit) conf += `ServerLimit ${globalConfig.serverLimit}\n`;
     }
-    if (vhost.ssl.certificateChainFile) {
-      conf += `    SSLCertificateChainFile "${vhost.ssl.certificateChainFile}"\n`;
-    }
-    if (vhost.ssl.sslProtocol && vhost.ssl.sslProtocol.length > 0) {
-      conf += `    SSLProtocol ${vhost.ssl.sslProtocol.join(' ')}\n`;
-    }
-    if (vhost.ssl.sslCipherSuite) {
-      conf += `    SSLCipherSuite "${vhost.ssl.sslCipherSuite}"\n`;
-    }
-  }
-
-  // Directory configurations
-  if (vhost.directories && vhost.directories.length > 0) {
-    vhost.directories.forEach((dir: HttpDirectoryConfig) => {
-      conf += `\n    <Directory "${dir.path}">
-`;
-      if (dir.allowOverride) {
-        conf += `        AllowOverride ${dir.allowOverride}\n`;
-      }
-      if (dir.options && dir.options.length > 0) {
-        conf += `        Options ${dir.options.join(' ')}\n`;
-      }
-      if (dir.require && dir.require.length > 0) {
-        dir.require.forEach((req: string) => {
-          conf += `        Require ${req}\n`;
-        });
-      }
-      if (dir.directoryIndex && dir.directoryIndex.length > 0) {
-        conf += `        DirectoryIndex ${dir.directoryIndex.join(' ')}\n`;
-      }
-      if (dir.customDirectives && dir.customDirectives.length > 0) {
-        dir.customDirectives.forEach((directive: HttpDirective) => {
-          if (directive.comment) {
-            conf += `        # ${directive.comment}\n`;
-          }
-          conf += `        ${directive.name} ${directive.value}\n`;
-        });
-      }
-      conf += `    </Directory>\n`;
-    });
-  }
-
-  // Redirects
-  if (vhost.redirects && vhost.redirects.length > 0) {
-    conf += '\n    # Redirects\n';
-    vhost.redirects.forEach((redirect: { from: string; to: string; type: 'permanent' | 'temporary' | 'seeother' | 'gone' }) => {
-      const redirectType = redirect.type === 'permanent' ? '301' : 
-                          redirect.type === 'temporary' ? '302' : 
-                          redirect.type === 'seeother' ? '303' : '410';
-      conf += `    Redirect ${redirectType} ${redirect.from} ${redirect.to}\n`;
-    });
-  }
-
-  // Rewrites
-  if (vhost.rewrites && vhost.rewrites.length > 0) {
-    conf += '\n    # Rewrites\n    RewriteEngine On\n';
-    vhost.rewrites.forEach((rewrite: { pattern: string; substitution: string; flags?: string[] }) => {
-      const flags = rewrite.flags && rewrite.flags.length > 0 ? ` [${rewrite.flags.join(',')}]` : '';
-      conf += `    RewriteRule ${rewrite.pattern} ${rewrite.substitution}${flags}\n`;
-    });
-  }
-
-  // Custom directives
-  if (vhost.customDirectives && vhost.customDirectives.length > 0) {
-    conf += '\n    # Custom directives\n';
-    vhost.customDirectives.forEach((directive: HttpDirective) => {
-      if (directive.comment) {
-        conf += `    # ${directive.comment}\n`;
-      }
-      conf += `    ${directive.name} ${directive.value}\n`;
-    });
-  }
-
-  conf += '</VirtualHost>\n';
-  return conf;
-};
-
-/**
- * Validate Apache configuration syntax
- */
-const validateHttpdConfiguration = async (): Promise<void> => {
-  try {
-    if (isProd) {
-      await execAsync('httpd -t');
-    } else {
-      // In development, just check if config files exist and are readable
-      if (existsSync(HTTPD_CONF_PATH)) {
-        await readFile(HTTPD_CONF_PATH, 'utf8');
+    if (globalConfig.errorLog) {
+      conf += `\n# Global logging\nErrorLog ${globalConfig.errorLog}\n`;
+      if (globalConfig.logLevel) {
+        conf += `LogLevel ${globalConfig.logLevel}\n`;
       }
     }
-    logger.info('Apache configuration validation passed');
-  } catch (error) {
-    logger.error('Apache configuration validation failed:', error);
-    throw new Error(`Configuration validation failed: ${(error as Error).message}`);
-  }
-};
-
-/**
- * Reload Apache service
- */
-const reloadHttpdService = async (): Promise<void> => {
-  try {
-    if (isProd) {
-      await serviceManager.restart('httpd');
-    } else {
-      logger.info('Development mode: skipping actual service reload');
-    }
-    logger.info('Apache service reloaded successfully');
-  } catch (error) {
-    logger.error('Failed to reload Apache service:', error);
-    throw new Error(`Failed to reload Apache service: ${(error as Error).message}`);
-  }
-};
-
-/**
- * Get current HTTP configuration
- */
-export const getCurrentHttpConfiguration = async (req: AuthRequest, res: Response) => {
-  try {
-    logger.debug(`Running in ${isProd ? 'PRODUCTION' : 'DEVELOPMENT'} mode`);
-    logger.debug(`Using HTTPD_CONF_PATH: ${HTTPD_CONF_PATH}`);
-    
-    // Get the status of the httpd service
-    let serviceRunning = false;
-    if (isProd) {
-      try {
-        serviceRunning = await serviceManager.status('httpd');
-        logger.info(`Apache service is ${serviceRunning ? 'running' : 'not running'}`);
-      } catch (error) {
-        logger.info('Error checking Apache service status, assuming not running');
-      }
-    }
-    
-    // Path to the JSON configuration file
-    const httpdConfJsonPath = `${HTTPD_CONF_PATH}.json`;
-    
-    // Try to read the JSON configuration file
-    let configJson = null;
-    
-    try {
-      const configData = await readFile(httpdConfJsonPath, 'utf8');
-      configJson = JSON.parse(configData);
-      logger.debug(`Successfully read httpd.conf.json from ${httpdConfJsonPath}`);
-    } catch (error) {
-      logger.info(`httpd.conf.json does not exist or is invalid at ${httpdConfJsonPath}`);
-    }
-    
-    // If JSON configuration file doesn't exist, return a default configuration
-    if (!configJson) {
-      logger.info('No existing JSON configuration found, returning default configuration');
-      const defaultConfig: HttpConfiguration = {
-        serverStatus: serviceRunning,
-        globalConfig: {
-          ...DEFAULT_HTTPD_CONFIG,
-          errorLog: '/var/log/httpd/error_log',
-          logLevel: 'warn',
-          modules: [
-            {
-              name: 'mpm_event',
-              enabled: true,
-              required: true,
-              description: 'Event-driven processing module (recommended for most configurations)',
-              filename: 'modules/mod_mpm_event.so'
-            },
-            {
-              name: 'dir',
-              enabled: true,
-              required: true,
-              description: 'Directory index handling',
-              filename: 'modules/mod_dir.so'
-            },
-            {
-              name: 'mime',
-              enabled: true,
-              required: true,
-              description: 'MIME type associations',
-              filename: 'modules/mod_mime.so'
-            },
-            {
-              name: 'rewrite',
-              enabled: true,
-              required: false,
-              description: 'URL rewriting engine',
-              filename: 'modules/mod_rewrite.so'
-            },
-            {
-              name: 'ssl',
-              enabled: true,
-              required: false,
-              description: 'SSL/TLS encryption support',
-              filename: 'modules/mod_ssl.so'
-            },
-            {
-              name: 'alias',
-              enabled: true,
-              required: false,
-              description: 'URL aliasing and redirection',
-              filename: 'modules/mod_alias.so'
-            },
-            {
-              name: 'authz_core',
-              enabled: true,
-              required: true,
-              description: 'Core authorization functionality',
-              filename: 'modules/mod_authz_core.so'
-            },
-            {
-              name: 'authz_host',
-              enabled: true,
-              required: false,
-              description: 'Host-based authorization',
-              filename: 'modules/mod_authz_host.so'
-            },
-            {
-              name: 'log_config',
-              enabled: true,
-              required: false,
-              description: 'Logging configuration',
-              filename: 'modules/mod_log_config.so'
-            }
-          ]
-        },
-        virtualHosts: [
-          {
-            id: crypto.randomUUID(),
-            enabled: true,
-            serverName: 'localhost',
-            documentRoot: '/var/www/html',
-            port: 80,
-            directoryIndex: ['index.html', 'index.php'],
-            errorLog: '/var/log/httpd/localhost_error.log',
-            customLog: [
-              {
-                type: 'access',
-                path: '/var/log/httpd/localhost_access.log',
-                format: 'combined'
-              }
-            ]
-          }
-        ]
-      };
-      
-      return res.status(200).json({
-        message: 'Default configuration returned - no existing configuration found',
-        data: defaultConfig
-      });
-    }
-    
-    // Add service status to the configuration
-    configJson.serverStatus = serviceRunning;
-    
-    logger.info('Successfully loaded current HTTP configuration from JSON file');
-    res.status(200).json({ 
-      message: 'Current HTTP configuration loaded successfully',
-      data: configJson 
-    });
-  } catch (error) {
-    logger.error('Error getting HTTP configuration:', error);
-    res.status(500).json({ 
-      message: error instanceof Error ? error.message : 'Failed to get HTTP configuration' 
-    });
-  }
-};
-
-/**
- * Update HTTP configuration
- */
-export const updateHttpConfiguration = async (req: AuthRequest, res: Response) => {
-  try {
-    // Validate the request body
-    const validatedFormData: HttpConfigFormValues = httpConfigSchema.parse(req.body);
-    
-    // Transform form data to API format
-    const validatedConfig: HttpConfiguration = transformHttpFormToApi(validatedFormData);
-
-    logger.info('Received HTTP Configuration:', { config: JSON.stringify(validatedConfig, null, 2) });
-    logger.debug(`Running in ${isProd ? 'PRODUCTION' : 'DEVELOPMENT'} mode`);
-    logger.debug(`Using HTTPD_CONF_PATH: ${HTTPD_CONF_PATH}`);
-    logger.debug(`Using HTTPD_VHOST_DIR: ${HTTPD_VHOST_DIR}`);
-    
-    // In production, check permissions
-    if (isProd) {
-      const canWriteConf = await checkWritePermission(HTTPD_CONF_PATH);
-      const canWriteVhost = await checkWritePermission(path.join(HTTPD_VHOST_DIR, 'test.conf'));
-      
-      if (!canWriteConf || !canWriteVhost) {
-        return res.status(403).json({
-          message: 'Insufficient permissions',
-          details: 'The server needs write access to HTTP configuration directories. Please run with sudo or check permissions.',
-          paths: {
-            canWriteConf,
-            canWriteVhost,
-            httpdConfPath: HTTPD_CONF_PATH,
-            httpdVhostDir: HTTPD_VHOST_DIR
-          }
-        });
-      }
-    }
-    
-    // Ensure required directories exist
-    await ensureDirectoryExists(HTTPD_CONF_DIR);
-    await ensureDirectoryExists(HTTPD_VHOST_DIR);
-    await ensureDirectoryExists(HTTPD_BACKUP_DIR);
-    
-    // Generate and write main httpd.conf
-    const httpdConf = generateHttpdConf(validatedConfig);
-    await writeFileWithBackup(HTTPD_CONF_PATH, httpdConf, {
-      writeJsonVersion: true,
-      jsonGenerator: () => JSON.stringify(validatedConfig, null, 2)
-    });
-    
-    // Remove existing virtual host files (cleanup)
-    try {
-      const vhostFiles = await fs.promises.readdir(HTTPD_VHOST_DIR);
-      for (const file of vhostFiles) {
-        if (file.endsWith('.conf') && !file.startsWith('.')) {
-          await fs.promises.unlink(path.join(HTTPD_VHOST_DIR, file));
+    if (globalConfig.customDirectives && globalConfig.customDirectives.length > 0) {
+      conf += '\n# Custom global directives\n';
+      globalConfig.customDirectives.forEach((directive: HttpDirective) => {
+        if (directive.comment) {
+          conf += `# ${directive.comment}\n`;
         }
-      }
-    } catch (error) {
-      logger.warn('Could not clean up existing virtual host files:', error);
-    }
-    
-    // Generate and write virtual host files
-    for (const vhost of validatedConfig.virtualHosts) {
-      if (vhost.enabled) {
-        const vhostConf = generateVirtualHostConf(vhost);
-        const vhostFilePath = path.join(HTTPD_VHOST_DIR, `${vhost.serverName}.conf`);
-        
-        logger.info(`Generating virtual host file for ${vhost.serverName} at ${vhostFilePath}`);
-        await writeFileWithBackup(vhostFilePath, vhostConf, {
-          writeJsonVersion: true,
-          jsonGenerator: () => JSON.stringify(vhost, null, 2)
-        });
-      }
-    }
-    
-    // Validate Apache configuration
-    try {
-      await validateHttpdConfiguration();
-    } catch (error) {
-      return res.status(400).json({
-        message: 'HTTP configuration validation failed',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        conf += `${directive.name} ${directive.value}\n`;
       });
     }
-    
-    // Only reload if the HTTP server is enabled
-    if (validatedConfig.serverStatus) {
-      try {
-        await reloadHttpdService();
-      } catch (error) {
-        return res.status(500).json({
-          message: 'Failed to reload HTTP server',
-          error: error instanceof Error ? error.message : 'Unknown error',
-          note: 'Configuration files were updated but service reload failed'
-        });
-      }
-    } else {
-      logger.info('HTTP server is disabled, skipping reload');
-    }
-    
-    res.status(200).json({ 
-      message: 'HTTP configuration updated successfully',
-      data: validatedConfig 
-    });
-
-  } catch (error) {
-    if (error instanceof ZodError) {
-      return res.status(400).json({ 
-        message: 'Validation Error', 
-        errors: error.errors 
-      });
-    }
-    
-    logger.error('Error updating HTTP configuration:', error);
-    res.status(500).json({ 
-      message: error instanceof Error ? error.message : 'Failed to update HTTP configuration' 
-    });
+    conf += `\n# Virtual Host configurations\nInclude conf.d/*.conf\n\n# Default document root\nDocumentRoot "/var/www/html"\n\n# Default directory permissions\n<Directory "/var/www">\n    AllowOverride None\n    Require all denied\n</Directory>\n\n<Directory "/var/www/html">\n    Options Indexes FollowSymLinks\n    AllowOverride None\n    Require all granted\n</Directory>\n`;
+    return conf;
   }
-};
 
-/**
- * Validate HTTP configuration without applying changes
- */
-export const validateHttpConfiguration = async (req: AuthRequest, res: Response) => {
-  try {
-    // Validate the request body format
-    const validatedFormData: HttpConfigFormValues = httpConfigSchema.parse(req.body);
-    const validatedConfig: HttpConfiguration = transformHttpFormToApi(validatedFormData);
-    
-    // Generate configuration content for validation
-    const httpdConf = generateHttpdConf(validatedConfig);
-    
-    // Write to temporary file for validation
-    const tempConfPath = path.join(HTTPD_BACKUP_DIR, `temp-httpd-${Date.now()}.conf`);
-    await ensureDirectoryExists(HTTPD_BACKUP_DIR);
-    await writeFile(tempConfPath, httpdConf);
-    
+  private generateVirtualHostConf(vhost: HttpVirtualHost): string {
+    const portSpec = vhost.ipAddress ? `${vhost.ipAddress}:${vhost.port}` : `*:${vhost.port}`;
+    let conf = `# Virtual Host: ${vhost.serverName}\n# Generated by HTTP Management System\n\n<VirtualHost ${portSpec}>\n    ServerName ${vhost.serverName}\n`;
+    if (vhost.serverAlias && vhost.serverAlias.length > 0) {
+      conf += `    ServerAlias ${vhost.serverAlias.join(' ')}\n`;
+    }
+    conf += `    DocumentRoot "${vhost.documentRoot}"\n`;
+    if (vhost.directoryIndex && vhost.directoryIndex.length > 0) {
+      conf += `    DirectoryIndex ${vhost.directoryIndex.join(' ')}\n`;
+    }
+    if (vhost.errorLog) {
+      conf += `    ErrorLog "${vhost.errorLog}"\n`;
+    }
+    if (vhost.customLog && vhost.customLog.length > 0) {
+      vhost.customLog.forEach((log: HttpLogConfig) => {
+        conf += `    CustomLog "${log.path}" ${log.format || 'combined'}\n`;
+      });
+    }
+    if (vhost.logLevel) {
+      conf += `    LogLevel ${vhost.logLevel}\n`;
+    }
+    if (vhost.ssl?.enabled) {
+      conf += `\n    # SSL Configuration\n    SSLEngine ${vhost.ssl.sslEngine ? 'on' : 'off'}\n`;
+      if (vhost.ssl.certificateFile) {
+        conf += `    SSLCertificateFile "${vhost.ssl.certificateFile}"\n`;
+      }
+      if (vhost.ssl.certificateKeyFile) {
+        conf += `    SSLCertificateKeyFile "${vhost.ssl.certificateKeyFile}"\n`;
+      }
+      if (vhost.ssl.certificateChainFile) {
+        conf += `    SSLCertificateChainFile "${vhost.ssl.certificateChainFile}"\n`;
+      }
+      if (vhost.ssl.sslProtocol && vhost.ssl.sslProtocol.length > 0) {
+        conf += `    SSLProtocol ${vhost.ssl.sslProtocol.join(' ')}\n`;
+      }
+      if (vhost.ssl.sslCipherSuite) {
+        conf += `    SSLCipherSuite "${vhost.ssl.sslCipherSuite}"\n`;
+      }
+    }
+    if (vhost.directories && vhost.directories.length > 0) {
+      vhost.directories.forEach((dir: HttpDirectoryConfig) => {
+        conf += `\n    <Directory "${dir.path}">\n`;
+        if (dir.allowOverride) {
+          conf += `        AllowOverride ${dir.allowOverride}\n`;
+        }
+        if (dir.options && dir.options.length > 0) {
+          conf += `        Options ${dir.options.join(' ')}\n`;
+        }
+        if (dir.require && dir.require.length > 0) {
+          dir.require.forEach((req: string) => {
+            conf += `        Require ${req}\n`;
+          });
+        }
+        if (dir.directoryIndex && dir.directoryIndex.length > 0) {
+          conf += `        DirectoryIndex ${dir.directoryIndex.join(' ')}\n`;
+        }
+        if (dir.customDirectives && dir.customDirectives.length > 0) {
+          dir.customDirectives.forEach((directive: HttpDirective) => {
+            if (directive.comment) {
+              conf += `        # ${directive.comment}\n`;
+            }
+            conf += `        ${directive.name} ${directive.value}\n`;
+          });
+        }
+        conf += `    </Directory>\n`;
+      });
+    }
+    if (vhost.redirects && vhost.redirects.length > 0) {
+      conf += '\n    # Redirects\n';
+      vhost.redirects.forEach((redirect: { from: string; to: string; type: 'permanent' | 'temporary' | 'seeother' | 'gone' }) => {
+        const redirectType = redirect.type === 'permanent' ? '301' : redirect.type === 'temporary' ? '302' : redirect.type === 'seeother' ? '303' : '410';
+        conf += `    Redirect ${redirectType} ${redirect.from} ${redirect.to}\n`;
+      });
+    }
+    if (vhost.rewrites && vhost.rewrites.length > 0) {
+      conf += '\n    # Rewrites\n    RewriteEngine On\n';
+      vhost.rewrites.forEach((rewrite: { pattern: string; substitution: string; flags?: string[] }) => {
+        const flags = rewrite.flags && rewrite.flags.length > 0 ? ` [${rewrite.flags.join(',')}]` : '';
+        conf += `    RewriteRule ${rewrite.pattern} ${rewrite.substitution}${flags}\n`;
+      });
+    }
+    if (vhost.customDirectives && vhost.customDirectives.length > 0) {
+      conf += '\n    # Custom directives\n';
+      vhost.customDirectives.forEach((directive: HttpDirective) => {
+        if (directive.comment) {
+          conf += `    # ${directive.comment}\n`;
+        }
+        conf += `    ${directive.name} ${directive.value}\n`;
+      });
+    }
+    conf += '</VirtualHost>\n';
+    return conf;
+  }
+
+  private async validateHttpdConfiguration(): Promise<void> {
     try {
       if (isProd) {
-        // Use Apache's configuration test with temporary file
-        await execAsync(`httpd -t -f ${tempConfPath}`);
+        await execAsync('httpd -t');
+      } else {
+        if (existsSync(HTTPD_CONF_PATH)) {
+          await readFile(HTTPD_CONF_PATH, 'utf8');
+        }
       }
-      
-      // Clean up temporary file
-      await fs.promises.unlink(tempConfPath);
-      
-      res.status(200).json({
-        message: 'HTTP configuration validation passed',
-        valid: true
-      });
+      logger.info('Apache configuration validation passed');
     } catch (error) {
-      // Clean up temporary file on error
-      try {
-        await fs.promises.unlink(tempConfPath);
-      } catch {}
-      
-      throw error;
+      logger.error('Apache configuration validation failed:', error);
+      throw new Error(`Configuration validation failed: ${(error as Error).message}`);
     }
-    
-  } catch (error) {
-    if (error instanceof ZodError) {
-      return res.status(400).json({ 
-        message: 'Validation Error', 
-        errors: error.errors,
-        valid: false
-      });
-    }
-    
-    logger.error('HTTP configuration validation failed:', error);
-    res.status(400).json({ 
-      message: 'Configuration validation failed',
-      error: error instanceof Error ? error.message : 'Unknown error',
-      valid: false
-    });
   }
-};
 
-/**
- * Get HTTP service status
- */
-export const getHttpServiceStatus = async (req: AuthRequest, res: Response) => {
-  try {
-    let status: 'running' | 'stopped' | 'failed' | 'unknown' = 'unknown';
-    let message = 'Service status unknown';
-    
-    if (isProd) {
-      try {
-        const isRunning = await serviceManager.status('httpd');
-        status = isRunning ? 'running' : 'stopped';
-        message = `Apache service is ${status}`;
-      } catch (error) {
-        status = 'failed';
-        message = `Failed to check service status: ${(error as Error).message}`;
+  private async reloadHttpdService(): Promise<void> {
+    try {
+      if (isProd) {
+        await serviceManager.restart('httpd');
+      } else {
+        logger.info('Development mode: skipping actual service reload');
       }
-    } else {
-      status = 'stopped';
-      message = 'Development mode - service not managed';
+      logger.info('Apache service reloaded successfully');
+    } catch (error) {
+      logger.error('Failed to reload Apache service:', error);
+      throw new Error(`Failed to reload Apache service: ${(error as Error).message}`);
     }
-    
-    const response: HttpServiceResponse = {
-      service: 'httpd',
-      status,
-      message
-    };
-    
-    res.status(200).json({
-      success: true,
-      data: response
-    });
-    
-  } catch (error) {
-    logger.error('Error getting HTTP service status:', error);
-    res.status(500).json({
-      success: false,
-      message: error instanceof Error ? error.message : 'Failed to get service status'
-    });
   }
-};
 
-/**
- * Control HTTP service (start, stop, restart, reload)
- */
-export const controlHttpService = async (req: AuthRequest, res: Response) => {
-  try {
-    const { action } = req.params;
-    
-    if (!['start', 'stop', 'restart', 'reload', 'status'].includes(action)) {
-      return res.status(400).json({
-        success: false,
-        message: `Invalid action: ${action}. Allowed actions: start, stop, restart, reload, status`
-      });
-    }
-    
-    let result = '';
-    let status: 'running' | 'stopped' | 'failed' | 'unknown' = 'unknown';
-    
-    if (isProd) {
+  public async getCurrentHttpConfiguration(req: AuthRequest, res: Response) {
+    try {
+      logger.debug(`Running in ${isProd ? 'PRODUCTION' : 'DEVELOPMENT'} mode`);
+      logger.debug(`Using HTTPD_CONF_PATH: ${HTTPD_CONF_PATH}`);
+      let serviceRunning = false;
+      if (isProd) {
+        try {
+          serviceRunning = await serviceManager.status('httpd');
+          logger.info(`Apache service is ${serviceRunning ? 'running' : 'not running'}`);
+        } catch (error) {
+          logger.info('Error checking Apache service status, assuming not running');
+        }
+      }
+      const httpdConfJsonPath = `${HTTPD_CONF_PATH}.json`;
+      let configJson = null;
       try {
-        switch (action) {
-          case 'start':
-            result = await serviceManager.start('httpd');
-            status = 'running';
-            break;
-          case 'stop':
-            result = await serviceManager.stop('httpd');
-            status = 'stopped';
-            break;
-          case 'restart':
-          case 'reload':
-            result = await serviceManager.restart('httpd');
-            status = 'running';
-            break;
-          case 'status':
-            const isRunning = await serviceManager.status('httpd');
-            status = isRunning ? 'running' : 'stopped';
-            result = await serviceManager.getDetailedStatus('httpd');
-            break;
+        const configData = await readFile(httpdConfJsonPath, 'utf8');
+        configJson = JSON.parse(configData);
+        logger.debug(`Successfully read httpd.conf.json from ${httpdConfJsonPath}`);
+      } catch (error) {
+        logger.info(`httpd.conf.json does not exist or is invalid at ${httpdConfJsonPath}`);
+      }
+      if (!configJson) {
+        logger.info('No existing JSON configuration found, returning default configuration');
+        const defaultConfig: HttpConfiguration = {
+          serverStatus: serviceRunning,
+          globalConfig: { ...DEFAULT_HTTPD_CONFIG, errorLog: '/var/log/httpd/error_log', logLevel: 'warn', modules: [{ name: 'mpm_event', enabled: true, required: true, description: 'Event-driven processing module (recommended for most configurations)', filename: 'modules/mod_mpm_event.so' }, { name: 'dir', enabled: true, required: true, description: 'Directory index handling', filename: 'modules/mod_dir.so' }, { name: 'mime', enabled: true, required: true, description: 'MIME type associations', filename: 'modules/mod_mime.so' }, { name: 'rewrite', enabled: true, required: false, description: 'URL rewriting engine', filename: 'modules/mod_rewrite.so' }, { name: 'ssl', enabled: true, required: false, description: 'SSL/TLS encryption support', filename: 'modules/mod_ssl.so' }, { name: 'alias', enabled: true, required: false, description: 'URL aliasing and redirection', filename: 'modules/mod_alias.so' }, { name: 'authz_core', enabled: true, required: true, description: 'Core authorization functionality', filename: 'modules/mod_authz_core.so' }, { name: 'authz_host', enabled: true, required: false, description: 'Host-based authorization', filename: 'modules/mod_authz_host.so' }, { name: 'log_config', enabled: true, required: false, description: 'Logging configuration', filename: 'modules/mod_log_config.so' }] },
+          virtualHosts: [{ id: crypto.randomUUID(), enabled: true, serverName: 'localhost', documentRoot: '/var/www/html', port: 80, directoryIndex: ['index.html', 'index.php'], errorLog: '/var/log/httpd/localhost_error.log', customLog: [{ type: 'access', path: '/var/log/httpd/localhost_access.log', format: 'combined' }] }]
+        };
+        return res.status(200).json({ message: 'Default configuration returned - no existing configuration found', data: defaultConfig });
+      }
+      configJson.serverStatus = serviceRunning;
+      logger.info('Successfully loaded current HTTP configuration from JSON file');
+      res.status(200).json({ message: 'Current HTTP configuration loaded successfully', data: configJson });
+    } catch (error) {
+      logger.error('Error getting HTTP configuration:', error);
+      res.status(500).json({ message: error instanceof Error ? error.message : 'Failed to get HTTP configuration' });
+    }
+  }
+
+  public async updateHttpConfiguration(req: AuthRequest, res: Response) {
+    try {
+      const validatedFormData: HttpConfigFormValues = httpConfigSchema.parse(req.body);
+      const validatedConfig: HttpConfiguration = transformHttpFormToApi(validatedFormData);
+      logger.info('Received HTTP Configuration:', { config: JSON.stringify(validatedConfig, null, 2) });
+      logger.debug(`Running in ${isProd ? 'PRODUCTION' : 'DEVELOPMENT'} mode`);
+      logger.debug(`Using HTTPD_CONF_PATH: ${HTTPD_CONF_PATH}`);
+      logger.debug(`Using HTTPD_VHOST_DIR: ${HTTPD_VHOST_DIR}`);
+      if (isProd) {
+        const canWriteConf = await this.checkWritePermission(HTTPD_CONF_PATH);
+        const canWriteVhost = await this.checkWritePermission(path.join(HTTPD_VHOST_DIR, 'test.conf'));
+        if (!canWriteConf || !canWriteVhost) {
+          return res.status(403).json({ message: 'Insufficient permissions', details: 'The server needs write access to HTTP configuration directories. Please run with sudo or check permissions.', paths: { canWriteConf, canWriteVhost, httpdConfPath: HTTPD_CONF_PATH, httpdVhostDir: HTTPD_VHOST_DIR } });
+        }
+      }
+      await this.ensureDirectoryExists(HTTPD_CONF_DIR);
+      await this.ensureDirectoryExists(HTTPD_VHOST_DIR);
+      await this.ensureDirectoryExists(HTTPD_BACKUP_DIR);
+      const httpdConf = this.generateHttpdConf(validatedConfig);
+      await this.writeFileWithBackup(HTTPD_CONF_PATH, httpdConf, { writeJsonVersion: true, jsonGenerator: () => JSON.stringify(validatedConfig, null, 2) });
+      try {
+        const vhostFiles = await fs.promises.readdir(HTTPD_VHOST_DIR);
+        for (const file of vhostFiles) {
+          if (file.endsWith('.conf') && !file.startsWith('.')) {
+            await fs.promises.unlink(path.join(HTTPD_VHOST_DIR, file));
+          }
         }
       } catch (error) {
-        status = 'failed';
-        result = (error as Error).message;
+        logger.warn('Could not clean up existing virtual host files:', error);
       }
-    } else {
-      result = `Development mode: ${action} action simulated`;
-      status = action === 'stop' ? 'stopped' : 'running';
+      for (const vhost of validatedConfig.virtualHosts) {
+        if (vhost.enabled) {
+          const vhostConf = this.generateVirtualHostConf(vhost);
+          const vhostFilePath = path.join(HTTPD_VHOST_DIR, `${vhost.serverName}.conf`);
+          logger.info(`Generating virtual host file for ${vhost.serverName} at ${vhostFilePath}`);
+          await this.writeFileWithBackup(vhostFilePath, vhostConf, { writeJsonVersion: true, jsonGenerator: () => JSON.stringify(vhost, null, 2) });
+        }
+      }
+      try {
+        await this.validateHttpdConfiguration();
+      } catch (error) {
+        return res.status(400).json({ message: 'HTTP configuration validation failed', error: error instanceof Error ? error.message : 'Unknown error' });
+      }
+      if (validatedConfig.serverStatus) {
+        try {
+          await this.reloadHttpdService();
+        } catch (error) {
+          return res.status(500).json({ message: 'Failed to reload HTTP server', error: error instanceof Error ? error.message : 'Unknown error', note: 'Configuration files were updated but service reload failed' });
+        }
+      } else {
+        logger.info('HTTP server is disabled, skipping reload');
+      }
+      res.status(200).json({ message: 'HTTP configuration updated successfully', data: validatedConfig });
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return res.status(400).json({ message: 'Validation Error', errors: error.errors });
+      }
+      logger.error('Error updating HTTP configuration:', error);
+      res.status(500).json({ message: error instanceof Error ? error.message : 'Failed to update HTTP configuration' });
     }
-    
-    const response: HttpServiceResponse = {
-      service: 'httpd',
-      status,
-      message: result || `Service ${action} completed`
-    };
-    
-    res.status(200).json({
-      success: true,
-      data: response,
-      message: `HTTP service ${action} completed successfully`
-    });
-    
-  } catch (error) {
-    logger.error(`Error performing HTTP service action:`, error);
-    res.status(500).json({
-      success: false,
-      message: error instanceof Error ? error.message : 'Failed to control service'
-    });
   }
-}; 
+
+  public async validateHttpConfiguration(req: AuthRequest, res: Response) {
+    try {
+      const validatedFormData: HttpConfigFormValues = httpConfigSchema.parse(req.body);
+      const validatedConfig: HttpConfiguration = transformHttpFormToApi(validatedFormData);
+      const httpdConf = this.generateHttpdConf(validatedConfig);
+      const tempConfPath = path.join(HTTPD_BACKUP_DIR, `temp-httpd-${Date.now()}.conf`);
+      await this.ensureDirectoryExists(HTTPD_BACKUP_DIR);
+      await writeFile(tempConfPath, httpdConf);
+      try {
+        if (isProd) {
+          await execAsync(`httpd -t -f ${tempConfPath}`);
+        }
+        await fs.promises.unlink(tempConfPath);
+        res.status(200).json({ message: 'HTTP configuration validation passed', valid: true });
+      } catch (error) {
+        try {
+          await fs.promises.unlink(tempConfPath);
+        } catch {}
+        throw error;
+      }
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return res.status(400).json({ message: 'Validation Error', errors: error.errors, valid: false });
+      }
+      logger.error('HTTP configuration validation failed:', error);
+      res.status(400).json({ message: 'Configuration validation failed', error: error instanceof Error ? error.message : 'Unknown error', valid: false });
+    }
+  }
+
+  public async getHttpServiceStatus(req: AuthRequest, res: Response) {
+    try {
+      let status: 'running' | 'stopped' | 'failed' | 'unknown' = 'unknown';
+      let message = 'Service status unknown';
+      if (isProd) {
+        try {
+          const isRunning = await serviceManager.status('httpd');
+          status = isRunning ? 'running' : 'stopped';
+          message = `Apache service is ${status}`;
+        } catch (error) {
+          status = 'failed';
+          message = `Failed to check service status: ${(error as Error).message}`;
+        }
+      } else {
+        status = 'stopped';
+        message = 'Development mode - service not managed';
+      }
+      const response: HttpServiceResponse = { service: 'httpd', status, message };
+      res.status(200).json({ success: true, data: response });
+    } catch (error) {
+      logger.error('Error getting HTTP service status:', error);
+      res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Failed to get service status' });
+    }
+  }
+
+  public async controlHttpService(req: AuthRequest, res: Response) {
+    try {
+      const { action } = req.params;
+      if (!['start', 'stop', 'restart', 'reload', 'status'].includes(action)) {
+        return res.status(400).json({ success: false, message: `Invalid action: ${action}. Allowed actions: start, stop, restart, reload, status` });
+      }
+      let result = '';
+      let status: 'running' | 'stopped' | 'failed' | 'unknown' = 'unknown';
+      if (isProd) {
+        try {
+          switch (action) {
+            case 'start':
+              result = await serviceManager.start('httpd');
+              status = 'running';
+              break;
+            case 'stop':
+              result = await serviceManager.stop('httpd');
+              status = 'stopped';
+              break;
+            case 'restart':
+            case 'reload':
+              result = await serviceManager.restart('httpd');
+              status = 'running';
+              break;
+            case 'status':
+              const isRunning = await serviceManager.status('httpd');
+              status = isRunning ? 'running' : 'stopped';
+              result = await serviceManager.getDetailedStatus('httpd');
+              break;
+          }
+        } catch (error) {
+          status = 'failed';
+          result = (error as Error).message;
+        }
+      } else {
+        result = `Development mode: ${action} action simulated`;
+        status = action === 'stop' ? 'stopped' : 'running';
+      }
+      const response: HttpServiceResponse = { service: 'httpd', status, message: result || `Service ${action} completed` };
+      res.status(200).json({ success: true, data: response, message: `HTTP service ${action} completed successfully` });
+    } catch (error) {
+      logger.error(`Error performing HTTP service action:`, error);
+      res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Failed to control service' });
+    }
+  }
+}
+
+export default new HttpController();
