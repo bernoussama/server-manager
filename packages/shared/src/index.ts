@@ -25,5 +25,27 @@ export {
   transformApiVirtualHostToUi,
   parsePortString,
   transformHttpFormToApi,
-  transformHttpApiToForm
+  transformHttpApiToForm,
+  // DHCP validators and transformers
+  dhcpIsValidIpAddress,
+  isValidMacAddress,
+  isValidNetmask,
+  isValidHostname,
+  isValidDomainName,
+  isValidLeaseTime,
+  isIpInNetwork,
+  isValidIpRange,
+  dhcpOptionSchema,
+  hostReservationSchema,
+  subnetSchema,
+  dhcpConfigSchema,
+  transformDhcpFormToApi,
+  transformDhcpApiToForm,
+  dhcpParseStringToArray,
+  arrayToCommaString,
+  validateDhcpFormData,
+  generateDefaultDhcpConfig,
+  calculateBroadcastAddress,
+  calculateNetworkAddress,
+  suggestIpRange
 } from './validators';

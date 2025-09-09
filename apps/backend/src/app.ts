@@ -8,6 +8,7 @@ import { corsMiddleware } from './middlewares/cors';
 import morganMiddleware from './middlewares/morgan';
 import dnsRoutes from './routes/dnsRoutes';
 import httpRoutes from './routes/httpRoutes';
+import dhcpRoutes from './routes/dhcpRoutes';
 import systemMetricsRoutes from './routes/systemMetricsRoutes';
 import logger from './lib/logger';
 
@@ -34,6 +35,7 @@ app.use('/api/services', serviceRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/dns', dnsRoutes);
 app.use('/api/http', httpRoutes);
+app.use('/api/dhcp', dhcpRoutes);
 app.use('/api/system-metrics', systemMetricsRoutes);
 
 // Error handling

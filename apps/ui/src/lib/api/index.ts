@@ -24,5 +24,6 @@ export const api: {
 export * from './services';
 export * from './users';
 export * from './systemMetrics';
+export * from './dhcp';
 
 export default api;
