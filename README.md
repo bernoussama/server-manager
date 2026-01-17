@@ -28,7 +28,11 @@ The application allows you to:
 <img width="1600" height="860" alt="image" src="https://github.com/user-attachments/assets/46ed9115-5e2e-4f70-ad08-4c01d18ce7d9" />
 
 - Configure HTTP virtual hosts and Apache settings
+  <img width="1600" height="860" alt="image" src="https://github.com/user-attachments/assets/473fc569-71a5-49fc-9599-56a1431e3abb" />
+
 - Configure DHCP server settings
+  <img width="1600" height="860" alt="image" src="https://github.com/user-attachments/assets/55dc9ddd-b6d6-44ae-b26c-aa290c7cd4d6" />
+
 - View service status and logs
 - Manage user accounts with authentication
 
