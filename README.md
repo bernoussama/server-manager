@@ -16,8 +16,17 @@ Server Manager is a powerful web application for monitoring and controlling esse
 The application allows you to:
 
 - Monitor system metrics (CPU, memory, disk usage, uptime)
+<img width="1600" height="860" alt="image" src="https://github.com/user-attachments/assets/e2ec6b5e-48bc-4573-a938-4c6a0825e947" />
+
+  
 - Start, stop, and restart network services (named, dhcpd, httpd)
+<img width="1600" height="860" alt="image" src="https://github.com/user-attachments/assets/00d614dd-2b1c-44a4-a58e-46ef6cc04c66" />
+
+  
 - Configure DNS zones and records with bind integration
+<img width="1600" height="860" alt="image" src="https://github.com/user-attachments/assets/d897c207-cfc0-42d1-82e0-aa3c8ecedb6a" />
+<img width="1600" height="860" alt="image" src="https://github.com/user-attachments/assets/46ed9115-5e2e-4f70-ad08-4c01d18ce7d9" />
+
 - Configure HTTP virtual hosts and Apache settings
 - Configure DHCP server settings
 - View service status and logs
