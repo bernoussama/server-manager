@@ -437,10 +437,11 @@ const reloadBindService = async (): Promise<void> => {
 /**
  * Update DNS configuration
  */
-export const updateDnsConfiguration = async (req: AuthRequest, res: Response) => {
-  try {
-    // Validate the request body
-    const validatedConfig: DnsConfiguration = dnsConfigurationSchema.parse(req.body);
+class DnsController {
+  public async updateDnsConfiguration(req: AuthRequest, res: Response) {
+    try {
+      // Validate the request body
+      const validatedConfig: DnsConfiguration = dnsConfigurationSchema.parse(req.body);
 
     // Convert string values to arrays where needed
     if (typeof validatedConfig.listenOn === 'string') {
@@ -652,12 +653,12 @@ export const updateDnsConfiguration = async (req: AuthRequest, res: Response) =>
   }
 };
 
-/**
- * Get the current DNS configuration
- */
-export const getCurrentDnsConfiguration = async (req: AuthRequest, res: Response) => {
-  try {
-    logger.debug(`Running in ${isProd ? 'PRODUCTION' : 'DEVELOPMENT'} mode`);
+  /**
+   * Get the current DNS configuration
+   */
+  public async getCurrentDnsConfiguration(req: AuthRequest, res: Response) {
+    try {
+      logger.debug(`Running in ${isProd ? 'PRODUCTION' : 'DEVELOPMENT'} mode`);
     logger.debug(`Using BIND_CONF_PATH: ${BIND_CONF_PATH}`);
     logger.debug(`Using ZONE_CONF_PATH: ${ZONE_CONF_PATH}`);
     
@@ -824,8 +825,11 @@ export const getCurrentDnsConfiguration = async (req: AuthRequest, res: Response
     });
   } catch (error) {
     logger.error('Error getting DNS configuration:', error);
-    res.status(500).json({ 
-      message: error instanceof Error ? error.message : 'Failed to get DNS configuration' 
+    res.status(500).json({
+      message: error instanceof Error ? error.message : 'Failed to get DNS configuration'
     });
   }
-}; 
+  }
+}
+
+export default new DnsController();
