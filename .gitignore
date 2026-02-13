@@ -5,7 +5,6 @@ dist
 **/dist
 .vagrant
 .env
-**/meta
 **/.vite
 .turbo
 apps/backend/test/dns
